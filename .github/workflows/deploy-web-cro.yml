@@ -45,11 +45,8 @@ jobs:
           EOF
 
       - name: Push dist to deploy branch
-        run: |
-          cd apps/web-cro/dist
-          git init
-          git config user.email "github-actions@github.com"
-          git config user.name "GitHub Actions"
-          git add -A
-          git commit --allow-empty -m "deploy: build $(date +'%Y-%m-%d %H:%M:%S')"
-          git push --force https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git HEAD:deploy
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          branch: deploy
+          folder: apps/web-cro/dist
+          clean: true
