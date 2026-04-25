@@ -1,0 +1,6 @@
+{
+  "buildCommand": "pnpm --filter=@bresca/web-cro build",
+  "outputDirectory": "apps/web-cro/dist",
+  "installCommand": "pnpm install",
+  "framework": null
+}

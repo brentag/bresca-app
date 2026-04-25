@@ -1,0 +1,1300 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Bresca App Prototype — UX Documentation</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Space Grotesk', sans-serif; background: #fff; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+  @page { size: A4 landscape; margin: 0; }
+  @media print {
+    body { background: #fff; }
+    .page { page-break-after: always; break-after: page; }
+    .page:last-child { page-break-after: auto; break-after: auto; }
+  }
+
+  :root {
+    --g: #00C87A; --b: #4B6EF5; --t: #00B8D4;
+    --grad: linear-gradient(135deg, #00C87A 0%, #00B8D4 50%, #4B6EF5 100%);
+    --dark: #0A0C14; --card: #151C2E;
+    --fg1: #F0F4FF; --fg2: #8899BB; --fg3: #4A5578;
+    --light-bg: #F7F9FC; --light-border: #E8EDF5;
+    --text1: #0F172A; --text2: #4A5568; --text3: #94A3B8;
+  }
+
+  /* ── Page layout ────────────────────────── */
+  .page {
+    width: 297mm; height: 210mm;
+    display: flex; flex-direction: column;
+    overflow: hidden; position: relative;
+  }
+
+  /* Cover */
+  .page-cover {
+    background: var(--dark);
+    align-items: center; justify-content: center;
+  }
+
+  /* Section header pages */
+  .page-section {
+    background: var(--dark);
+    padding: 28mm 22mm;
+    justify-content: center;
+  }
+
+  /* Screen showcase pages */
+  .page-screens {
+    background: #F4F6FA;
+    padding: 10mm 12mm 8mm;
+    gap: 6mm;
+  }
+
+  /* ── Phone mockup ────────────────────────── */
+  .phone {
+    width: 44mm; flex-shrink: 0;
+    display: flex; flex-direction: column;
+  }
+  .phone-label {
+    font-size: 7pt; font-weight: 600; color: var(--text2);
+    text-transform: uppercase; letter-spacing: 0.06em;
+    margin-bottom: 3mm; text-align: center;
+  }
+  .phone-label .screen-tag {
+    display: block; font-size: 6pt; font-weight: 400;
+    color: var(--text3); margin-top: 1mm; text-transform: none; letter-spacing: 0;
+  }
+  .phone-shell {
+    background: #1A1A2E;
+    border-radius: 8mm;
+    padding: 1.5mm;
+    box-shadow: 0 4mm 12mm rgba(0,0,0,0.25), 0 0 0 0.2mm rgba(255,255,255,0.08);
+    flex: 1;
+  }
+  .phone-inner {
+    background: #fff;
+    border-radius: 6.5mm;
+    overflow: hidden;
+    height: 100%;
+    display: flex; flex-direction: column;
+    position: relative;
+  }
+  .phone-notch {
+    position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+    width: 20mm; height: 5mm; background: #1A1A2E;
+    border-radius: 0 0 3mm 3mm; z-index: 10;
+  }
+  .phone-status {
+    height: 7mm; background: #fff; padding: 0 4mm;
+    display: flex; align-items: flex-end; justify-content: space-between;
+    padding-bottom: 1mm; flex-shrink: 0;
+  }
+  .phone-status .time { font-size: 5.5pt; font-weight: 700; color: var(--text1); }
+  .phone-status .icons { display: flex; gap: 1mm; align-items: center; }
+  .phone-status .icons span { display: block; background: var(--text1); border-radius: 0.3mm; }
+  .phone-content { flex: 1; overflow: hidden; position: relative; }
+  .phone-home-bar {
+    height: 4mm; background: #fff;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .phone-home-bar span { display: block; width: 15mm; height: 1mm; background: rgba(0,0,0,0.2); border-radius: 1mm; }
+
+  /* ── Screen content styles ────────────────── */
+  .s-bg { position: absolute; inset: 0; }
+  .s-pad { padding: 3mm; }
+  .s-hdr {
+    background: #fff; padding: 2mm 3mm 1.5mm;
+    border-bottom: 0.3mm solid var(--light-border); flex-shrink: 0;
+  }
+  .s-hdr .title { font-size: 7pt; font-weight: 700; color: var(--text1); }
+  .s-hdr .sub   { font-size: 5pt; color: var(--text3); margin-top: 0.3mm; }
+  .s-body { padding: 2mm 3mm; flex: 1; overflow: hidden; }
+  .s-tab-bar {
+    display: flex; background: #fff;
+    border-top: 0.3mm solid var(--light-border);
+    padding: 1mm 0; flex-shrink: 0;
+  }
+  .s-tab { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 0.5mm; }
+  .s-tab-dot { width: 3.5mm; height: 3.5mm; border-radius: 50%; }
+  .s-tab-lbl { font-size: 4pt; color: var(--text3); }
+  .s-tab.active .s-tab-dot { background: var(--g); }
+  .s-tab.active .s-tab-lbl { color: var(--g); font-weight: 600; }
+  .s-tab:not(.active) .s-tab-dot { background: var(--light-border); }
+
+  .s-card {
+    background: #fff; border-radius: 2mm; padding: 2mm;
+    box-shadow: 0 0.3mm 2mm rgba(0,0,0,0.06); border: 0.2mm solid var(--light-border);
+    margin-bottom: 1.5mm;
+  }
+  .s-card.dark { background: var(--card); border-color: rgba(255,255,255,0.07); }
+  .s-icon { width: 6mm; height: 6mm; border-radius: 1.5mm; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .s-pill { display: inline-block; font-size: 4.5pt; font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase; padding: 0.5mm 2mm; border-radius: 100mm; }
+  .s-stat { font-size: 12pt; font-weight: 700; line-height: 1; }
+  .s-label { font-size: 4pt; color: var(--text3); margin-top: 0.5mm; }
+  .grad-text { background: var(--grad); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .grad-bg { background: var(--grad); }
+
+  /* ── Page header strip ────────────────────── */
+  .page-hdr {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 5mm; flex-shrink: 0;
+  }
+  .page-hdr .flow-title { font-size: 10pt; font-weight: 700; color: var(--text1); }
+  .page-hdr .flow-sub   { font-size: 7pt; color: var(--text3); margin-top: 0.5mm; }
+  .page-hdr .page-num   { font-size: 7pt; color: var(--text3); font-weight: 500; }
+
+  .screens-row {
+    display: flex; gap: 5mm; flex: 1; align-items: flex-start;
+  }
+
+  /* ── Annotation labels ─────────────────────── */
+  .annotation {
+    font-size: 5.5pt; color: var(--text2); line-height: 1.5;
+    margin-top: 1.5mm; padding: 1.5mm 2mm;
+    background: rgba(0,200,122,0.06);
+    border-left: 0.8mm solid var(--g);
+    border-radius: 0 1mm 1mm 0;
+  }
+
+  /* ── CRO web screen ───────────────────────── */
+  .web-screen {
+    background: #080809; border-radius: 3mm; overflow: hidden;
+    display: flex; flex-direction: column;
+    box-shadow: 0 4mm 12mm rgba(0,0,0,0.3);
+  }
+  .web-bar {
+    display: flex; align-items: center; gap: 1.5mm;
+    padding: 2mm 3mm; background: #0F1320;
+    border-bottom: 0.2mm solid rgba(255,255,255,0.07); flex-shrink: 0;
+  }
+  .web-dot { width: 2mm; height: 2mm; border-radius: 50%; }
+  .web-content { flex: 1; padding: 3mm; }
+
+  /* ── Divider ─────────────────────────────── */
+  .vdivider { width: 0.2mm; background: var(--light-border); align-self: stretch; margin: 0 3mm; }
+
+  /* Cover specific */
+  .cover-tagline {
+    font-size: 7pt; font-weight: 600; letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--g); margin-bottom: 6mm;
+  }
+  .cover-h1 { font-size: 24pt; font-weight: 700; line-height: 1.1; color: #F0F4FF; letter-spacing: -0.03em; margin-bottom: 4mm; }
+  .cover-body { font-size: 9pt; color: var(--fg2); line-height: 1.65; max-width: 120mm; margin-bottom: 8mm; }
+  .cover-stats { display: flex; gap: 10mm; }
+  .cover-stat-n { font-size: 20pt; font-weight: 700; line-height: 1; }
+  .cover-stat-l { font-size: 7pt; color: var(--fg2); margin-top: 1mm; }
+
+  /* Section page */
+  .section-num { font-size: 48pt; font-weight: 700; line-height: 1; letter-spacing: -0.04em; margin-bottom: 2mm; }
+  .section-title { font-size: 18pt; font-weight: 700; color: #F0F4FF; margin-bottom: 3mm; }
+  .section-desc { font-size: 9pt; color: var(--fg2); line-height: 1.7; max-width: 100mm; }
+  .section-pills { display: flex; flex-wrap: wrap; gap: 2mm; margin-top: 5mm; }
+  .section-pill { font-size: 7pt; font-weight: 600; padding: 1mm 3mm; border-radius: 100mm; background: rgba(0,200,122,0.1); color: var(--g); border: 0.3mm solid rgba(0,200,122,0.2); }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════
+     PAGE 1 · COVER
+═══════════════════════════════════════ -->
+<div class="page page-cover">
+  <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 20% 50%,rgba(0,200,122,0.08) 0%,transparent 60%),radial-gradient(ellipse at 80% 50%,rgba(75,110,245,0.07) 0%,transparent 60%)"></div>
+  <div style="position:absolute;bottom:0;left:0;right:0;height:0.5mm;background:linear-gradient(90deg,#00C87A,#00B8D4,#4B6EF5)"></div>
+  <!-- Dot grid -->
+  <div style="position:absolute;inset:0;background-image:radial-gradient(circle,rgba(255,255,255,0.04) 1px,transparent 1px);background-size:8mm 8mm;pointer-events:none"></div>
+
+  <div style="position:relative;display:grid;grid-template-columns:1fr 1fr;height:100%">
+    <!-- Left -->
+    <div style="display:flex;flex-direction:column;justify-content:center;padding:20mm 16mm 20mm 22mm">
+      <img src="assets/logo-horizontal-bicolor.png" style="height:14mm;margin-bottom:10mm;object-fit:contain;object-position:left">
+      <p class="cover-tagline">UX/UI Prototype · 2026</p>
+      <h1 class="cover-h1">Patient Data Network<br><span class="grad-text">Bresca App</span></h1>
+      <p class="cover-body">Prototipo navegable de baja fidelidad para el producto Bresca — plataforma de dos caras que combina un vault de salud personal (B2C) con infraestructura de datos para investigación clínica (B2B/CRO).</p>
+      <div class="cover-stats">
+        <div><div class="cover-stat-n grad-text">20+</div><div class="cover-stat-l" style="color:#8899BB">Pantallas</div></div>
+        <div><div class="cover-stat-n" style="color:#00B8D4">7</div><div class="cover-stat-l" style="color:#8899BB">Flows clave</div></div>
+        <div><div class="cover-stat-n" style="color:#4B6EF5">2</div><div class="cover-stat-l" style="color:#8899BB">Interfaces (B2C + CRO)</div></div>
+      </div>
+    </div>
+    <!-- Right: screen grid preview -->
+    <div style="display:flex;align-items:center;justify-content:center;padding:12mm;gap:5mm">
+      <!-- Mini phone 1 -->
+      <div style="width:28mm;height:56mm;background:#1A1A2E;border-radius:5mm;padding:1mm;box-shadow:0 4mm 12mm rgba(0,0,0,0.4)">
+        <div style="background:#fff;border-radius:4mm;height:100%;overflow:hidden">
+          <div style="height:5mm;background:#fff;border-bottom:0.2mm solid #E8EDF5;display:flex;align-items:center;padding:0 2.5mm;justify-content:space-between">
+            <span style="font-size:4pt;font-weight:700;color:#0F172A">9:41</span>
+          </div>
+          <div style="padding:2.5mm;background:#F7F9FC;height:calc(100% - 5mm)">
+            <div style="background:linear-gradient(135deg,#00C87A,#4B6EF5);border-radius:2mm;height:8mm;display:flex;align-items:center;justify-content:center;margin-bottom:2mm">
+              <div style="width:5mm;height:5mm;background:rgba(255,255,255,0.3);border-radius:1mm"></div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1mm;margin-bottom:2mm">
+              <div style="background:#00C87A;border-radius:1mm;height:6mm;opacity:0.9"></div>
+              <div style="background:#4B6EF5;border-radius:1mm;height:6mm;opacity:0.9"></div>
+              <div style="background:#00B8D4;border-radius:1mm;height:6mm;opacity:0.9"></div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1mm;margin-bottom:2mm">
+              <div style="background:#fff;border-radius:1.5mm;height:7mm;padding:1.5mm"><div style="width:4mm;height:1.5mm;background:#E2E8F0;border-radius:1mm;margin-bottom:0.8mm"></div><div style="width:6mm;height:1mm;background:#E2E8F0;border-radius:1mm"></div></div>
+              <div style="background:#fff;border-radius:1.5mm;height:7mm;padding:1.5mm"><div style="width:4mm;height:1.5mm;background:#E2E8F0;border-radius:1mm;margin-bottom:0.8mm"></div><div style="width:6mm;height:1mm;background:#E2E8F0;border-radius:1mm"></div></div>
+            </div>
+            <div style="background:#fff;border-radius:1.5mm;height:4mm;margin-bottom:1mm"></div>
+            <div style="background:#fff;border-radius:1.5mm;height:4mm;margin-bottom:1mm"></div>
+            <div style="background:#fff;border-radius:1.5mm;height:4mm"></div>
+          </div>
+        </div>
+      </div>
+      <!-- Mini phone 2 (dark) -->
+      <div style="width:28mm;height:56mm;background:#1A1A2E;border-radius:5mm;padding:1mm;box-shadow:0 4mm 12mm rgba(0,0,0,0.4);margin-top:6mm">
+        <div style="background:#080809;border-radius:4mm;height:100%;overflow:hidden;padding:2mm">
+          <div style="background:#151C2E;border-radius:1.5mm;height:7mm;margin-bottom:1.5mm;padding:1.5mm;display:flex;align-items:center;gap:1mm">
+            <div style="width:4mm;height:4mm;border-radius:1mm;background:#00C87A;opacity:0.8"></div>
+            <div style="flex:1"><div style="width:100%;height:1mm;background:rgba(255,255,255,0.1);border-radius:1mm;margin-bottom:0.5mm"></div><div style="width:60%;height:1mm;background:rgba(255,255,255,0.06);border-radius:1mm"></div></div>
+          </div>
+          <div style="background:#151C2E;border-radius:1.5mm;height:7mm;margin-bottom:1.5mm;padding:1.5mm;display:flex;align-items:center;gap:1mm">
+            <div style="width:4mm;height:4mm;border-radius:1mm;background:#4B6EF5;opacity:0.8"></div>
+            <div style="flex:1"><div style="width:100%;height:1mm;background:rgba(255,255,255,0.1);border-radius:1mm;margin-bottom:0.5mm"></div><div style="width:70%;height:1mm;background:rgba(255,255,255,0.06);border-radius:1mm"></div></div>
+          </div>
+          <div style="background:#151C2E;border-radius:1.5mm;height:7mm;margin-bottom:1.5mm;padding:1.5mm;display:flex;align-items:center;gap:1mm">
+            <div style="width:4mm;height:4mm;border-radius:1mm;background:#00B8D4;opacity:0.8"></div>
+            <div style="flex:1"><div style="width:100%;height:1mm;background:rgba(255,255,255,0.1);border-radius:1mm;margin-bottom:0.5mm"></div><div style="width:50%;height:1mm;background:rgba(255,255,255,0.06);border-radius:1mm"></div></div>
+          </div>
+          <div style="background:linear-gradient(135deg,rgba(0,200,122,0.15),rgba(75,110,245,0.15));border-radius:1.5mm;height:18mm;margin-top:2mm;display:flex;align-items:center;justify-content:center">
+            <div style="font-size:10pt;font-weight:700;background:linear-gradient(135deg,#00C87A,#4B6EF5);-webkit-background-clip:text;-webkit-text-fill-color:transparent">CRO</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     PAGE 2 · ONBOARDING FLOW
+═══════════════════════════════════════ -->
+<div class="page page-screens">
+  <div class="page-hdr">
+    <div><div class="flow-title">01 · Onboarding — Trust-First</div><div class="flow-sub">6 pantallas · valor antes de pedir datos · consentimiento al final, nunca al principio</div></div>
+    <div class="page-num">2 / 9</div>
+  </div>
+  <div class="screens-row">
+
+    <!-- Screen: Welcome -->
+    <div class="phone">
+      <div class="phone-label">Bienvenida<span class="screen-tag">Primer contacto con la marca</span></div>
+      <div class="phone-shell">
+        <div class="phone-inner">
+          <div class="phone-notch"></div>
+          <div class="phone-status"><span class="time">9:41</span><div class="icons"><span style="width:3mm;height:1.5mm"></span></div></div>
+          <div class="phone-content" style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:3mm;text-align:center;background:#fff">
+            <div style="width:10mm;height:10mm;border-radius:3mm;background:linear-gradient(135deg,#00C87A,#4B6EF5);display:flex;align-items:center;justify-content:center;margin-bottom:3mm;box-shadow:0 2mm 6mm rgba(0,200,122,0.3)">
+              <div style="width:5mm;height:5mm;border:1mm solid rgba(255,255,255,0.8);border-radius:50%"></div>
+            </div>
+            <img src="assets/logo-horizontal-bicolor.png" style="height:4mm;margin-bottom:4mm;object-fit:contain">
+            <div style="font-size:7pt;font-weight:700;color:#0F172A;line-height:1.2;margin-bottom:2mm">Tu historial médico,<br>siempre con vos.</div>
+            <div style="font-size:5pt;color:#4A5568;line-height:1.5;margin-bottom:4mm;max-width:32mm">Bresca guarda y organiza todos tus estudios sin importar dónde los hiciste.</div>
+            <div style="display:flex;gap:1.5mm;justify-content:center;margin-bottom:3mm">
+              <div style="width:4mm;height:1.2mm;border-radius:1mm;background:linear-gradient(135deg,#00C87A,#4B6EF5)"></div>
+              <div style="width:1.5mm;height:1.2mm;border-radius:1mm;background:#E2E8F0"></div>
+              <div style="width:1.5mm;height:1.2mm;border-radius:1mm;background:#E2E8F0"></div>
+            </div>
+            <div style="width:100%;padding:2.5mm;border-radius:6mm;background:linear-gradient(135deg,#00C87A,#4B6EF5);color:#fff;font-size:5.5pt;font-weight:700;text-align:center">Comenzar →</div>
+          </div>
+          <div class="phone-home-bar"><span></span></div>
+        </div>
+      </div>
+      <div class="annotation">✓ Valor claro antes de cualquier dato · Logo y tagline presentes · Sin formularios</div>
+    </div>
+
+    <!-- Screen: Value Prop (Vault) -->
+    <div class="phone">
+      <div class="phone-label">Propuesta de valor<span class="screen-tag">Vault — pantalla 2/6</span></div>
+      <div class="phone-shell">
+        <div class="phone-inner">
+          <div class="phone-notch"></div>
+          <div class="phone-status"><span class="time">9:41</span></div>
+          <div class="phone-content" style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:3mm;text-align:center;background:#fff">
+            <div style="width:13mm;height:13mm;border-radius:3.5mm;background:rgba(0,200,122,0.1);border:0.4mm solid rgba(0,200,122,0.2);display:flex;align-items:center;justify-content:center;margin-bottom:3mm">
+              <div style="width:7mm;height:6mm;border:1mm solid #00C87A;border-radius:1mm"></div>
+            </div>
+            <div style="font-size:5pt;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:#00C87A;padding:0.8mm 2.5mm;background:rgba(0,200,122,0.1);border-radius:100mm;margin-bottom:2mm">Vault de Salud</div>
+            <div style="font-size:7pt;font-weight:700;color:#0F172A;line-height:1.2;margin-bottom:2mm">Todos tus estudios<br>en un solo lugar</div>
+            <div style="font-size:5pt;color:#4A5568;line-height:1.5;max-width:32mm;margin-bottom:4mm">Subí radiografías, análisis, recetas y ecografías. Bresca los organiza automáticamente.</div>
+            <div style="display:flex;gap:1.5mm;justify-content:center;margin-bottom:3mm">
+              <div style="width:1.5mm;height:1.2mm;border-radius:1mm;background:#E2E8F0"></div>
+              <div style="width:4mm;height:1.2mm;border-radius:1mm;background:linear-gradient(135deg,#00C87A,#4B6EF5)"></div>
+              <div style="width:1.5mm;height:1.2mm;border-radius:1mm;background:#E2E8F0"></div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:1.5mm;width:100%">
+              <div style="padding:2.5mm;border-radius:6mm;background:linear-gradient(135deg,#00C87A,#4B6EF5);color:#fff;font-size:5.5pt;font-weight:700;text-align:center">Siguiente →</div>
+              <div style="padding:2mm;border-radius:6mm;border:0.3mm solid #E2E8F0;color:#4A5568;font-size:5.5pt;text-align:center">Saltar</div>
+            </div>
+          </div>
+          <div class="phone-home-bar"><span></span></div>
+        </div>
+      </div>
+      <div class="annotation">Skip visible → sin forzar el onboarding · Progressive disclosure</div>
+    </div>
+
+    <!-- Screen: Profile Setup -->
+    <div class="phone">
+      <div class="phone-label">Crear perfil<span class="screen-tag">Pantalla 5/6 · mínimo de datos</span></div>
+      <div class="phone-shell">
+        <div class="phone-inner">
+          <div class="phone-notch"></div>
+          <div class="phone-status"><span class="time">9:41</span></div>
+          <div class="phone-content" style="display:flex;flex-direction:column;padding:2mm 3mm;background:#fff;overflow:hidden">
+            <div style="display:flex;gap:1mm;margin-bottom:3mm">
+              <div style="width:4mm;height:1.2mm;border-radius:1mm;background:linear-gradient(135deg,#00C87A,#4B6EF5)"></div>
+              <div style="width:1.5mm;height:1.2mm;border-radius:1mm;background:#E2E8F0"></div>
+            </div>
+            <div style="font-size:7pt;font-weight:700;color:#0F172A;margin-bottom:1mm">Tu perfil</div>
+            <div style="font-size:5pt;color:#94A3B8;margin-bottom:3mm">Solo para personalizar tu experiencia.</div>
+            <div style="margin-bottom:2mm">
+              <div style="font-size:4.5pt;font-weight:600;color:#4A5568;letter-spacing:0.04em;margin-bottom:1mm;text-transform:uppercase">NOMBRE</div>
+              <div style="height:5mm;border-radius:1.5mm;border:0.4mm solid #E8EDF5;padding:0 2mm;font-size:5pt;color:#94A3B8;display:flex;align-items:center">¿Cómo te llamás?</div>
+            </div>
+            <div style="margin-bottom:2mm">
+              <div style="font-size:4.5pt;font-weight:600;color:#4A5568;letter-spacing:0.04em;margin-bottom:1mm;text-transform:uppercase">AÑO DE NACIMIENTO</div>
+              <div style="height:5mm;border-radius:1.5mm;border:0.4mm solid #E8EDF5;padding:0 2mm;font-size:5pt;color:#94A3B8;display:flex;align-items:center">ej. 1985</div>
+            </div>
+            <div style="margin-bottom:3mm">
+              <div style="font-size:4.5pt;font-weight:600;color:#4A5568;letter-spacing:0.04em;margin-bottom:1.5mm;text-transform:uppercase">CONDICIONES (opcional)</div>
+              <div style="display:flex;flex-wrap:wrap;gap:1mm">
+                <div style="padding:0.8mm 2mm;border-radius:100mm;border:0.4mm solid #00C87A;background:rgba(0,200,122,0.1);color:#00C87A;font-size:4.5pt;font-weight:600">Diabetes</div>
+                <div style="padding:0.8mm 2mm;border-radius:100mm;border:0.4mm solid #E8EDF5;color:#4A5568;font-size:4.5pt">Hipertensión</div>
+                <div style="padding:0.8mm 2mm;border-radius:100mm;border:0.4mm solid #E8EDF5;color:#4A5568;font-size:4.5pt">Oncología</div>
+                <div style="padding:0.8mm 2mm;border-radius:100mm;border:0.4mm solid #E8EDF5;color:#4A5568;font-size:4.5pt">Ninguna</div>
+              </div>
+            </div>
+            <div style="background:#F0FDF4;border-radius:1.5mm;padding:1.5mm 2mm;display:flex;gap:1mm;margin-bottom:2.5mm">
+              <div style="width:2mm;height:2mm;border-radius:50%;background:#00C87A;flex-shrink:0;margin-top:0.3mm"></div>
+              <div style="font-size:4.5pt;color:#166534;line-height:1.5">Tu información es privada. Nunca la compartimos sin tu permiso.</div>
+            </div>
+            <div style="padding:2.5mm;border-radius:6mm;background:linear-gradient(135deg,#00C87A,#4B6EF5);color:#fff;font-size:5.5pt;font-weight:700;text-align:center">Continuar →</div>
+          </div>
+          <div class="phone-home-bar"><span></span></div>
+        </div>
+      </div>
+      <div class="annotation">Condiciones opcionales · Privacy notice visible · Sin email ni contraseña aún</div>
+    </div>
+
+    <!-- Screen: Consent Intro -->
+    <div class="phone">
+      <div class="phone-label">Intro de consentimiento<span class="screen-tag">Pantalla 6/6 · siempre al final</span></div>
+      <div class="phone-shell">
+        <div class="phone-inner">
+          <div class="phone-notch"></div>
+          <div class="phone-status"><span class="time">9:41</span></div>
+          <div class="phone-content" style="display:flex;flex-direction:column;padding:2mm 3mm;background:#fff;overflow:hidden">
+            <div style="width:7mm;height:7mm;border-radius:2mm;background:rgba(75,110,245,0.1);display:flex;align-items:center;justify-content:center;margin-bottom:2mm">
+              <div style="width:3.5mm;height:3.5mm;border:0.5mm solid #4B6EF5;border-radius:50%"></div>
+            </div>
+            <div style="font-size:7pt;font-weight:700;color:#0F172A;margin-bottom:1.5mm">Sobre la investigación médica</div>
+            <div style="font-size:5pt;color:#4A5568;line-height:1.55;margin-bottom:3mm">Bresca colabora con organizaciones de investigación. Podés elegir contribuir con tus datos de forma anónima.</div>
+            <div style="display:flex;flex-direction:column;gap:1.8mm;margin-bottom:3mm">
+              <div style="display:flex;gap:1.5mm;align-items:flex-start"><div style="width:3mm;height:3mm;border-radius:50%;background:rgba(0,200,122,0.15);border:0.3mm solid rgba(0,200,122,0.3);display:flex;align-items:center;justify-content:center;flex-shrink:0"><div style="width:1.5mm;height:1mm;border-bottom:0.4mm solid #00C87A;border-right:0.4mm solid #00C87A;transform:rotate(45deg);margin-top:-0.3mm"></div></div><span style="font-size:5pt;color:#0F172A">Siempre es optativo</span></div>
+              <div style="display:flex;gap:1.5mm;align-items:flex-start"><div style="width:3mm;height:3mm;border-radius:50%;background:rgba(0,200,122,0.15);border:0.3mm solid rgba(0,200,122,0.3);flex-shrink:0"></div><span style="font-size:5pt;color:#0F172A">Tus datos nunca se identifican</span></div>
+              <div style="display:flex;gap:1.5mm;align-items:flex-start"><div style="width:3mm;height:3mm;border-radius:50%;background:rgba(0,200,122,0.15);border:0.3mm solid rgba(0,200,122,0.3);flex-shrink:0"></div><span style="font-size:5pt;color:#0F172A">Podés revocar en cualquier momento</span></div>
+            </div>
+            <div style="font-size:4pt;color:#94A3B8;text-align:center;margin-bottom:2mm">Podés cambiarlo en Configuración en cualquier momento.</div>
+            <div style="display:flex;flex-direction:column;gap:1.5mm">
+              <div style="padding:2.5mm;border-radius:6mm;background:linear-gradient(135deg,#00C87A,#4B6EF5);color:#fff;font-size:5.5pt;font-weight:700;text-align:center">¡Entendido, empezar!</div>
+              <div style="padding:2mm;border-radius:6mm;border:0.3mm solid #E2E8F0;color:#4A5568;font-size:5.5pt;text-align:center">Configurar más tarde</div>
+            </div>
+          </div>
+          <div class="phone-home-bar"><span></span></div>
+        </div>
+      </div>
+      <div class="annotation">Consentimiento de investigación: opcional, al final, con "skip" claro — nunca al inicio</div>
+    </div>
+
+    <!-- Principle callout -->
+    <div style="display:flex;flex-direction:column;gap:3mm;width:38mm;flex-shrink:0;margin-top:12mm">
+      <div style="font-size:6pt;font-weight:700;color:#00C87A;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:1mm">Principios aplicados</div>
+      <div style="background:#fff;border-radius:2mm;padding:2mm;border:0.2mm solid var(--light-border)">
+        <div style="font-size:6pt;font-weight:700;color:#0F172A;margin-bottom:1mm">🛡 Trust First</div>
+        <div style="font-size:5pt;color:#4A5568;line-height:1.5">Valor claro antes de cualquier solicitud de datos. Consent de investigación siempre último paso.</div>
+      </div>
+      <div style="background:#fff;border-radius:2mm;padding:2mm;border:0.2mm solid var(--light-border)">
+        <div style="font-size:6pt;font-weight:700;color:#0F172A;margin-bottom:1mm">👁 Disclosure Progresiva</div>
+        <div style="font-size:5pt;color:#4A5568;line-height:1.5">6 pasos. Skip disponible desde la pantalla 2. Sin email ni contraseña hasta que el usuario elige avanzar.</div>
+      </div>
+      <div style="background:#fff;border-radius:2mm;padding:2mm;border:0.2mm solid var(--light-border)">
+        <div style="font-size:6pt;font-weight:700;color:#0F172A;margin-bottom:1mm">❤️ Seguridad Emocional</div>
+        <div style="font-size:5pt;color:#4A5568;line-height:1.5">Tono cálido, sin lenguaje clínico. El ícono de corazón y el saludo humanizado reducen la ansiedad.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     PAGE 3 · HOME + VAULT
+═══════════════════════════════════════ -->
+<div class="page page-screens">
+  <div class="page-hdr">
+    <div><div class="flow-title">02 · Home Dashboard + Health Vault</div><div class="flow-sub">Núcleo de la experiencia · acceso a todo desde la pantalla principal</div></div>
+    <div class="page-num">3 / 9</div>
+  </div>
+  <div class="screens-row">
+    <!-- Home -->
+    <div class="phone">
+      <div class="phone-label">Home / Dashboard<span class="screen-tag">Pantalla principal</span></div>
+      <div class="phone-shell">
+        <div class="phone-inner">
+          <div class="phone-notch"></div>
+          <div class="phone-status"><span class="time">9:41</span></div>
+          <div class="phone-content" style="display:flex;flex-direction:column;background:#F7F9FC;overflow:hidden">
+            <!-- Header -->
+            <div style="background:#fff;padding:2mm 3mm 1.5mm;border-bottom:0.2mm solid #F0F4FA;flex-shrink:0">
+              <div style="display:flex;justify-content:space-between;align-items:center">
+                <div><div style="font-size:4.5pt;color:#94A3B8">Buenos días,</div><div style="font-size:7pt;font-weight:700;color:#0F172A">María 👋</div></div>
+                <div style="width:7mm;height:7mm;border-radius:50%;background:#00C87A;display:flex;align-items:center;justify-content:center;font-size:4.5pt;font-weight:700;color:#fff">MG</div>
+              </div>
+            </div>
+            <div style="flex:1;overflow:hidden;padding:2mm">
+              <!-- Stats -->
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1.5mm;margin-bottom:2mm">
+                <div style="background:#fff;border-radius:2mm;padding:2mm;text-align:center;box-shadow:0 0.3mm 2mm rgba(0,0,0,0.05)"><div style="font-size:8pt;font-weight:700;color:#00C87A">18</div><div style="font-size:3.5pt;color:#94A3B8">estudios</div></div>
+                <div style="background:#fff;border-radius:2mm;padding:2mm;text-align:center;box-shadow:0 0.3mm 2mm rgba(0,0,0,0.05)"><div style="font-size:8pt;font-weight:700;color:#4B6EF5">3</div><div style="font-size:3.5pt;color:#94A3B8">compartidos</div></div>
+                <div style="background:#fff;border-radius:2mm;padding:2mm;text-align:center;box-shadow:0 0.3mm 2mm rgba(0,0,0,0.05)"><div style="font-size:6pt;font-weight:700;color:#00B8D4">7m</div><div style="font-size:3.5pt;color:#94A3B8">historia</div></div>
+              </div>
+              <!-- Banner -->
+              <div style="background:linear-gradient(135deg,#EEF2FF,#F0FDF4);border:0.3mm solid rgba(0,200,122,0.2);border-radius:2mm;padding:2mm;margin-bottom:2mm">
+                <div style="font-size:4pt;font-weight:700;color:#00C87A;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.8mm">Invitación a estudio</div>
+                <div style="font-size:5pt;font-weight:600;color:#0F172A">Estudio de Diabetes T2</div>
+                <div style="font-size:4pt;color:#4A5568;margin-top:0.5mm">Tu perfil es compatible →</div>
+              </div>
+              <!-- Quick actions -->
+              <div style="font-size:4pt;font-weight:600;color:#94A3B8;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:1.5mm">Acciones rápidas</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5mm;margin-bottom:2mm">
+                <div style="background:#fff;border-radius:2mm;padding:2mm;box-shadow:0 0.3mm 1.5mm rgba(0,0,0,0.05)"><div style="width:5mm;height:5mm;border-radius:1.5mm;background:rgba(0,200,122,0.1);margin-bottom:1.5mm"></div><div style="font-size:5pt;font-weight:600;color:#0F172A">Subir estudio</div></div>
+                <div style="background:#fff;border-radius:2mm;padding:2mm;box-shadow:0 0.3mm 1.5mm rgba(0,0,0,0.05)"><div style="width:5mm;height:5mm;border-radius:1.5mm;background:rgba(75,110,245,0.1);margin-bottom:1.5mm"></div><div style="font-size:5pt;font-weight:600;color:#0F172A">Preguntar al Copilot</div></div>
+              </div>
+              <!-- Recent docs -->
+              <div style="font-size:4pt;font-weight:600;color:#94A3B8;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:1.5mm">Estudios recientes</div>
+              <div style="background:#fff;border-radius:2mm;padding:2mm;display:flex;gap:1.5mm;align-items:center;margin-bottom:1mm;box-shadow:0 0.3mm 1.5mm rgba(0,0,0,0.04)">
+                <div style="width:5mm;height:5mm;border-radius:1.5mm;background:rgba(0,200,122,0.15);flex-shrink:0"></div>
+                <div style="flex:1"><div style="font-size:5pt;font-weight:600;color:#0F172A">Análisis de Sangre</div><div style="font-size:3.5pt;color:#94A3B8">Stamboulian · 15 Mar 2024</div></div>
+              </div>
+              <div style="background:#fff;border-radius:2mm;padding:2mm;display:flex;gap:1.5mm;align-items:center;box-shadow:0 0.3mm 1.5mm rgba(0,0,0,0.04)">
+                <div style="width:5mm;height:5mm;border-radius:1.5mm;background:rgba(75,110,245,0.15);flex-shrink:0"></div>
+                <div style="flex:1"><div style="font-size:5pt;font-weight:600;color:#0F172A">Radiografía Tórax</div><div style="font-size:3.5pt;color:#94A3B8">Centro Diagnóstico · 2 Feb</div></div>
+              </div>
+            </div>
+            <div class="s-tab-bar">
+              <div class="s-tab active"><div class="s-tab-dot"></div><div class="s-tab-lbl">Inicio</div></div>
+              <div class="s-tab"><div class="s-tab-dot"></div><div class="s-tab-lbl">Vault</div></div>
+              <div class="s-tab"><div class="s-tab-dot"></div><div class="s-tab-lbl">Copilot</div></div>
+              <div class="s-tab"><div class="s-tab-dot"></div><div class="s-tab-lbl">Familia</div></div>
+              <div class="s-tab"><div class="s-tab-dot"></div><div class="s-tab-lbl">Más</div></div>
+            </div>
+          </div>
+          <div class="phone-home-bar"><span></span></div>
+        </div>
+      </div>
+      <div class="annotation">Banner de invitación contextual · Stats de actividad · Quick actions arriba del fold</div>
+    </div>
+
+    <!-- Vault List -->
+    <div class="phone">
+      <div class="phone-label">Vault — Lista<span class="screen-tag">Todos mis estudios</span></div>
+      <div class="phone-shell">
+        <div class="phone-inner">
+          <div class="phone-notch"></div>
+          <div class="phone-status"><span class="time">9:41</span></div>
+          <div class="phone-content" style="display:flex;flex-direction:column;background:#F7F9FC;overflow:hidden">
+            <div style="background:#fff;padding:2mm 3mm 1.5mm;border-bottom:0.2mm solid #F0F4FA;flex-shrink:0">
+              <div style="display:flex;justify-content:space-between;align-items:center">
+                <div><div style="font-size:7pt;font-weight:700;color:#0F172A">Mi Vault</div><div style="font-size:4pt;color:#94A3B8">18 estudios guardados</div></div>
+                <div style="width:5.5mm;height:5.5mm;border-radius:50%;background:#00C87A;display:flex;align-items:center;justify-content:center"><div style="width:2.5mm;height:0.5mm;background:#fff"></div></div>
+              </div>
+            </div>
+            <!-- Filter chips -->
+            <div style="display:flex;gap:1.5mm;padding:1.5mm 3mm;background:#fff;border-bottom:0.2mm solid #F0F4FA;overflow:hidden">
+              <div style="padding:0.8mm 2mm;border-radius:100mm;background:rgba(0,200,122,0.1);border:0.3mm solid rgba(0,200,122,0.2);color:#00C87A;font-size:4pt;font-weight:600;flex-shrink:0">Todos</div>
+              <div style="padding:0.8mm 2mm;border-radius:100mm;border:0.3mm solid #E8EDF5;color:#4A5568;font-size:4pt;flex-shrink:0">Laboratorio</div>
+              <div style="padding:0.8mm 2mm;border-radius:100mm;border:0.3mm solid #E8EDF5;color:#4A5568;font-size:4pt;flex-shrink:0">Imagen</div>
+            </div>
+            <div style="flex:1;overflow:hidden;padding:2mm">
+              <div style="display:flex;flex-direction:column;gap:1.5mm">
+                <div style="background:#fff;border-radius:2mm;padding:2mm;display:flex;gap:2mm;align-items:center;box-shadow:0 0.3mm 1.5mm rgba(0,0,0,0.05)">
+                  <div style="width:7mm;height:7mm;border-radius:2mm;background:rgba(0,200,122,0.15);flex-shrink:0"></div>
+                  <div style="flex:1"><div style="font-size:5.5pt;font-weight:600;color:#0F172A">Análisis de Sangre</div><div style="font-size:4pt;color:#94A3B8">Stamboulian · 15 Mar 2024</div><div style="display:inline-block;padding:0.5mm 1.5mm;border-radius:100mm;background:rgba(0,200,122,0.1);color:#00C87A;font-size:3.5pt;font-weight:600;margin-top:1mm">Laboratorio</div></div>
+                  <div style="width:2mm;height:2mm;border-radius:50%;background:#F59E0B"></div>
+                </div>
+                <div style="background:#fff;border-radius:2mm;padding:2mm;display:flex;gap:2mm;align-items:center;box-shadow:0 0.3mm 1.5mm rgba(0,0,0,0.05)">
+                  <div style="width:7mm;height:7mm;border-radius:2mm;background:rgba(75,110,245,0.15);flex-shrink:0"></div>
+                  <div style="flex:1"><div style="font-size:5.5pt;font-weight:600;color:#0F172A">Radiografía Tórax AP</div><div style="font-size:4pt;color:#94A3B8">Centro Diagnóstico · 2 Feb</div><div style="display:inline-block;padding:0.5mm 1.5mm;border-radius:100mm;background:rgba(75,110,245,0.1);color:#4B6EF5;font-size:3.5pt;font-weight:600;margin-top:1mm">Imagen</div></div>
+                </div>
+                <div style="background:#fff;border-radius:2mm;padding:2mm;display:flex;gap:2mm;align-items:center;box-shadow:0 0.3mm 1.5mm rgba(0,0,0,0.05)">
+                  <div style="width:7mm;height:7mm;border-radius:2mm;background:rgba(0,184,212,0.15);flex-shrink:0"></div>
+                  <div style="flex:1"><div style="font-size:5.5pt;font-weight:600;color:#0F172A">Ecocardiograma</div><div style="font-size:4pt;color:#94A3B8">Cardiopatía Integral · 18 Ene</div><div style="display:inline-block;padding:0.5mm 1.5mm;border-radius:100mm;background:rgba(0,184,212,0.1);color:#00B8D4;font-size:3.5pt;font-weight:600;margin-top:1mm">Cardiología</div></div>
+                </div>
+                <div style="background:#fff;border-radius:2mm;padding:2mm;display:flex;gap:2mm;align-items:center;box-shadow:0 0.3mm 1.5mm rgba(0,0,0,0.05)">
+                  <div style="width:7mm;height:7mm;border-radius:2mm;background:rgba(245,158,11,0.15);flex-shrink:0"></div>
+                  <div style="flex:1"><div style="font-size:5.5pt;font-weight:600;color:#0F172A">Receta Metformina 500mg</div><div style="font-size:4pt;color:#94A3B8">Dr. García · 10 Ene</div></div>
+                </div>
+              </div>
+            </div>
+            <div class="s-tab-bar">
+              <div class="s-tab"><div class="s-tab-dot"></div><div class="s-tab-lbl">Inicio</div></div>
+              <div class="s-tab active"><div class="s-tab-dot"></div><div class="s-tab-lbl">Vault</div></div>
+              <div class="s-tab"><div class="s-tab-dot"></div><div class="s-tab-lbl">Copilot</div></div>
+              <div class="s-tab"><div class="s-tab-dot"></div><div class="s-tab-lbl">Familia</div></div>
+              <div class="s-tab"><div class="s-tab-dot"></div><div class="s-tab-lbl">Más</div></div>
+            </div>
+          </div>
+          <div class="phone-home-bar"><span></span></div>
+        </div>
+      </div>
+      <div class="annotation">Filtros por categoría · Dot naranja = valor fuera de rango · Tag visual por tipo</div>
+    </div>
+
+    <!-- Upload flow: Step 1 -->
+    <div class="phone">
+      <div class="phone-label">Upload — Paso 1<span class="screen-tag">Elegir fuente</span></div>
+      <div class="phone-shell">
+        <div class="phone-inner">
+          <div class="phone-notch"></div>
+          <div class="phone-status"><span class="time">9:41</span></div>
+          <div class="phone-content" style="display:flex;flex-direction:column;padding:2mm;background:#fff;overflow:hidden">
+            <div style="font-size:7pt;font-weight:700;color:#0F172A;margin-bottom:1mm">Subir estudio</div>
+            <div style="font-size:5pt;color:#4A5568;margin-bottom:2mm">Elegí cómo querés agregar el estudio.</div>
+            <div style="display:flex;flex-direction:column;gap:1.5mm;margin-bottom:2mm">
+              <div style="display:flex;gap:2mm;align-items:center;padding:2.5mm;border-radius:2mm;border:0.4mm solid #E8EDF5">
+                <div style="width:7mm;height:7mm;border-radius:2mm;background:rgba(0,200,122,0.1);flex-shrink:0;display:flex;align-items:center;justify-content:center"><div style="width:3mm;height:3mm;border:0.5mm solid #00C87A;border-radius:50%"></div></div>
+                <div><div style="font-size:5.5pt;font-weight:600;color:#0F172A">Sacar foto</div><div style="font-size:4pt;color:#94A3B8">Informe en papel</div></div>
+              </div>
+              <div style="display:flex;gap:2mm;align-items:center;padding:2.5mm;border-radius:2mm;border:0.4mm solid #E8EDF5">
+                <div style="width:7mm;height:7mm;border-radius:2mm;background:rgba(75,110,245,0.1);flex-shrink:0"></div>
+                <div><div style="font-size:5.5pt;font-weight:600;color:#0F172A">Subir archivo</div><div style="font-size:4pt;color:#94A3B8">PDF, JPG, DICOM</div></div>
+              </div>
+              <div style="display:flex;gap:2mm;align-items:center;padding:2.5mm;border-radius:2mm;border:0.4mm solid #E8EDF5">
+                <div style="width:7mm;height:7mm;border-radius:2mm;background:rgba(0,184,212,0.1);flex-shrink:0"></div>
+                <div><div style="font-size:5.5pt;font-weight:600;color:#0F172A">Desde el laboratorio</div><div style="font-size:4pt;color:#94A3B8">Stamboulian, LALCEC…</div></div>
+              </div>
+            </div>
+            <div style="background:#F7F9FC;border-radius:1.5mm;padding:2mm;display:flex;gap:1.5mm">
+              <div style="width:2.5mm;height:2.5mm;border-radius:50%;border:0.4mm solid #00C87A;flex-shrink:0"></div>
+              <div style="font-size:4pt;color:#4A5568;line-height:1.5">Tus documentos se cifran antes de guardarse.</div>
+            </div>
+          </div>
+          <div class="phone-home-bar"><span></span></div>
+        </div>
+      </div>
+      <div class="annotation">3 métodos de ingesta · Privacidad explicada antes de cargar · Sin drag &amp; drop obligatorio</div>
+    </div>
+
+    <!-- Upload Step 3: Confirm -->
+    <div class="phone">
+      <div class="phone-label">Upload — Confirmar<span class="screen-tag">Paso 3 · IA extrajo los datos</span></div>
+      <div class="phone-shell">
+        <div class="phone-inner">
+          <div class="phone-notch"></div>
+          <div class="phone-status"><span class="time">9:41</span></div>
+          <div class="phone-content" style="display:flex;flex-direction:column;padding:2mm;background:#fff;overflow:hidden">
+            <div style="font-size:7pt;font-weight:700;color:#0F172A;margin-bottom:2mm">Confirmar datos</div>
+            <div style="background:#F0FDF4;border:0.3mm solid rgba(0,200,122,0.2);border-radius:2mm;padding:2mm;margin-bottom:2mm">
+              <div style="font-size:4.5pt;font-weight:700;color:#00C87A;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:1.5mm">IA extrajo automáticamente</div>
+              <div style="display:flex;flex-direction:column;gap:1mm">
+                <div style="display:flex;justify-content:space-between"><span style="font-size:4pt;color:#94A3B8">Tipo</span><span style="font-size:4.5pt;font-weight:600;color:#0F172A">Análisis de sangre</span></div>
+                <div style="display:flex;justify-content:space-between"><span style="font-size:4pt;color:#94A3B8">Fecha</span><span style="font-size:4.5pt;font-weight:600;color:#0F172A">15 Mayo 2024</span></div>
+                <div style="display:flex;justify-content:space-between"><span style="font-size:4pt;color:#94A3B8">Glucemia</span><span style="font-size:4.5pt;font-weight:600;color:#F59E0B">127 mg/dL ⚠️</span></div>
+                <div style="display:flex;justify-content:space-between"><span style="font-size:4pt;color:#94A3B8">Colesterol</span><span style="font-size:4.5pt;font-weight:600;color:#0F172A">198 mg/dL</span></div>
+              </div>
+            </div>
+            <div style="margin-bottom:2mm">
+              <div style="font-size:4.5pt;font-weight:600;color:#4A5568;letter-spacing:0.04em;text-transform:uppercase;margin-bottom:1mm">NOMBRE</div>
+              <div style="height:5mm;border-radius:1.5mm;border:0.4mm solid #00C87A;background:#F0FDF4;padding:0 2mm;font-size:5pt;color:#0F172A;display:flex;align-items:center">Análisis de Sangre — Mayo 2024</div>
+            </div>
+            <div style="margin-bottom:2.5mm">
+              <div style="font-size:4.5pt;font-weight:600;color:#4A5568;letter-spacing:0.04em;text-transform:uppercase;margin-bottom:1mm">CATEGORÍA</div>
+              <div style="display:flex;flex-wrap:wrap;gap:1mm">
+                <div style="padding:0.8mm 2mm;border-radius:100mm;border:0.4mm solid #00C87A;background:rgba(0,200,122,0.1);color:#00C87A;font-size:4pt;font-weight:600">Laboratorio</div>
+                <div style="padding:0.8mm 2mm;border-radius:100mm;border:0.4mm solid #E8EDF5;color:#4A5568;font-size:4pt">Imagen</div>
+                <div style="padding:0.8mm 2mm;border-radius:100mm;border:0.4mm solid #E8EDF5;color:#4A5568;font-size:4pt">Otro</div>
+              </div>
+            </div>
+            <div style="padding:2.5mm;border-radius:6mm;background:linear-gradient(135deg,#00C87A,#4B6EF5);color:#fff;font-size:5.5pt;font-weight:700;text-align:center">Guardar en mi Vault ✓</div>
+          </div>
+          <div class="phone-home-bar"><span></span></div>
+        </div>
+      </div>
+      <div class="annotation">IA muestra lo que extrajo · usuario puede editar · valor atípico resaltado en naranja</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     PAGE 4 · COPILOT + SHARING + FAMILY
+═══════════════════════════════════════ -->
+<div class="page page-screens">
+  <div class="page-hdr">
+    <div><div class="flow-title">03 · Copilot IA + Compartir QR + Familia</div><div class="flow-sub">Features de valor diferencial · entendimiento, portabilidad y gestión familiar</div></div>
+    <div class="page-num">4 / 9</div>
+  </div>
+  <div class="screens-row">
+    <!-- Copilot -->
+    <div class="phone">
+      <div class="phone-label">AI Copilot<span class="screen-tag">Chat con contexto clínico</span></div>
+      <div class="phone-shell">
+        <div class="phone-inner">
+          <div class="phone-notch"></div>
+          <div class="phone-status"><span class="time">9:41</span></div>
+          <div class="phone-content" style="display:flex;flex-direction:column;background:#F7F9FC;overflow:hidden">
+            <div style="background:#fff;padding:2mm 3mm 1.5mm;border-bottom:0.2mm solid #F0F4FA;flex-shrink:0">
+              <div style="font-size:7pt;font-weight:700;color:#0F172A">Copilot IA</div>
+              <div style="font-size:4pt;color:#94A3B8;margin-top:0.3mm">Tu asistente de salud personal</div>
+            </div>
+            <div style="flex:1;overflow:hidden;padding:2mm;display:flex;flex-direction:column;gap:2mm">
+              <!-- AI message -->
+              <div style="display:flex;gap:1.5mm;align-items:flex-end">
+                <div style="width:5mm;height:5mm;border-radius:50%;background:linear-gradient(135deg,#00C87A,#4B6EF5);flex-shrink:0"></div>
+                <div style="background:#fff;border-radius:2mm 2mm 2mm 0.5mm;padding:2mm;font-size:5pt;color:#0F172A;line-height:1.55;max-width:75%;box-shadow:0 0.3mm 2mm rgba(0,0,0,0.06)">Hola María 👋 Puedo ayudarte a entender tus estudios. ¿En qué te ayudo?</div>
+              </div>
+              <!-- User message -->
+              <div style="display:flex;justify-content:flex-end">
+                <div style="background:linear-gradient(135deg,#00C87A,#4B6EF5);border-radius:2mm 2mm 0.5mm 2mm;padding:2mm;font-size:5pt;color:#fff;line-height:1.55;max-width:75%">¿Qué significa glucemia 127 mg/dL?</div>
+              </div>
+              <!-- AI reply -->
+              <div style="display:flex;gap:1.5mm;align-items:flex-end">
+                <div style="width:5mm;height:5mm;border-radius:50%;background:linear-gradient(135deg,#00C87A,#4B6EF5);flex-shrink:0"></div>
+                <div style="background:#fff;border-radius:2mm 2mm 2mm 0.5mm;padding:2mm;font-size:5pt;color:#0F172A;line-height:1.55;max-width:80%;box-shadow:0 0.3mm 2mm rgba(0,0,0,0.06)">Tu glucemia en 127 mg/dL está levemente elevada. El rango normal es 70–100. Un valor entre 100–125 puede indicar pre-diabetes. Te recomiendo comentarlo con tu médico.</div>
+              </div>
+              <!-- Suggestions -->
+              <div style="display:flex;flex-wrap:wrap;gap:1mm">
+                <div style="padding:0.8mm 2mm;border-radius:100mm;background:#fff;border:0.3mm solid #E8EDF5;font-size:4pt;color:#4A5568">¿Debo preocuparme?</div>
+                <div style="padding:0.8mm 2mm;border-radius:100mm;background:#fff;border:0.3mm solid #E8EDF5;font-size:4pt;color:#4A5568">Preparar preguntas para mi médico</div>
+              </div>
+            </div>
+            <!-- Input -->
+            <div style="padding:2mm;background:#fff;border-top:0.2mm solid #F0F4FA;display:flex;gap:1.5mm;align-items:center;flex-shrink:0">
+              <div style="flex:1;height:6mm;border-radius:100mm;background:#F7F9FC;border:0.3mm solid #E8EDF5;padding:0 2mm;font-size:4.5pt;color:#94A3B8;display:flex;align-items:center">Preguntale al Copilot…</div>
+              <div style="width:6mm;height:6mm;border-radius:50%;background:linear-gradient(135deg,#00C87A,#4B6EF5)"></div>
+            </div>
+          </div>
+          <div class="phone-home-bar"><span></span></div>
+        </div>
+      </div>
+      <div class="annotation">Respuestas en plain language · Sugerencias de follow-up · Disclaimer implícito (no diagnóstica)</div>
+    </div>
+
+    <!-- QR Sharing -->
+    <div class="phone">
+      <div class="phone-label">Compartir vía QR<span class="screen-tag">Acceso temporal para médicos</span></div>
+      <div class="phone-shell">
+        <div class="phone-inner">
+          <div class="phone-notch"></div>
+          <div class="phone-status"><span class="time">9:41</span></div>
+          <div class="phone-content" style="display:flex;flex-direction:column;padding:2mm;background:#fff;overflow:hidden">
+            <div style="font-size:7pt;font-weight:700;color:#0F172A;margin-bottom:1mm">Compartir vía QR</div>
+            <div style="font-size:5pt;color:#4A5568;margin-bottom:2mm">Acceso temporal para tu médico.</div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:2mm">
+              <div style="width:28mm;height:28mm;border-radius:2.5mm;background:#F7F9FC;border:0.4mm solid rgba(0,200,122,0.2);display:flex;align-items:center;justify-content:center">
+                <!-- QR placeholder -->
+                <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:0.5mm;width:20mm;height:20mm">
+                  <div style="background:#0F172A;border-radius:0.3mm;grid-column:span 2;grid-row:span 2"></div>
+                  <div></div>
+                  <div style="background:#0F172A;border-radius:0.3mm;grid-column:span 2;grid-row:span 2"></div>
+                  <div style="background:#0F172A;border-radius:0.3mm"></div>
+                  <div></div><div style="background:#0F172A;border-radius:0.3mm"></div>
+                  <div></div><div style="background:#0F172A;border-radius:0.3mm"></div>
+                  <div></div>
+                  <div style="background:#0F172A;border-radius:0.3mm;grid-column:span 2;grid-row:span 2"></div>
+                  <div></div>
+                  <div style="background:#0F172A;border-radius:0.3mm"></div>
+                </div>
+              </div>
+              <div style="font-size:6pt;font-weight:700;color:#0F172A">QR listo</div>
+              <div style="font-size:4.5pt;color:#4A5568;text-align:center">Válido por 48hs · Solo lectura</div>
+              <div style="padding:0.8mm 2.5mm;border-radius:100mm;background:rgba(0,200,122,0.1);color:#00C87A;font-size:4pt;font-weight:700;border:0.3mm solid rgba(0,200,122,0.2)">2 estudios seleccionados</div>
+              <div style="background:#F0FDF4;border-radius:2mm;padding:2mm;width:100%;border:0.3mm solid rgba(0,200,122,0.15)">
+                <div style="font-size:4.5pt;color:#166534;line-height:1.6">✓ El médico no necesita registrarse<br>✓ No puede descargar ni reenviar<br>✓ Acceso expira automáticamente</div>
+              </div>
+            </div>
+          </div>
+          <div class="phone-home-bar"><span></span></div>
+        </div>
+      </div>
+      <div class="annotation">Zero friction para el médico · Límites de acceso claros y visibles · Usuario mantiene control total</div>
+    </div>
+
+    <!-- Family -->
+    <div class="phone">
+      <div class="phone-label">Gestión Familiar<span class="screen-tag">Multi-perfil en una cuenta</span></div>
+      <div class="phone-shell">
+        <div class="phone-inner">
+          <div class="phone-notch"></div>
+          <div class="phone-status"><span class="time">9:41</span></div>
+          <div class="phone-content" style="display:flex;flex-direction:column;background:#F7F9FC;overflow:hidden">
+            <div style="background:#fff;padding:2mm 3mm 1.5mm;border-bottom:0.2mm solid #F0F4FA;flex-shrink:0">
+              <div style="font-size:7pt;font-weight:700;color:#0F172A">Familia</div>
+              <div style="font-size:4pt;color:#94A3B8;margin-top:0.3mm">3 perfiles activos</div>
+            </div>
+            <div style="flex:1;overflow:hidden;padding:2mm">
+              <div style="font-size:5pt;color:#4A5568;margin-bottom:2mm">Administrá el historial de tus familiares.</div>
+              <div style="display:flex;flex-direction:column;gap:1.5mm">
+                <div style="background:#fff;border-radius:2mm;padding:2mm;display:flex;gap:2mm;align-items:center;box-shadow:0 0.3mm 1.5mm rgba(0,0,0,0.05)">
+                  <div style="position:relative"><div style="width:8mm;height:8mm;border-radius:50%;background:#00C87A;display:flex;align-items:center;justify-content:center;font-size:4.5pt;font-weight:700;color:#fff">MG</div><div style="position:absolute;bottom:-0.5mm;right:-0.5mm;width:3mm;height:3mm;border-radius:50%;background:#00C87A;border:0.5mm solid #fff"></div></div>
+                  <div style="flex:1"><div style="font-size:5.5pt;font-weight:600;color:#0F172A">María García</div><div style="font-size:4pt;color:#94A3B8">Yo · 18 estudios</div></div>
+                </div>
+                <div style="background:#fff;border-radius:2mm;padding:2mm;display:flex;gap:2mm;align-items:center;box-shadow:0 0.3mm 1.5mm rgba(0,0,0,0.05)">
+                  <div style="width:8mm;height:8mm;border-radius:50%;background:#4B6EF5;display:flex;align-items:center;justify-content:center;font-size:4.5pt;font-weight:700;color:#fff">CG</div>
+                  <div style="flex:1"><div style="font-size:5.5pt;font-weight:600;color:#0F172A">Carlos García</div><div style="font-size:4pt;color:#94A3B8">Padre · 7 estudios</div></div>
+                </div>
+                <div style="background:#fff;border-radius:2mm;padding:2mm;display:flex;gap:2mm;align-items:center;box-shadow:0 0.3mm 1.5mm rgba(0,0,0,0.05)">
+                  <div style="width:8mm;height:8mm;border-radius:50%;background:#F59E0B;display:flex;align-items:center;justify-content:center;font-size:4.5pt;font-weight:700;color:#fff">SG</div>
+                  <div style="flex:1"><div style="font-size:5.5pt;font-weight:600;color:#0F172A">Sofía García</div><div style="font-size:4pt;color:#94A3B8">Hija (8 años) · 4 estudios</div></div>
+                </div>
+                <div style="background:transparent;border-radius:2mm;padding:2mm;display:flex;gap:2mm;align-items:center;border:0.4mm dashed #E8EDF5">
+                  <div style="width:8mm;height:8mm;border-radius:50%;background:#F7F9FC;border:0.4mm dashed #E8EDF5;display:flex;align-items:center;justify-content:center">
+                    <div style="font-size:8pt;color:#94A3B8;font-weight:300">+</div>
+                  </div>
+                  <div style="font-size:5.5pt;font-weight:600;color:#94A3B8">Agregar familiar</div>
+                </div>
+              </div>
+            </div>
+            <div class="s-tab-bar">
+              <div class="s-tab"><div class="s-tab-dot"></div><div class="s-tab-lbl">Inicio</div></div>
+              <div class="s-tab"><div class="s-tab-dot"></div><div class="s-tab-lbl">Vault</div></div>
+              <div class="s-tab"><div class="s-tab-dot"></div><div class="s-tab-lbl">Copilot</div></div>
+              <div class="s-tab active"><div class="s-tab-dot"></div><div class="s-tab-lbl">Familia</div></div>
+              <div class="s-tab"><div class="s-tab-dot"></div><div class="s-tab-lbl">Más</div></div>
+            </div>
+          </div>
+          <div class="phone-home-bar"><span></span></div>
+        </div>
+      </div>
+      <div class="annotation">Cuidador = un usuario · múltiples perfiles · diferenciación visual por color/avatar · add CTA visible</div>
+    </div>
+
+    <!-- Timeline -->
+    <div class="phone">
+      <div class="phone-label">Health Timeline<span class="screen-tag">Historia clínica en orden</span></div>
+      <div class="phone-shell">
+        <div class="phone-inner">
+          <div class="phone-notch"></div>
+          <div class="phone-status"><span class="time">9:41</span></div>
+          <div class="phone-content" style="display:flex;flex-direction:column;background:#F7F9FC;overflow:hidden">
+            <div style="background:#fff;padding:2mm 3mm 1.5mm;border-bottom:0.2mm solid #F0F4FA;flex-shrink:0">
+              <div style="font-size:7pt;font-weight:700;color:#0F172A">Mi Timeline</div>
+              <div style="font-size:4pt;color:#94A3B8;margin-top:0.3mm">Tu historia clínica en orden</div>
+            </div>
+            <div style="flex:1;overflow:hidden;padding:2mm">
+              <div style="display:flex;flex-direction:column;gap:0">
+                <div style="display:flex;gap:2mm;margin-bottom:0;align-items:flex-start">
+                  <div style="display:flex;flex-direction:column;align-items:center"><div style="width:6mm;height:6mm;border-radius:50%;background:rgba(0,200,122,0.15);border:0.5mm solid #00C87A;flex-shrink:0"></div><div style="width:0.4mm;height:6mm;background:#E8EDF5;margin:1mm 0"></div></div>
+                  <div style="padding-top:0.5mm"><div style="font-size:4pt;color:#94A3B8">Mar 2024</div><div style="font-size:5.5pt;font-weight:600;color:#0F172A">Análisis de Sangre</div><div style="font-size:4pt;color:#4A5568">Glucemia levemente elevada</div></div>
+                </div>
+                <div style="display:flex;gap:2mm;margin-bottom:0;align-items:flex-start">
+                  <div style="display:flex;flex-direction:column;align-items:center"><div style="width:6mm;height:6mm;border-radius:50%;background:rgba(75,110,245,0.15);border:0.5mm solid #4B6EF5;flex-shrink:0"></div><div style="width:0.4mm;height:6mm;background:#E8EDF5;margin:1mm 0"></div></div>
+                  <div style="padding-top:0.5mm"><div style="font-size:4pt;color:#94A3B8">Feb 2024</div><div style="font-size:5.5pt;font-weight:600;color:#0F172A">Radiografía Tórax</div><div style="font-size:4pt;color:#4A5568">Sin alteraciones</div></div>
+                </div>
+                <div style="display:flex;gap:2mm;margin-bottom:0;align-items:flex-start">
+                  <div style="display:flex;flex-direction:column;align-items:center"><div style="width:6mm;height:6mm;border-radius:50%;background:rgba(0,184,212,0.15);border:0.5mm solid #00B8D4;flex-shrink:0"></div><div style="width:0.4mm;height:6mm;background:#E8EDF5;margin:1mm 0"></div></div>
+                  <div style="padding-top:0.5mm"><div style="font-size:4pt;color:#94A3B8">Ene 2024</div><div style="font-size:5.5pt;font-weight:600;color:#0F172A">Ecocardiograma</div><div style="font-size:4pt;color:#4A5568">FE 62% — normal</div></div>
+                </div>
+                <div style="display:flex;gap:2mm;align-items:flex-start">
+                  <div style="width:6mm;height:6mm;border-radius:50%;background:rgba(245,158,11,0.15);border:0.5mm solid #F59E0B;flex-shrink:0"></div>
+                  <div style="padding-top:0.5mm"><div style="font-size:4pt;color:#94A3B8">Ene 2024</div><div style="font-size:5.5pt;font-weight:600;color:#0F172A">Receta Metformina</div><div style="font-size:4pt;color:#4A5568">500mg — 1 vez/día</div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="phone-home-bar"><span></span></div>
+        </div>
+      </div>
+      <div class="annotation">Cronológico · Color-coded por tipo · Línea de tiempo visual simple · No requiere entrada manual</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     PAGE 5 · CONSENT + STUDY INVITE
+═══════════════════════════════════════ -->
+<div class="page page-screens">
+  <div class="page-hdr">
+    <div><div class="flow-title">04 · Consentimiento + Invitación a Estudio</div><div class="flow-sub">El puente entre B2C y B2B · opt-in granular · revocable en cualquier momento</div></div>
+    <div class="page-num">5 / 9</div>
+  </div>
+  <div class="screens-row">
+    <!-- Consent Center -->
+    <div class="phone">
+      <div class="phone-label">Centro de Consentimiento<span class="screen-tag">Control granular por área</span></div>
+      <div class="phone-shell">
+        <div class="phone-inner">
+          <div class="phone-notch"></div>
+          <div class="phone-status"><span class="time">9:41</span></div>
+          <div class="phone-content" style="display:flex;flex-direction:column;background:#F7F9FC;overflow:hidden">
+            <div style="background:#fff;padding:2mm 3mm 1.5mm;border-bottom:0.2mm solid #F0F4FA;flex-shrink:0">
+              <div style="font-size:7pt;font-weight:700;color:#0F172A">Centro de Consentimiento</div>
+            </div>
+            <div style="flex:1;overflow:hidden;padding:2mm">
+              <div style="background:rgba(75,110,245,0.06);border:0.3mm solid rgba(75,110,245,0.2);border-radius:2mm;padding:2mm;margin-bottom:2mm">
+                <div style="font-size:5.5pt;font-weight:700;color:#0F172A;margin-bottom:1mm">¿Cómo se usan tus datos?</div>
+                <div style="font-size:4.5pt;color:#4A5568;line-height:1.55">Tus datos siempre son anonimizados. Podés revocar en cualquier momento sin consecuencias.</div>
+              </div>
+              <div style="font-size:4.5pt;font-weight:600;color:#94A3B8;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:1.5mm">Áreas terapéuticas</div>
+              <div style="display:flex;flex-direction:column;gap:1.5mm">
+                <div style="background:#fff;border-radius:2mm;padding:2mm;display:flex;justify-content:space-between;align-items:center;box-shadow:0 0.3mm 1.5mm rgba(0,0,0,0.05)">
+                  <div><div style="font-size:5.5pt;font-weight:600;color:#0F172A">Diabetes tipo 2</div><div style="font-size:4pt;color:#94A3B8">Participando</div></div>
+                  <div style="width:8mm;height:4mm;border-radius:100mm;background:#00C87A;position:relative"><div style="position:absolute;right:0.5mm;top:0.5mm;width:3mm;height:3mm;border-radius:50%;background:#fff;box-shadow:0 0.2mm 1mm rgba(0,0,0,0.2)"></div></div>
+                </div>
+                <div style="background:#fff;border-radius:2mm;padding:2mm;display:flex;justify-content:space-between;align-items:center;box-shadow:0 0.3mm 1.5mm rgba(0,0,0,0.05)">
+                  <div><div style="font-size:5.5pt;font-weight:600;color:#0F172A">Oncología</div><div style="font-size:4pt;color:#94A3B8">No participando</div></div>
+                  <div style="width:8mm;height:4mm;border-radius:100mm;background:#E8EDF5;position:relative"><div style="position:absolute;left:0.5mm;top:0.5mm;width:3mm;height:3mm;border-radius:50%;background:#fff;box-shadow:0 0.2mm 1mm rgba(0,0,0,0.2)"></div></div>
+                </div>
+                <div style="background:#fff;border-radius:2mm;padding:2mm;display:flex;justify-content:space-between;align-items:center;box-shadow:0 0.3mm 1.5mm rgba(0,0,0,0.05)">
+                  <div><div style="font-size:5.5pt;font-weight:600;color:#0F172A">Cardiología</div><div style="font-size:4pt;color:#94A3B8">Participando</div></div>
+                  <div style="width:8mm;height:4mm;border-radius:100mm;background:#00C87A;position:relative"><div style="position:absolute;right:0.5mm;top:0.5mm;width:3mm;height:3mm;border-radius:50%;background:#fff;box-shadow:0 0.2mm 1mm rgba(0,0,0,0.2)"></div></div>
+                </div>
+                <div style="background:#fff;border-radius:2mm;padding:2mm;display:flex;justify-content:space-between;align-items:center;box-shadow:0 0.3mm 1.5mm rgba(0,0,0,0.05)">
+                  <div><div style="font-size:5.5pt;font-weight:600;color:#0F172A">Salud mental</div><div style="font-size:4pt;color:#94A3B8">No participando</div></div>
+                  <div style="width:8mm;height:4mm;border-radius:100mm;background:#E8EDF5;position:relative"><div style="position:absolute;left:0.5mm;top:0.5mm;width:3mm;height:3mm;border-radius:50%;background:#fff;box-shadow:0 0.2mm 1mm rgba(0,0,0,0.2)"></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="phone-home-bar"><span></span></div>
+        </div>
+      </div>
+      <div class="annotation">Toggle granular por área · Cambio aplicado al instante · Sin consecuencias al revocar</div>
+    </div>
+
+    <!-- Study Invite -->
+    <div class="phone">
+      <div class="phone-label">Invitación a estudio<span class="screen-tag">Plain language · sin presión</span></div>
+      <div class="phone-shell">
+        <div class="phone-inner">
+          <div class="phone-notch"></div>
+          <div class="phone-status"><span class="time">9:41</span></div>
+          <div class="phone-content" style="display:flex;flex-direction:column;padding:2mm;background:#fff;overflow:hidden">
+            <div style="display:inline-block;padding:0.8mm 2mm;border-radius:100mm;background:rgba(0,200,122,0.1);color:#00C87A;font-size:4pt;font-weight:700;border:0.3mm solid rgba(0,200,122,0.2);margin-bottom:1.5mm">Nuevo estudio clínico</div>
+            <div style="font-size:7pt;font-weight:700;color:#0F172A;line-height:1.2;margin-bottom:2mm">Estudio de Diabetes<br>Tipo 2 en LATAM</div>
+            <div style="display:flex;flex-wrap:wrap;gap:1mm;margin-bottom:2mm">
+              <div style="padding:0.6mm 1.5mm;border-radius:100mm;border:0.3mm solid #E8EDF5;font-size:3.5pt;color:#4A5568">CRO: Syneos Health</div>
+              <div style="padding:0.6mm 1.5mm;border-radius:100mm;border:0.3mm solid #E8EDF5;font-size:3.5pt;color:#4A5568">Argentina · Presencial</div>
+            </div>
+            <div style="background:#F7F9FC;border-radius:1.5mm;padding:2mm;margin-bottom:2mm">
+              <div style="font-size:5pt;font-weight:600;color:#94A3B8;margin-bottom:1mm">¿De qué se trata?</div>
+              <div style="font-size:4.5pt;color:#0F172A;line-height:1.55">Estudio observacional de 12 semanas. No requiere cambios en tu medicación. Solo compartís datos que ya tenés en tu Vault.</div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:1.5mm;margin-bottom:2mm">
+              <div style="background:#F7F9FC;border-radius:1.5mm;padding:1.5mm 2mm">
+                <div style="font-size:5pt;font-weight:600;color:#0F172A;margin-bottom:0.5mm">¿Tengo que cambiar mi tratamiento?</div>
+                <div style="font-size:4.5pt;color:#4A5568">No. Es un estudio observacional.</div>
+              </div>
+              <div style="background:#F7F9FC;border-radius:1.5mm;padding:1.5mm 2mm">
+                <div style="font-size:5pt;font-weight:600;color:#0F172A;margin-bottom:0.5mm">¿Puedo salirme?</div>
+                <div style="font-size:4.5pt;color:#4A5568">Sí, en cualquier momento.</div>
+              </div>
+            </div>
+            <div style="display:flex;gap:1.5mm">
+              <div style="flex:1;padding:2.5mm;border-radius:6mm;background:linear-gradient(135deg,#00C87A,#4B6EF5);color:#fff;font-size:5.5pt;font-weight:700;text-align:center">Me interesa →</div>
+              <div style="flex:1;padding:2.5mm;border-radius:6mm;border:0.3mm solid #E8EDF5;color:#4A5568;font-size:5.5pt;text-align:center">Declinar</div>
+            </div>
+          </div>
+          <div class="phone-home-bar"><span></span></div>
+        </div>
+      </div>
+      <div class="annotation">FAQ en plain language · Sin jerga clínica · Declinar tan visible como Aceptar · Sin presión</div>
+    </div>
+
+    <!-- Study Accepted -->
+    <div class="phone">
+      <div class="phone-label">Confirmación de estudio<span class="screen-tag">Post-aceptación</span></div>
+      <div class="phone-shell">
+        <div class="phone-inner">
+          <div class="phone-notch"></div>
+          <div class="phone-status"><span class="time">9:41</span></div>
+          <div class="phone-content" style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:3mm;text-align:center;background:#fff;overflow:hidden">
+            <div style="width:14mm;height:14mm;border-radius:4mm;background:#F0FDF4;border:0.5mm solid rgba(0,200,122,0.2);display:flex;align-items:center;justify-content:center;margin-bottom:3mm">
+              <div style="width:7mm;height:5mm;border-bottom:1mm solid #00C87A;border-right:1mm solid #00C87A;transform:rotate(45deg);margin-top:-2mm"></div>
+            </div>
+            <div style="font-size:7pt;font-weight:700;color:#0F172A;margin-bottom:2mm">¡Gracias por participar!</div>
+            <div style="font-size:5pt;color:#4A5568;line-height:1.65;max-width:30mm;margin-bottom:3mm">Un coordinador del estudio te va a contactar en las próximas 48hs para los próximos pasos.</div>
+            <div style="background:#F7F9FC;border-radius:2mm;padding:2mm;margin-bottom:3mm;width:100%;text-align:left">
+              <div style="font-size:4.5pt;color:#4A5568;line-height:1.65">Podés revocar tu participación en cualquier momento desde el Centro de Consentimiento.</div>
+            </div>
+            <div style="width:100%;padding:2.5mm;border-radius:6mm;background:linear-gradient(135deg,#00C87A,#4B6EF5);color:#fff;font-size:5.5pt;font-weight:700;text-align:center">Volver al inicio</div>
+          </div>
+          <div class="phone-home-bar"><span></span></div>
+        </div>
+      </div>
+      <div class="annotation">Refuerzo positivo · Recordatorio de control · Revocación siempre visible</div>
+    </div>
+
+    <!-- Principles summary panel -->
+    <div style="width:52mm;flex-shrink:0;display:flex;flex-direction:column;gap:3mm;margin-top:2mm">
+      <div style="font-size:6pt;font-weight:700;color:#00C87A;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:1mm">Arquitectura de Consentimiento</div>
+      <div style="background:#fff;border-radius:2mm;padding:3mm;border-left:1mm solid #00C87A;border:0.2mm solid var(--light-border);border-left:1mm solid #00C87A">
+        <div style="font-size:6pt;font-weight:700;color:#0F172A;margin-bottom:6mm">Capa 1</div>
+        <div style="font-size:5pt;color:#4A5568;line-height:1.5">Términos de uso del producto — requerido para usar la app.</div>
+      </div>
+      <div style="background:#fff;border-radius:2mm;padding:3mm;border:0.2mm solid var(--light-border);border-left:1mm solid #00B8D4">
+        <div style="font-size:6pt;font-weight:700;color:#0F172A;margin-bottom:6mm">Capa 2</div>
+        <div style="font-size:5pt;color:#4A5568;line-height:1.5">Consentimiento opcional para investigación clínica — plain language, con quién, por cuánto, derecho a revocar.</div>
+      </div>
+      <div style="background:#fff;border-radius:2mm;padding:3mm;border:0.2mm solid var(--light-border);border-left:1mm solid #4B6EF5">
+        <div style="font-size:6pt;font-weight:700;color:#0F172A;margin-bottom:6mm">Capa 3</div>
+        <div style="font-size:5pt;color:#4A5568;line-height:1.5">Opt-in granular por área terapéutica — el usuario elige exactamente en qué participa.</div>
+      </div>
+      <div style="background:#F0FDF4;border-radius:2mm;padding:3mm;border:0.3mm solid rgba(0,200,122,0.2)">
+        <div style="font-size:5.5pt;font-weight:700;color:#166534;margin-bottom:4mm">Inspirado en:</div>
+        <div style="font-size:4.5pt;color:#4A5568;line-height:1.6">NIH All of Us · UK Biobank · 23andMe post-2019 research arm — nunca el modelo pre-Cambridge Analytica.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     PAGE 6 · CRO DASHBOARD
+═══════════════════════════════════════ -->
+<div class="page page-screens" style="background:#080809">
+  <div class="page-hdr" style="border-bottom:0.2mm solid rgba(255,255,255,0.07);padding-bottom:4mm">
+    <div><div class="flow-title" style="color:#F0F4FF">05 · Panel CRO — Dashboard</div><div class="flow-sub" style="color:#4A5578">Interfaz B2B · separada del paciente · nunca expone datos identificables</div></div>
+    <div class="page-num" style="color:#4A5578">6 / 9</div>
+  </div>
+  <div style="flex:1;overflow:hidden">
+    <!-- Web browser mockup -->
+    <div class="web-screen" style="height:calc(100% - 2mm);margin-top:2mm">
+      <div class="web-bar">
+        <div class="web-dot" style="background:#EF4444"></div>
+        <div class="web-dot" style="background:#F59E0B"></div>
+        <div class="web-dot" style="background:#00C87A"></div>
+        <div style="flex:1;background:rgba(255,255,255,0.06);border-radius:2mm;padding:1mm 3mm;margin-left:3mm;font-size:5pt;color:#4A5578">app.bresca.health/cro/dashboard</div>
+        <img src="assets/logo-horizontal-bicolor.png" style="height:5mm;object-fit:contain;opacity:0.9">
+        <div style="font-size:5pt;padding:1mm 2mm;border-radius:100mm;background:rgba(0,200,122,0.1);border:0.3mm solid rgba(0,200,122,0.2);color:#00C87A;font-weight:600;margin-left:2mm">CRO Portal</div>
+      </div>
+      <!-- Nav tabs -->
+      <div style="display:flex;gap:0;background:#0F1320;border-bottom:0.2mm solid rgba(255,255,255,0.07);padding:0 10mm">
+        <div style="padding:2mm 4mm;font-size:5pt;font-weight:700;color:#00C87A;border-bottom:0.5mm solid #00C87A">Dashboard</div>
+        <div style="padding:2mm 4mm;font-size:5pt;color:#4A5578">Cohortes</div>
+        <div style="padding:2mm 4mm;font-size:5pt;color:#4A5578">Nuevo Estudio</div>
+        <div style="padding:2mm 4mm;font-size:5pt;color:#4A5578">Matching</div>
+        <div style="padding:2mm 4mm;font-size:5pt;color:#4A5578">Analytics</div>
+      </div>
+      <div class="web-content">
+        <!-- Header -->
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5mm">
+          <div><div style="font-size:11pt;font-weight:700;color:#F0F4FF">Dashboard</div><div style="font-size:5pt;color:#4A5578;margin-top:1mm">Syneos Health LATAM · Abril 2026</div></div>
+          <div style="padding:2mm 4mm;border-radius:100mm;background:linear-gradient(135deg,#00C87A,#4B6EF5);font-size:5.5pt;font-weight:700;color:#fff">+ Nuevo estudio</div>
+        </div>
+        <!-- Stats -->
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:3mm;margin-bottom:5mm">
+          <div style="background:#151C2E;border-radius:2mm;padding:3mm;border:0.2mm solid rgba(255,255,255,0.07)">
+            <div style="font-size:4.5pt;color:#4A5578;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:1.5mm">Pacientes plataforma</div>
+            <div style="font-size:16pt;font-weight:700;color:#00C87A;line-height:1">2,400+</div>
+            <div style="font-size:4pt;color:#4A5578;margin-top:1mm">+340 este mes</div>
+          </div>
+          <div style="background:#151C2E;border-radius:2mm;padding:3mm;border:0.2mm solid rgba(255,255,255,0.07)">
+            <div style="font-size:4.5pt;color:#4A5578;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:1.5mm">Consentidos investigación</div>
+            <div style="font-size:16pt;font-weight:700;color:#00B8D4;line-height:1">680</div>
+            <div style="font-size:4pt;color:#4A5578;margin-top:1mm">28% del total</div>
+          </div>
+          <div style="background:#151C2E;border-radius:2mm;padding:3mm;border:0.2mm solid rgba(255,255,255,0.07)">
+            <div style="font-size:4.5pt;color:#4A5578;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:1.5mm">Cohortes activas</div>
+            <div style="font-size:16pt;font-weight:700;color:#4B6EF5;line-height:1">3</div>
+            <div style="font-size:4pt;color:#4A5578;margin-top:1mm">Diabetes, Cardio, Oncología</div>
+          </div>
+          <div style="background:#151C2E;border-radius:2mm;padding:3mm;border:0.2mm solid rgba(255,255,255,0.07)">
+            <div style="font-size:4.5pt;color:#4A5578;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:1.5mm">Invitaciones enviadas</div>
+            <div style="font-size:16pt;font-weight:700;color:#F59E0B;line-height:1">142</div>
+            <div style="font-size:4pt;color:#4A5578;margin-top:1mm">Tasa respuesta: 34%</div>
+          </div>
+        </div>
+        <!-- Studies + Distribution -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:4mm">
+          <div style="background:#151C2E;border-radius:2mm;padding:3mm;border:0.2mm solid rgba(255,255,255,0.07)">
+            <div style="font-size:7pt;font-weight:700;color:#F0F4FF;margin-bottom:3mm">Estudios activos</div>
+            <div style="margin-bottom:3mm;padding-bottom:3mm;border-bottom:0.2mm solid rgba(255,255,255,0.06)">
+              <div style="display:flex;justify-content:space-between;margin-bottom:1mm">
+                <div style="font-size:5.5pt;font-weight:600;color:#F0F4FF">DIAB-LATAM-01</div>
+                <div style="font-size:4.5pt;padding:0.5mm 2mm;border-radius:100mm;background:rgba(0,200,122,0.1);color:#00C87A;border:0.2mm solid rgba(0,200,122,0.2)">Reclutando</div>
+              </div>
+              <div style="font-size:4pt;color:#4A5578;margin-bottom:1.5mm">Diabetes tipo 2</div>
+              <div style="background:rgba(255,255,255,0.06);border-radius:100mm;height:1.5mm;overflow:hidden">
+                <div style="width:47%;height:100%;background:linear-gradient(90deg,#00C87A,#4B6EF5);border-radius:100mm"></div>
+              </div>
+              <div style="font-size:4pt;color:#4A5578;margin-top:1mm">47 / 100 pacientes</div>
+            </div>
+            <div>
+              <div style="display:flex;justify-content:space-between;margin-bottom:1mm">
+                <div style="font-size:5.5pt;font-weight:600;color:#F0F4FF">CARDIO-AR-02</div>
+                <div style="font-size:4.5pt;padding:0.5mm 2mm;border-radius:100mm;background:rgba(0,184,212,0.1);color:#00B8D4;border:0.2mm solid rgba(0,184,212,0.2)">Pre-screening</div>
+              </div>
+              <div style="font-size:4pt;color:#4A5578;margin-bottom:1.5mm">Cardiología</div>
+              <div style="background:rgba(255,255,255,0.06);border-radius:100mm;height:1.5mm;overflow:hidden">
+                <div style="width:40%;height:100%;background:#00B8D4;border-radius:100mm"></div>
+              </div>
+              <div style="font-size:4pt;color:#4A5578;margin-top:1mm">12 / 30 pacientes</div>
+            </div>
+          </div>
+          <div style="background:#151C2E;border-radius:2mm;padding:3mm;border:0.2mm solid rgba(255,255,255,0.07)">
+            <div style="font-size:7pt;font-weight:700;color:#F0F4FF;margin-bottom:3mm">Distribución terapéutica</div>
+            <div style="display:flex;flex-direction:column;gap:2mm">
+              <div style="display:flex;align-items:center;gap:2mm"><div style="width:2mm;height:2mm;border-radius:50%;background:#00C87A;flex-shrink:0"></div><span style="font-size:5pt;color:#4A5578;flex:1">Diabetes tipo 2</span><div style="width:20mm;background:rgba(255,255,255,0.06);border-radius:100mm;height:1.5mm;overflow:hidden"><div style="width:52%;height:100%;background:#00C87A;border-radius:100mm"></div></div><span style="font-size:4.5pt;color:#4A5578;width:6mm;text-align:right">52%</span></div>
+              <div style="display:flex;align-items:center;gap:2mm"><div style="width:2mm;height:2mm;border-radius:50%;background:#4B6EF5;flex-shrink:0"></div><span style="font-size:5pt;color:#4A5578;flex:1">Cardiología</span><div style="width:20mm;background:rgba(255,255,255,0.06);border-radius:100mm;height:1.5mm;overflow:hidden"><div style="width:28%;height:100%;background:#4B6EF5;border-radius:100mm"></div></div><span style="font-size:4.5pt;color:#4A5578;width:6mm;text-align:right">28%</span></div>
+              <div style="display:flex;align-items:center;gap:2mm"><div style="width:2mm;height:2mm;border-radius:50%;background:#00B8D4;flex-shrink:0"></div><span style="font-size:5pt;color:#4A5578;flex:1">Oncología</span><div style="width:20mm;background:rgba(255,255,255,0.06);border-radius:100mm;height:1.5mm;overflow:hidden"><div style="width:15%;height:100%;background:#00B8D4;border-radius:100mm"></div></div><span style="font-size:4.5pt;color:#4A5578;width:6mm;text-align:right">15%</span></div>
+              <div style="display:flex;align-items:center;gap:2mm"><div style="width:2mm;height:2mm;border-radius:50%;background:#4A5578;flex-shrink:0"></div><span style="font-size:5pt;color:#4A5578;flex:1">Otros</span><div style="width:20mm;background:rgba(255,255,255,0.06);border-radius:100mm;height:1.5mm;overflow:hidden"><div style="width:5%;height:100%;background:#4A5578;border-radius:100mm"></div></div><span style="font-size:4.5pt;color:#4A5578;width:6mm;text-align:right">5%</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     PAGE 7 · CRO MATCHING + ANALYTICS
+═══════════════════════════════════════ -->
+<div class="page page-screens" style="background:#080809">
+  <div class="page-hdr" style="border-bottom:0.2mm solid rgba(255,255,255,0.07);padding-bottom:4mm">
+    <div><div class="flow-title" style="color:#F0F4FF">06 · Panel CRO — Matching de Pacientes + Analytics</div><div class="flow-sub" style="color:#4A5578">100% anonimizado · el CRO nunca ve datos identificables · fit score por criterio</div></div>
+    <div class="page-num" style="color:#4A5578">7 / 9</div>
+  </div>
+  <div style="flex:1;overflow:hidden;display:grid;grid-template-columns:1fr 1fr;gap:5mm;margin-top:2mm">
+    <!-- Matching -->
+    <div class="web-screen">
+      <div class="web-bar">
+        <div class="web-dot" style="background:#EF4444"></div>
+        <div class="web-dot" style="background:#F59E0B"></div>
+        <div class="web-dot" style="background:#00C87A"></div>
+        <div style="font-size:5pt;color:#4A5578;margin-left:2mm">Patient Matching · DIAB-LATAM-01</div>
+      </div>
+      <div class="web-content">
+        <div style="background:rgba(0,200,122,0.06);border-radius:2mm;padding:2mm;border:0.2mm solid rgba(0,200,122,0.15);margin-bottom:3mm;display:flex;gap:1.5mm;align-items:center">
+          <div style="width:3mm;height:3mm;border-radius:50%;border:0.4mm solid #00C87A;flex-shrink:0"></div>
+          <div style="font-size:4.5pt;color:#4A5578">Datos 100% anonimizados. Nunca ves información identificable del paciente.</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:2mm">
+          <div style="background:#151C2E;border-radius:2mm;padding:2.5mm;border:0.2mm solid rgba(255,255,255,0.07);display:flex;align-items:center;gap:2.5mm">
+            <div style="width:10mm;height:10mm;border-radius:2mm;background:rgba(0,200,122,0.15);display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0"><div style="font-size:11pt;font-weight:700;color:#00C87A;line-height:1">96</div><div style="font-size:3.5pt;color:#4A5578">score</div></div>
+            <div style="flex:1"><div style="font-size:5.5pt;font-weight:600;color:#F0F4FF;margin-bottom:0.5mm">PAC-2841 · 47a</div><div style="font-size:4.5pt;color:#4A5578;margin-bottom:0.5mm">Diabetes T2 · HTA</div><div style="font-size:4pt;color:#4A5578">14 documentos · 18 meses · CABA</div></div>
+            <div style="padding:1.5mm 3mm;border-radius:100mm;background:rgba(0,200,122,0.1);border:0.2mm solid rgba(0,200,122,0.2);color:#00C87A;font-size:4.5pt;font-weight:600">Invitar</div>
+          </div>
+          <div style="background:#151C2E;border-radius:2mm;padding:2.5mm;border:0.2mm solid rgba(255,255,255,0.07);display:flex;align-items:center;gap:2.5mm">
+            <div style="width:10mm;height:10mm;border-radius:2mm;background:rgba(0,200,122,0.12);display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0"><div style="font-size:11pt;font-weight:700;color:#00C87A;line-height:1">88</div><div style="font-size:3.5pt;color:#4A5578">score</div></div>
+            <div style="flex:1"><div style="font-size:5.5pt;font-weight:600;color:#F0F4FF;margin-bottom:0.5mm">PAC-1092 · 55a</div><div style="font-size:4.5pt;color:#4A5578;margin-bottom:0.5mm">Diabetes T2</div><div style="font-size:4pt;color:#4A5578">9 documentos · 12 meses · Rosario</div></div>
+            <div style="padding:1.5mm 3mm;border-radius:100mm;background:rgba(0,200,122,0.1);border:0.2mm solid rgba(0,200,122,0.2);color:#00C87A;font-size:4.5pt;font-weight:600">Invitar</div>
+          </div>
+          <div style="background:#151C2E;border-radius:2mm;padding:2.5mm;border:0.2mm solid rgba(255,255,255,0.07);display:flex;align-items:center;gap:2.5mm">
+            <div style="width:10mm;height:10mm;border-radius:2mm;background:rgba(0,184,212,0.12);display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0"><div style="font-size:11pt;font-weight:700;color:#00B8D4;line-height:1">81</div><div style="font-size:3.5pt;color:#4A5578">score</div></div>
+            <div style="flex:1"><div style="font-size:5.5pt;font-weight:600;color:#F0F4FF;margin-bottom:0.5mm">PAC-3317 · 62a</div><div style="font-size:4.5pt;color:#4A5578;margin-bottom:0.5mm">Diabetes T2 · Cardiopatía</div><div style="font-size:4pt;color:#4A5578">22 documentos · 24 meses · Córdoba</div></div>
+            <div style="padding:1.5mm 3mm;border-radius:100mm;background:rgba(0,184,212,0.1);border:0.2mm solid rgba(0,184,212,0.2);color:#00B8D4;font-size:4.5pt;font-weight:600">Invitar</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Analytics -->
+    <div class="web-screen">
+      <div class="web-bar">
+        <div class="web-dot" style="background:#EF4444"></div>
+        <div class="web-dot" style="background:#F59E0B"></div>
+        <div class="web-dot" style="background:#00C87A"></div>
+        <div style="font-size:5pt;color:#4A5578;margin-left:2mm">Analytics de Reclutamiento</div>
+      </div>
+      <div class="web-content">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:3mm">
+          <div style="background:#151C2E;border-radius:2mm;padding:3mm;border:0.2mm solid rgba(255,255,255,0.07)">
+            <div style="font-size:7pt;font-weight:700;color:#F0F4FF;margin-bottom:3mm">Funnel DIAB-LATAM-01</div>
+            <div style="display:flex;flex-direction:column;gap:2mm">
+              <div><div style="display:flex;justify-content:space-between;margin-bottom:0.8mm"><span style="font-size:4.5pt;color:#4A5578">Pacientes identificados</span><span style="font-size:5pt;font-weight:700;color:#4A5578">340</span></div><div style="background:rgba(255,255,255,0.06);border-radius:100mm;height:2mm;overflow:hidden"><div style="width:100%;height:100%;background:#4A5578;border-radius:100mm"></div></div></div>
+              <div><div style="display:flex;justify-content:space-between;margin-bottom:0.8mm"><span style="font-size:4.5pt;color:#4A5578">Invitaciones enviadas</span><span style="font-size:5pt;font-weight:700;color:#00B8D4">142</span></div><div style="background:rgba(255,255,255,0.06);border-radius:100mm;height:2mm;overflow:hidden"><div style="width:42%;height:100%;background:#00B8D4;border-radius:100mm"></div></div></div>
+              <div><div style="display:flex;justify-content:space-between;margin-bottom:0.8mm"><span style="font-size:4.5pt;color:#4A5578">Respondieron</span><span style="font-size:5pt;font-weight:700;color:#4B6EF5">87</span></div><div style="background:rgba(255,255,255,0.06);border-radius:100mm;height:2mm;overflow:hidden"><div style="width:26%;height:100%;background:#4B6EF5;border-radius:100mm"></div></div></div>
+              <div><div style="display:flex;justify-content:space-between;margin-bottom:0.8mm"><span style="font-size:4.5pt;color:#4A5578">Interesados</span><span style="font-size:5pt;font-weight:700;color:#00C87A">54</span></div><div style="background:rgba(255,255,255,0.06);border-radius:100mm;height:2mm;overflow:hidden"><div style="width:16%;height:100%;background:#00C87A;border-radius:100mm"></div></div></div>
+              <div><div style="display:flex;justify-content:space-between;margin-bottom:0.8mm"><span style="font-size:4.5pt;color:#4A5578">Enrolados</span><span style="font-size:5pt;font-weight:700;color:#00C87A">31</span></div><div style="background:rgba(255,255,255,0.06);border-radius:100mm;height:2mm;overflow:hidden"><div style="width:9%;height:100%;background:#00C87A;border-radius:100mm"></div></div></div>
+            </div>
+          </div>
+          <div style="background:#151C2E;border-radius:2mm;padding:3mm;border:0.2mm solid rgba(255,255,255,0.07)">
+            <div style="font-size:7pt;font-weight:700;color:#F0F4FF;margin-bottom:3mm">KPIs clave</div>
+            <div style="display:flex;flex-direction:column;gap:2mm">
+              <div style="display:flex;justify-content:space-between;padding-bottom:1.5mm;border-bottom:0.2mm solid rgba(255,255,255,0.05)"><span style="font-size:4.5pt;color:#4A5578">Tasa de respuesta</span><span style="font-size:6pt;font-weight:700;color:#00C87A">34%</span></div>
+              <div style="display:flex;justify-content:space-between;padding-bottom:1.5mm;border-bottom:0.2mm solid rgba(255,255,255,0.05)"><span style="font-size:4.5pt;color:#4A5578">Conversión a interés</span><span style="font-size:6pt;font-weight:700;color:#00B8D4">38%</span></div>
+              <div style="display:flex;justify-content:space-between;padding-bottom:1.5mm;border-bottom:0.2mm solid rgba(255,255,255,0.05)"><span style="font-size:4.5pt;color:#4A5578">Enrollment rate</span><span style="font-size:6pt;font-weight:700;color:#4B6EF5">9%</span></div>
+              <div style="display:flex;justify-content:space-between;padding-bottom:1.5mm;border-bottom:0.2mm solid rgba(255,255,255,0.05)"><span style="font-size:4.5pt;color:#4A5578">Costo/paciente ID</span><span style="font-size:6pt;font-weight:700;color:#F59E0B">$12 USD</span></div>
+              <div style="display:flex;justify-content:space-between"><span style="font-size:4.5pt;color:#4A5578">vs. benchmark tradicional</span><span style="font-size:6pt;font-weight:700;color:#00C87A">−82%</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     PAGE 8 · IA + FLYWHEEL
+═══════════════════════════════════════ -->
+<div class="page page-screens">
+  <div class="page-hdr">
+    <div><div class="flow-title">07 · Información de Arquitectura + Flywheel B2B</div><div class="flow-sub">Navigation map · cómo el B2C construye silenciosamente el activo de datos B2B</div></div>
+    <div class="page-num">8 / 9</div>
+  </div>
+
+  <div style="flex:1;display:grid;grid-template-columns:1fr 1fr;gap:6mm;overflow:hidden">
+    <!-- IA Map -->
+    <div style="background:#fff;border-radius:3mm;padding:5mm;border:0.2mm solid var(--light-border)">
+      <div style="font-size:8pt;font-weight:700;color:var(--text1);margin-bottom:4mm">Arquitectura de Información</div>
+      <div style="display:flex;flex-direction:column;gap:2.5mm">
+        <div style="display:flex;gap:2mm;align-items:center">
+          <div style="width:2mm;height:2mm;border-radius:50%;background:#00C87A;flex-shrink:0"></div>
+          <div style="font-size:6pt;font-weight:700;color:var(--text1)">Tab Bar Principal</div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:2mm;margin-left:4mm">
+          <div style="background:rgba(0,200,122,0.08);border:0.3mm solid rgba(0,200,122,0.2);border-radius:1.5mm;padding:1.5mm;text-align:center"><div style="font-size:4.5pt;font-weight:600;color:#00C87A">Inicio</div></div>
+          <div style="background:#F7F9FC;border:0.3mm solid #E8EDF5;border-radius:1.5mm;padding:1.5mm;text-align:center"><div style="font-size:4.5pt;color:var(--text2)">Vault</div></div>
+          <div style="background:#F7F9FC;border:0.3mm solid #E8EDF5;border-radius:1.5mm;padding:1.5mm;text-align:center"><div style="font-size:4.5pt;color:var(--text2)">Copilot</div></div>
+          <div style="background:#F7F9FC;border:0.3mm solid #E8EDF5;border-radius:1.5mm;padding:1.5mm;text-align:center"><div style="font-size:4.5pt;color:var(--text2)">Familia</div></div>
+          <div style="background:#F7F9FC;border:0.3mm solid #E8EDF5;border-radius:1.5mm;padding:1.5mm;text-align:center"><div style="font-size:4.5pt;color:var(--text2)">Más</div></div>
+        </div>
+        <!-- Vault children -->
+        <div style="margin-left:8mm;display:flex;flex-direction:column;gap:1.5mm">
+          <div style="font-size:5pt;color:var(--text3);font-weight:600">Vault →</div>
+          <div style="display:flex;gap:1.5mm;flex-wrap:wrap">
+            <div style="padding:0.8mm 2mm;background:#F7F9FC;border:0.3mm solid #E8EDF5;border-radius:1mm;font-size:4.5pt;color:var(--text2)">Lista de estudios</div>
+            <div style="padding:0.8mm 2mm;background:#F7F9FC;border:0.3mm solid #E8EDF5;border-radius:1mm;font-size:4.5pt;color:var(--text2)">Detalle + IA</div>
+            <div style="padding:0.8mm 2mm;background:#F7F9FC;border:0.3mm solid #E8EDF5;border-radius:1mm;font-size:4.5pt;color:var(--text2)">Upload (3 pasos)</div>
+          </div>
+        </div>
+        <!-- More children -->
+        <div style="margin-left:8mm;display:flex;flex-direction:column;gap:1.5mm">
+          <div style="font-size:5pt;color:var(--text3);font-weight:600">Más →</div>
+          <div style="display:flex;gap:1.5mm;flex-wrap:wrap">
+            <div style="padding:0.8mm 2mm;background:#F7F9FC;border:0.3mm solid #E8EDF5;border-radius:1mm;font-size:4.5pt;color:var(--text2)">Timeline</div>
+            <div style="padding:0.8mm 2mm;background:#F7F9FC;border:0.3mm solid #E8EDF5;border-radius:1mm;font-size:4.5pt;color:var(--text2)">Compartir QR</div>
+            <div style="padding:0.8mm 2mm;background:rgba(75,110,245,0.08);border:0.3mm solid rgba(75,110,245,0.2);border-radius:1mm;font-size:4.5pt;color:#4B6EF5;font-weight:600">Consentimiento ★</div>
+            <div style="padding:0.8mm 2mm;background:#F7F9FC;border:0.3mm solid #E8EDF5;border-radius:1mm;font-size:4.5pt;color:var(--text2)">Invit. estudio</div>
+            <div style="padding:0.8mm 2mm;background:#F7F9FC;border:0.3mm solid #E8EDF5;border-radius:1mm;font-size:4.5pt;color:var(--text2)">Configuración</div>
+          </div>
+        </div>
+        <!-- Notifications -->
+        <div style="height:0.2mm;background:#E8EDF5;margin:1mm 0"></div>
+        <div style="display:flex;gap:2mm;align-items:center">
+          <div style="width:2mm;height:2mm;border-radius:50%;background:#F59E0B;flex-shrink:0"></div>
+          <div style="font-size:6pt;font-weight:700;color:var(--text1)">Notificaciones push</div>
+        </div>
+        <div style="margin-left:4mm;display:flex;gap:1.5mm;flex-wrap:wrap">
+          <div style="padding:0.8mm 2mm;background:rgba(245,158,11,0.08);border:0.3mm solid rgba(245,158,11,0.2);border-radius:1mm;font-size:4.5pt;color:#92400E">Invitación estudio</div>
+          <div style="padding:0.8mm 2mm;background:#F7F9FC;border:0.3mm solid #E8EDF5;border-radius:1mm;font-size:4.5pt;color:var(--text2)">Valor atípico</div>
+          <div style="padding:0.8mm 2mm;background:#F7F9FC;border:0.3mm solid #E8EDF5;border-radius:1mm;font-size:4.5pt;color:var(--text2)">QR expirado</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Flywheel -->
+    <div style="background:var(--dark);border-radius:3mm;padding:5mm">
+      <div style="font-size:8pt;font-weight:700;color:#F0F4FF;margin-bottom:4mm">El Two-Sided Flywheel</div>
+      <div style="display:flex;flex-direction:column;gap:3mm">
+        <!-- Arrow chain -->
+        <div style="display:flex;align-items:center;gap:0">
+          <div style="flex:1;background:#151C2E;border-radius:2mm;padding:2.5mm;border:0.2mm solid rgba(0,200,122,0.2)">
+            <div style="font-size:5pt;font-weight:700;color:#00C87A">Pacientes B2C</div>
+            <div style="font-size:4pt;color:#4A5578;margin-top:0.5mm">Vault gratuito · CAC $3–5</div>
+          </div>
+          <div style="font-size:8pt;color:#4A5578;margin:0 1.5mm">→</div>
+          <div style="flex:1;background:#151C2E;border-radius:2mm;padding:2.5mm;border:0.2mm solid rgba(0,184,212,0.2)">
+            <div style="font-size:5pt;font-weight:700;color:#00B8D4">Datos Estructurados</div>
+            <div style="font-size:4pt;color:#4A5578;margin-top:0.5mm">OCR + IA · FHIR-ready</div>
+          </div>
+          <div style="font-size:8pt;color:#4A5578;margin:0 1.5mm">→</div>
+          <div style="flex:1;background:#151C2E;border-radius:2mm;padding:2.5mm;border:0.2mm solid rgba(75,110,245,0.2)">
+            <div style="font-size:5pt;font-weight:700;color:#4B6EF5">CRO Revenue</div>
+            <div style="font-size:4pt;color:#4A5578;margin-top:0.5mm">LTV $85–140 · margen 78%</div>
+          </div>
+        </div>
+        <!-- Return -->
+        <div style="text-align:center;font-size:4pt;color:#4A5578">↓ Revenue reinvertido en mejor IA y UX → más pacientes → más datos → más CROs ↑</div>
+
+        <!-- Unit economics -->
+        <div style="background:#151C2E;border-radius:2mm;padding:3mm;border:0.2mm solid rgba(255,255,255,0.07)">
+          <div style="font-size:6pt;font-weight:700;color:#F0F4FF;margin-bottom:2mm">Economics por usuario B2C</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:2mm">
+            <div>
+              <div style="font-size:4pt;color:#4A5578;margin-bottom:0.5mm">CAC combinado</div>
+              <div style="font-size:9pt;font-weight:700;color:#EF4444">$3–5</div>
+            </div>
+            <div>
+              <div style="font-size:4pt;color:#4A5578;margin-bottom:0.5mm">LTV directo (freemium)</div>
+              <div style="font-size:9pt;font-weight:700;color:#4A5578">$18</div>
+            </div>
+            <div>
+              <div style="font-size:4pt;color:#4A5578;margin-bottom:0.5mm">LTV indirecto (30% consiente)</div>
+              <div style="font-size:9pt;font-weight:700;color:#00B8D4">+$84</div>
+            </div>
+            <div>
+              <div style="font-size:4pt;color:#4A5578;margin-bottom:0.5mm">LTV blended</div>
+              <div style="font-size:9pt;font-weight:700;color:#00C87A">~$102</div>
+            </div>
+          </div>
+          <div style="margin-top:2mm;padding-top:2mm;border-top:0.2mm solid rgba(255,255,255,0.06)">
+            <div style="display:flex;justify-content:space-between">
+              <span style="font-size:5pt;color:#4A5578;font-weight:600">LTV:CAC blended</span>
+              <span style="font-size:7pt;font-weight:700;background:linear-gradient(135deg,#00C87A,#4B6EF5);-webkit-background-clip:text;-webkit-text-fill-color:transparent">10–14:1</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Privacy barrier -->
+        <div style="background:rgba(75,110,245,0.08);border-radius:2mm;padding:2mm;border:0.2mm solid rgba(75,110,245,0.2)">
+          <div style="font-size:5.5pt;font-weight:700;color:#7090F7;margin-bottom:1mm">🛡 Firewall de privacidad</div>
+          <div style="font-size:4.5pt;color:#4A5578;line-height:1.6">El CRO NUNCA accede a datos identificables. Solo ve perfiles anonimizados con fit score. El paciente siempre puede ver quién tiene acceso y revocar.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     PAGE 9 · HANDOFF + NEXT STEPS
+═══════════════════════════════════════ -->
+<div class="page page-cover">
+  <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 30% 50%,rgba(0,200,122,0.06) 0%,transparent 60%),radial-gradient(ellipse at 70% 50%,rgba(75,110,245,0.06) 0%,transparent 60%)"></div>
+  <div style="position:absolute;inset:0;background-image:radial-gradient(circle,rgba(255,255,255,0.03) 1px,transparent 1px);background-size:8mm 8mm"></div>
+  <div style="position:relative;display:grid;grid-template-columns:1fr 1fr;height:100%">
+    <!-- Left -->
+    <div style="display:flex;flex-direction:column;justify-content:center;padding:16mm 10mm 16mm 18mm">
+      <div style="font-size:7pt;font-weight:600;letter-spacing:0.18em;text-transform:uppercase;color:var(--g);margin-bottom:4mm">Resumen del Prototipo</div>
+      <div style="font-size:18pt;font-weight:700;line-height:1.1;color:#F0F4FF;letter-spacing:-0.03em;margin-bottom:4mm">Bresca App<br><span style="background:linear-gradient(135deg,#00C87A,#4B6EF5);-webkit-background-clip:text;-webkit-text-fill-color:transparent">UX/UI Prototype</span></div>
+      <div style="display:flex;flex-direction:column;gap:2.5mm;margin-bottom:6mm">
+        <div style="display:flex;gap:2mm;align-items:flex-start"><div style="width:1.5mm;height:1.5mm;border-radius:50%;background:#00C87A;flex-shrink:0;margin-top:1.5mm"></div><div style="font-size:6.5pt;color:#8899BB;line-height:1.5">20+ pantallas navegables: onboarding, vault, copilot, familia, consentimiento, estudio</div></div>
+        <div style="display:flex;gap:2mm;align-items:flex-start"><div style="width:1.5mm;height:1.5mm;border-radius:50%;background:#00B8D4;flex-shrink:0;margin-top:1.5mm"></div><div style="font-size:6.5pt;color:#8899BB;line-height:1.5">Panel CRO completo: dashboard, cohortes, matching anónimo, analytics de funnel</div></div>
+        <div style="display:flex;gap:2mm;align-items:flex-start"><div style="width:1.5mm;height:1.5mm;border-radius:50%;background:#4B6EF5;flex-shrink:0;margin-top:1.5mm"></div><div style="font-size:6.5pt;color:#8899BB;line-height:1.5">6 principios UX aplicados: trust-first, transparencia radical, disclosure progresiva</div></div>
+        <div style="display:flex;gap:2mm;align-items:flex-start"><div style="width:1.5mm;height:1.5mm;border-radius:50%;background:#F59E0B;flex-shrink:0;margin-top:1.5mm"></div><div style="font-size:6.5pt;color:#8899BB;line-height:1.5">Arquitectura de consentimiento de 3 capas compatible con LGPD / Ley 25.326 / HIPAA</div></div>
+      </div>
+      <div style="font-size:6pt;color:#4A5578">bresca.health · esteban@bresca.health</div>
+    </div>
+    <!-- Right: next steps -->
+    <div style="display:flex;flex-direction:column;justify-content:center;padding:16mm 18mm 16mm 8mm">
+      <div style="font-size:7pt;font-weight:600;letter-spacing:0.14em;text-transform:uppercase;color:#4A5578;margin-bottom:4mm">Próximos pasos sugeridos</div>
+      <div style="display:flex;flex-direction:column;gap:3mm">
+        <div style="background:#151C2E;border-radius:2mm;padding:3mm;border:0.2mm solid rgba(255,255,255,0.07);display:flex;gap:3mm;align-items:flex-start">
+          <div style="width:7mm;height:7mm;border-radius:1.5mm;background:rgba(0,200,122,0.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:5.5pt;font-weight:700;color:#00C87A">1</div>
+          <div><div style="font-size:6pt;font-weight:700;color:#F0F4FF;margin-bottom:0.5mm">User testing con pacientes crónicos</div><div style="font-size:5pt;color:#4A5578;line-height:1.5">5–8 entrevistas con diabetes e hipertensión. Validar onboarding y momento de consent.</div></div>
+        </div>
+        <div style="background:#151C2E;border-radius:2mm;padding:3mm;border:0.2mm solid rgba(255,255,255,0.07);display:flex;gap:3mm;align-items:flex-start">
+          <div style="width:7mm;height:7mm;border-radius:1.5mm;background:rgba(0,184,212,0.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:5.5pt;font-weight:700;color:#00B8D4">2</div>
+          <div><div style="font-size:6pt;font-weight:700;color:#F0F4FF;margin-bottom:0.5mm">Validar copy con bioeticista</div><div style="font-size:5pt;color:#4A5578;line-height:1.5">El texto del Centro de Consentimiento requiere revisión legal/ética antes de producción.</div></div>
+        </div>
+        <div style="background:#151C2E;border-radius:2mm;padding:3mm;border:0.2mm solid rgba(255,255,255,0.07);display:flex;gap:3mm;align-items:flex-start">
+          <div style="width:7mm;height:7mm;border-radius:1.5mm;background:rgba(75,110,245,0.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:5.5pt;font-weight:700;color:#4B6EF5">3</div>
+          <div><div style="font-size:6pt;font-weight:700;color:#F0F4FF;margin-bottom:0.5mm">Entrevistas con Heads of Feasibility CRO</div><div style="font-size:5pt;color:#4A5578;line-height:1.5">Validar fit score, filtros y métricas del panel. ¿Qué campos son imprescindibles?</div></div>
+        </div>
+        <div style="background:#151C2E;border-radius:2mm;padding:3mm;border:0.2mm solid rgba(255,255,255,0.07);display:flex;gap:3mm;align-items:flex-start">
+          <div style="width:7mm;height:7mm;border-radius:1.5mm;background:rgba(245,158,11,0.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:5.5pt;font-weight:700;color:#F59E0B">4</div>
+          <div><div style="font-size:6pt;font-weight:700;color:#F0F4FF;margin-bottom:0.5mm">High-fidelity + sistema de diseño</div><div style="font-size:5pt;color:#4A5578;line-height:1.5">Elevar fidelidad con el Design System Bresca. Agregar estados de carga, error y vacío.</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div style="position:absolute;bottom:0;left:0;right:0;height:0.5mm;background:linear-gradient(90deg,#00C87A,#00B8D4,#4B6EF5)"></div>
+</div>
+
+<script>
+  document.fonts.ready.then(function() {
+    setTimeout(function() {
+      window.print();
+    }, 500);
+  });
+</script>
+</body>
+</html>

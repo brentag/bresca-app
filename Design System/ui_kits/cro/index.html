@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bresca for CRO — Health Data Platform</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Space Grotesk', sans-serif; background: #0A0A0A; color: #F1F5F9; -webkit-font-smoothing: antialiased; }
+  :root {
+    --green: #00C87A; --blue: #4B6EF5; --teal: #00B8D4;
+    --grad: linear-gradient(135deg,#00C87A 0%,#00B8D4 50%,#4B6EF5 100%);
+    --surface: #111827; --card: #1A2236;
+    --border: rgba(255,255,255,0.08);
+  }
+  /* Dot grid pattern */
+  .dot-grid {
+    background-image: radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px);
+    background-size: 28px 28px;
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" src="CROHeader.jsx"></script>
+<script type="text/babel" src="CROHero.jsx"></script>
+<script type="text/babel" src="CRODataSection.jsx"></script>
+<script type="text/babel" src="CROFooter.jsx"></script>
+<script type="text/babel">
+const { useState } = React;
+
+function App() {
+  const [screen, setScreen] = useState(() => localStorage.getItem('cro-screen') || 'home');
+  const navigate = (s) => { localStorage.setItem('cro-screen', s); setScreen(s); };
+
+  return (
+    <div>
+      <CROHeader navigate={navigate} screen={screen} />
+      {screen === 'home' && <><CROHero navigate={navigate} /><CRODataSection /></>}
+      {screen === 'contact' && <ContactScreen navigate={navigate} />}
+      {screen === 'datasets' && <DatasetsScreen navigate={navigate} />}
+      <CROFooter />
+    </div>
+  );
+}
+
+function ContactScreen({ navigate }) {
+  return (
+    <div style={{minHeight:'80vh',display:'flex',alignItems:'center',justifyContent:'center',padding:'40px 24px',background:'#0A0A0A'}}>
+      <div style={{background:'#111827',border:'1px solid rgba(255,255,255,0.08)',borderRadius:16,padding:'48px 40px',width:520}}>
+        <div style={{marginBottom:28}}>
+          <span style={{fontSize:11,fontWeight:600,letterSpacing:'0.18em',textTransform:'uppercase',color:'#00C87A'}}>CRO ACCESS REQUEST</span>
+          <h2 style={{fontSize:26,fontWeight:700,marginTop:10,marginBottom:8}}>Request Data Access</h2>
+          <p style={{fontSize:14,color:'#64748B',lineHeight:1.6}}>Our team will review your research protocol and contact you within 48 hours.</p>
+        </div>
+        {[{l:'Organization Name',p:'Pharma Corp / Research Institute'},{l:'Research Contact',p:'Dr. Jane Smith'},{l:'Work Email',p:'contact@pharma.com'},{l:'Study Protocol ID',p:'NCT0000000 (optional)'}].map(f=>(
+          <div key={f.l} style={{marginBottom:16}}>
+            <label style={{fontSize:12,fontWeight:600,color:'#94A3B8',display:'block',marginBottom:6,letterSpacing:'0.04em'}}>{f.l}</label>
+            <input placeholder={f.p} style={{width:'100%',background:'#0F172A',border:'1.5px solid rgba(255,255,255,0.1)',borderRadius:8,padding:'11px 14px',fontSize:14,color:'#F1F5F9',fontFamily:'inherit',outline:'none'}}
+              onFocus={e=>e.target.style.borderColor='#00C87A'} onBlur={e=>e.target.style.borderColor='rgba(255,255,255,0.1)'} />
+          </div>
+        ))}
+        <div style={{marginBottom:20}}>
+          <label style={{fontSize:12,fontWeight:600,color:'#94A3B8',display:'block',marginBottom:6,letterSpacing:'0.04em'}}>Research Summary</label>
+          <textarea placeholder="Brief description of the research objectives and data requirements..." style={{width:'100%',height:88,background:'#0F172A',border:'1.5px solid rgba(255,255,255,0.1)',borderRadius:8,padding:'11px 14px',fontSize:14,color:'#F1F5F9',fontFamily:'inherit',outline:'none',resize:'none'}}
+            onFocus={e=>e.target.style.borderColor='#00C87A'} onBlur={e=>e.target.style.borderColor='rgba(255,255,255,0.1)'} />
+        </div>
+        <div style={{display:'flex',gap:10}}>
+          <button style={{flex:1,background:'linear-gradient(135deg,#00C87A,#4B6EF5)',color:'#fff',border:'none',borderRadius:100,padding:'13px 0',fontSize:15,fontWeight:600,fontFamily:'inherit',cursor:'pointer'}}>Submit Request</button>
+          <button onClick={()=>navigate('home')} style={{flex:1,background:'transparent',color:'#64748B',border:'1.5px solid rgba(255,255,255,0.1)',borderRadius:100,padding:'13px 0',fontSize:15,fontWeight:600,fontFamily:'inherit',cursor:'pointer'}}>Cancel</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DatasetsScreen({ navigate }) {
+  const datasets = [
+    {name:'Chest Imaging Dataset',studies:'8,420',type:'DICOM · X-Ray',tags:['Consented','Anonymized','HIPAA'],color:'#00C87A'},
+    {name:'Abdominal MRI Cohort',studies:'3,150',type:'DICOM · MRI',tags:['Consented','Anonymized'],color:'#00B8D4'},
+    {name:'Cardiac CT Series',studies:'1,890',type:'DICOM · CT',tags:['Consented','Anonymized','FDA-ready'],color:'#4B6EF5'},
+    {name:'Oncology Imaging Bank',studies:'5,600',type:'DICOM · PET/CT',tags:['Consented','Anonymized'],color:'#00C87A'},
+  ];
+  return (
+    <div style={{minHeight:'80vh',background:'#0A0A0A',padding:'48px 24px'}}>
+      <div style={{maxWidth:960,margin:'0 auto'}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-end',marginBottom:32}}>
+          <div>
+            <span style={{fontSize:11,fontWeight:600,letterSpacing:'0.18em',textTransform:'uppercase',color:'#00C87A'}}>Available Datasets</span>
+            <h2 style={{fontSize:28,fontWeight:700,marginTop:8}}>Research-Grade Data</h2>
+          </div>
+          <button onClick={()=>navigate('contact')} style={{background:'linear-gradient(135deg,#00C87A,#4B6EF5)',color:'#fff',border:'none',borderRadius:100,padding:'10px 22px',fontSize:14,fontWeight:600,fontFamily:'inherit',cursor:'pointer'}}>Request Access</button>
+        </div>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(420px,1fr))',gap:14}}>
+          {datasets.map((d,i)=>(
+            <div key={i} style={{background:'#111827',border:'1px solid rgba(255,255,255,0.08)',borderRadius:12,padding:'24px',transition:'border-color 200ms,box-shadow 200ms',cursor:'pointer'}}
+              onMouseEnter={e=>{e.currentTarget.style.borderColor='rgba(0,200,122,0.3)';e.currentTarget.style.boxShadow='0 0 24px rgba(0,200,122,0.08)'}}
+              onMouseLeave={e=>{e.currentTarget.style.borderColor='rgba(255,255,255,0.08)';e.currentTarget.style.boxShadow='none'}}>
+              <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',marginBottom:14}}>
+                <div>
+                  <div style={{fontSize:16,fontWeight:700,marginBottom:4}}>{d.name}</div>
+                  <div style={{fontSize:12,color:'#64748B'}}>{d.type}</div>
+                </div>
+                <div style={{textAlign:'right'}}>
+                  <div style={{fontSize:22,fontWeight:700,color:d.color}}>{d.studies}</div>
+                  <div style={{fontSize:11,color:'#64748B'}}>studies</div>
+                </div>
+              </div>
+              <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
+                {d.tags.map(t=>(
+                  <span key={t} style={{fontSize:11,fontWeight:600,padding:'3px 10px',borderRadius:100,background:'rgba(0,200,122,0.08)',color:'#00C87A',border:'1px solid rgba(0,200,122,0.2)'}}>{t}</span>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<App />);
+</script>
+</body>
+</html>

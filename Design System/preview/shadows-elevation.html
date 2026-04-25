@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Space Grotesk', sans-serif; background: #F8FAFC; padding: 24px; }
+  .row { display: flex; gap: 16px; align-items: flex-end; flex-wrap: wrap; }
+  .card { background: #fff; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+  .label { font-size: 10px; font-weight: 600; color: #94A3B8; font-family: monospace; }
+  .dark-card { background: #1A2236; border-radius: 12px; padding: 20px; }
+  .glow { background: #111827; border-radius: 12px; padding: 20px; }
+</style></head><body>
+<div class="row">
+  <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-start">
+    <div class="card" style="box-shadow:0 1px 3px rgba(0,0,0,0.06),0 1px 2px rgba(0,0,0,0.04);min-width:120px">
+      <div class="label">shadow-1</div>
+    </div>
+    <div class="card" style="box-shadow:0 4px 16px rgba(0,0,0,0.08);min-width:120px">
+      <div class="label">shadow-2</div>
+    </div>
+    <div class="card" style="box-shadow:0 8px 32px rgba(0,0,0,0.12);min-width:120px">
+      <div class="label">shadow-3</div>
+    </div>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:8px">
+    <div class="dark-card" style="box-shadow:0 0 32px rgba(0,200,122,0.25);min-width:120px">
+      <div class="label" style="color:#00C87A">glow-green</div>
+    </div>
+    <div class="glow" style="box-shadow:0 0 32px rgba(75,110,245,0.35);min-width:120px">
+      <div class="label" style="color:#7090F7">glow-blue</div>
+    </div>
+  </div>
+</div>
+</body></html>

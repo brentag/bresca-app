@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Space Grotesk', sans-serif; background: #fff; padding: 24px; }
+  .row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-bottom: 16px; }
+  .section-label { font-size: 10px; font-weight: 600; color: #94A3B8; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 8px; }
+  button { font-family: 'Space Grotesk', sans-serif; cursor: pointer; border: none; font-weight: 600; transition: all 200ms ease-out; }
+  .btn-primary { background: linear-gradient(135deg,#00C87A,#4B6EF5); color: #fff; padding: 12px 28px; border-radius: 100px; font-size: 15px; }
+  .btn-primary:hover { filter: brightness(1.08); transform: scale(1.02); }
+  .btn-green { background: #00C87A; color: #fff; padding: 12px 28px; border-radius: 100px; font-size: 15px; }
+  .btn-blue { background: #4B6EF5; color: #fff; padding: 12px 28px; border-radius: 100px; font-size: 15px; }
+  .btn-outline-green { background: transparent; color: #00C87A; padding: 11px 26px; border-radius: 100px; font-size: 15px; border: 2px solid #00C87A; }
+  .btn-outline-blue  { background: transparent; color: #4B6EF5; padding: 11px 26px; border-radius: 100px; font-size: 15px; border: 2px solid #4B6EF5; }
+  .btn-ghost { background: #F1F5F9; color: #334155; padding: 12px 28px; border-radius: 100px; font-size: 15px; }
+  .btn-sm { padding: 8px 18px; font-size: 13px; border-radius: 100px; background: linear-gradient(135deg,#00C87A,#4B6EF5); color: #fff; }
+  .btn-lg { padding: 16px 36px; font-size: 17px; border-radius: 100px; background: linear-gradient(135deg,#00C87A,#4B6EF5); color: #fff; }
+  .dark-bg { background: #0A0A0A; padding: 16px 20px; border-radius: 12px; }
+  .btn-dark-outline { background: transparent; color: #00C87A; padding: 11px 26px; border-radius: 100px; font-size: 15px; border: 2px solid #00C87A; }
+  .btn-disabled { background: #E2E8F0; color: #94A3B8; padding: 12px 28px; border-radius: 100px; font-size: 15px; cursor: not-allowed; }
+</style></head><body>
+  <div class="section-label">Primary</div>
+  <div class="row">
+    <button class="btn-sm">Comenzar</button>
+    <button class="btn-primary">Comenzar gratis</button>
+    <button class="btn-lg">Comenzar gratis</button>
+  </div>
+  <div class="section-label">Solid Variants</div>
+  <div class="row">
+    <button class="btn-green">Subir estudio</button>
+    <button class="btn-blue">Ver más</button>
+    <button class="btn-ghost">Cancelar</button>
+    <button class="btn-disabled">Deshabilitado</button>
+  </div>
+  <div class="section-label">Outlined</div>
+  <div class="row">
+    <button class="btn-outline-green">Saber más</button>
+    <button class="btn-outline-blue">Contactar</button>
+  </div>
+  <div class="section-label">On Dark (CRO)</div>
+  <div class="dark-bg row">
+    <button class="btn-primary">Request Access</button>
+    <button class="btn-dark-outline">Learn More</button>
+  </div>
+</body></html>

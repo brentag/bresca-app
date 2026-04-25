@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bresca — CRO Pitch Deck 2024</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="deck-stage.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Space Grotesk', sans-serif; background: #000; -webkit-font-smoothing: antialiased; }
+  :root {
+    --g: #00C87A; --b: #4B6EF5; --t: #00B8D4;
+    --grad: linear-gradient(135deg, #00C87A 0%, #00B8D4 50%, #4B6EF5 100%);
+    --black: #080809; --card: #151C2E;
+    --border: rgba(255,255,255,0.07);
+    --fg1: #F0F4FF; --fg2: #8899BB; --fg3: #4A5578;
+  }
+  section { width:100%; height:100%; background:var(--black); color:var(--fg1); position:relative; overflow:hidden; font-family:'Space Grotesk',sans-serif; }
+  .dot-grid  { background-image: radial-gradient(circle, rgba(255,255,255,0.05) 1px, transparent 1px); background-size: 36px 36px; }
+  .line-grid  { background-image: linear-gradient(rgba(255,255,255,0.025) 1px,transparent 1px), linear-gradient(90deg,rgba(255,255,255,0.025) 1px,transparent 1px); background-size: 80px 80px; }
+  .pad { padding: 72px 108px; }
+  .grad-text { background:var(--grad); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+  .tag { display:inline-flex; align-items:center; font-size:18px; font-weight:600; letter-spacing:0.16em; text-transform:uppercase; color:var(--g); padding:7px 24px; background:rgba(0,200,122,0.08); border:1px solid rgba(0,200,122,0.2); border-radius:100px; }
+  .slide-label { font-size:16px; font-weight:600; letter-spacing:0.18em; text-transform:uppercase; color:var(--g); margin-bottom:22px; }
+  .accent-bar { height:5px; background:var(--grad); border-radius:100px; width:72px; margin-bottom:28px; }
+  .card { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:32px 28px; }
+  .card-g { border-color:rgba(0,200,122,0.18); }
+  .card-b { border-color:rgba(75,110,245,0.18); }
+  .card-t { border-color:rgba(0,184,212,0.18); }
+  .h1 { font-size:80px; font-weight:700; line-height:1.04; letter-spacing:-0.04em; }
+  .h2 { font-size:56px; font-weight:700; line-height:1.07; letter-spacing:-0.03em; }
+  .h3 { font-size:38px; font-weight:700; line-height:1.1; letter-spacing:-0.02em; }
+  .body { font-size:22px; font-weight:400; line-height:1.65; color:var(--fg2); }
+  .glow-g { position:absolute; border-radius:50%; background:radial-gradient(ellipse,rgba(0,200,122,0.11) 0%,transparent 65%); pointer-events:none; }
+  .glow-b { position:absolute; border-radius:50%; background:radial-gradient(ellipse,rgba(75,110,245,0.09) 0%,transparent 65%); pointer-events:none; }
+  .slide-num { position:absolute; bottom:44px; right:88px; font-size:16px; font-weight:500; color:var(--fg3); letter-spacing:0.08em; }
+  .icon-box { width:56px; height:56px; border-radius:14px; display:flex; align-items:center; justify-content:center; margin-bottom:16px; }
+  .num-badge { width:44px; height:44px; border-radius:10px; background:var(--grad); display:flex; align-items:center; justify-content:center; font-size:18px; font-weight:700; color:#fff; flex-shrink:0; }
+  .bullet { display:flex; gap:12px; align-items:flex-start; }
+  .dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; margin-top:8px; }
+  .h-rule { height:1px; background:var(--border); width:100%; }
+  .section-label { font-size:13px; font-weight:700; letter-spacing:0.14em; text-transform:uppercase; margin-bottom:14px; }
+  /* Dot matrix for competitive table */
+  .dot-full { width:22px; height:22px; border-radius:50%; background:#00C87A; display:inline-block; }
+  .dot-empty { width:22px; height:22px; border-radius:50%; background:rgba(255,255,255,0.1); display:inline-block; }
+  .dot-partial { width:22px; height:22px; border-radius:50%; background:rgba(255,255,255,0.25); display:inline-block; }
+  /* Phase timeline */
+  .phase-line { position:absolute; top:50%; height:3px; background:var(--grad); left:0; right:0; transform:translateY(-50%); z-index:0; }
+</style>
+</head>
+<body>
+<deck-stage width="1920" height="1080">
+
+<!-- ═══ 01 COVER ═══ -->
+<section data-label="Cover" class="dot-grid" style="display:flex;flex-direction:column;align-items:flex-start;justify-content:center;padding:80px 120px">
+  <div class="glow-g" style="width:1000px;height:800px;top:-300px;right:-100px"></div>
+  <div class="glow-b" style="width:600px;height:600px;bottom:-200px;left:200px"></div>
+  <div style="position:relative;max-width:1100px">
+    <div style="margin-bottom:40px"><img src="assets/logo-horizontal-bicolor.png" alt="Bresca" style="height:60px"></div>
+    <p style="font-size:17px;font-weight:600;letter-spacing:0.18em;text-transform:uppercase;color:var(--g);margin-bottom:24px">Health Data Autonomy · CRO Pitch 2024</p>
+    <h1 class="h1" style="margin-bottom:28px">
+      El ganador de la próxima<br>década en HealthTech<br>
+      <span class="grad-text">no será otro EHR.</span>
+    </h1>
+    <p class="body" style="font-size:26px;max-width:860px;margin-bottom:48px">
+      Será la primera red longitudinal de datos de grado de investigación a escala continental, controlada por el paciente.<br>
+      <strong style="color:var(--fg1)">Bresca está construyendo esta red en América Latina.</strong>
+    </p>
+    <div style="display:flex;gap:16px;align-items:center">
+      <span class="tag">Serie Seed · $1.5M</span>
+      <span style="font-size:18px;color:var(--fg3)">esteban@bresca.health</span>
+    </div>
+  </div>
+  <div style="position:absolute;bottom:0;left:0;right:0;height:3px;background:var(--grad)"></div>
+</section>
+
+<!-- ═══ 02 LA ENFERMEDAD VS. EL SÍNTOMA ═══ -->
+<section data-label="Enfermedad vs Síntoma" class="line-grid pad">
+  <div class="glow-g" style="width:500px;height:500px;top:-200px;right:0;opacity:0.5"></div>
+  <div style="position:relative">
+    <div class="slide-label">El Problema Real</div>
+    <div class="accent-bar"></div>
+    <h2 class="h2" style="margin-bottom:40px">La Enfermedad <span class="grad-text">vs.</span> El Síntoma</h2>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:24px">
+      <div class="card card-g" style="padding:36px 28px">
+        <div style="font-size:64px;font-weight:700;color:var(--g);line-height:1;letter-spacing:-0.03em;margin-bottom:12px">$60B</div>
+        <div style="font-size:15px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--fg3);margin-bottom:10px">/ año</div>
+        <p style="font-size:18px;color:var(--fg2);line-height:1.6">Gasto anual de la industria farmacéutica y CROs solo en recolectar datos que ya existen, pero que no están normalizados.</p>
+      </div>
+      <div class="card" style="padding:36px 28px">
+        <div style="font-size:22px;font-weight:700;color:var(--t);margin-bottom:14px">La Paradoja LATAM</div>
+        <div style="font-size:52px;font-weight:700;line-height:1;letter-spacing:-0.03em;margin-bottom:6px">8%</div>
+        <p style="font-size:17px;color:var(--fg2);line-height:1.6;margin-bottom:16px">de la carga mundial de enfermedades</p>
+        <div style="font-size:52px;font-weight:700;line-height:1;letter-spacing:-0.03em;margin-bottom:6px;color:#EF4444">&lt;2%</div>
+        <p style="font-size:17px;color:var(--fg2);line-height:1.6">de inscripción en ensayos clínicos.<br><strong style="color:var(--fg1)">No faltan pacientes; falta infraestructura.</strong></p>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:20px">
+        <div class="card card-t" style="flex:1">
+          <div style="font-size:14px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--t);margin-bottom:12px">El Síntoma</div>
+          <div style="font-size:24px;font-weight:700;margin-bottom:10px">Falta de portabilidad de datos médicos</div>
+          <p style="font-size:17px;color:var(--fg2);line-height:1.55">El paciente pierde sus estudios al cambiar de médico, país o proveedor.</p>
+        </div>
+        <div class="card card-b" style="flex:1">
+          <div style="font-size:14px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--b);margin-bottom:12px">La Enfermedad</div>
+          <div style="font-size:24px;font-weight:700;margin-bottom:10px">El 95% de los datos son inutilizables</div>
+          <p style="font-size:17px;color:var(--fg2);line-height:1.55">PDFs, imágenes escaneadas, sistemas aislados. Estructuralmente imposibles de usar en investigación.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="slide-num">02 / 15</div>
+</section>
+
+<!-- ═══ 03 EL PARADIGMA INCORRECTO ═══ -->
+<section data-label="Paradigma Incorrecto" class="dot-grid pad">
+  <div class="glow-b" style="width:700px;height:700px;bottom:-300px;right:-200px"></div>
+  <div style="position:relative">
+    <div class="slide-label">Diagnóstico Estructural</div>
+    <div class="accent-bar"></div>
+    <h2 class="h2" style="margin-bottom:8px">El Paradigma Incorrecto</h2>
+    <p class="body" style="font-size:20px;margin-bottom:36px">Matriz Comparativa de Diagnóstico</p>
+    <table style="width:100%;border-collapse:collapse;font-size:20px">
+      <thead>
+        <tr>
+          <th style="text-align:left;padding:16px 24px;color:var(--fg3);font-size:14px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;border-bottom:1px solid var(--border);width:200px"></th>
+          <th style="padding:16px 24px;color:var(--fg3);font-size:14px;font-weight:600;border-bottom:1px solid var(--border);text-align:center">El Enfoque Histórico</th>
+          <th style="padding:16px 24px;color:var(--g);font-size:16px;font-weight:700;border-bottom:2px solid rgba(0,200,122,0.3);text-align:center;background:rgba(0,200,122,0.04);border-radius:12px 12px 0 0">El Enfoque Bresca</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr style="background:rgba(255,255,255,0.015)">
+          <td style="padding:22px 24px;color:var(--fg2);font-weight:500">Punto de Origen</td>
+          <td style="padding:22px 24px;text-align:center;color:var(--fg3)">El Proveedor<br><span style="font-size:16px;color:var(--fg3)">(Epic, Google)</span></td>
+          <td style="padding:22px 24px;text-align:center;font-weight:700;color:var(--g);background:rgba(0,200,122,0.03)">El Paciente</td>
+        </tr>
+        <tr>
+          <td style="padding:22px 24px;color:var(--fg2);font-weight:500">Incentivo para Compartir</td>
+          <td style="padding:22px 24px;text-align:center;color:var(--fg3)">Cero<br><span style="font-size:16px;color:var(--fg3)">(Los incumbentes protegen sus silos)</span></td>
+          <td style="padding:22px 24px;text-align:center;font-weight:700;color:var(--g);background:rgba(0,200,122,0.03)">Total<br><span style="font-size:16px;font-weight:400;color:var(--fg2)">(El paciente busca resolver su propio dolor)</span></td>
+        </tr>
+        <tr style="background:rgba(255,255,255,0.015)">
+          <td style="padding:22px 24px;color:var(--fg2);font-weight:500">Visión Longitudinal</td>
+          <td style="padding:22px 24px;text-align:center;color:var(--fg3)">Fragmentada<br><span style="font-size:16px;color:var(--fg3)">(Se pierde al cambiar de médico)</span></td>
+          <td style="padding:22px 24px;text-align:center;font-weight:700;color:var(--g);background:rgba(0,200,122,0.03)">Continua<br><span style="font-size:16px;font-weight:400;color:var(--fg2)">(Toda la vida del paciente)</span></td>
+        </tr>
+      </tbody>
+    </table>
+    <div style="margin-top:28px;padding:22px 32px;background:rgba(0,200,122,0.06);border:1px solid rgba(0,200,122,0.2);border-radius:14px;display:flex;gap:16px;align-items:center">
+      <svg width="28" height="28" fill="none" viewBox="0 0 24 24" stroke="#00C87A" stroke-width="1.8" style="flex-shrink:0"><path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+      <p style="font-size:20px;color:var(--fg2);line-height:1.5">Insight Central: El <strong style="color:var(--fg1)">paciente es el único nodo con autoridad legal absoluta</strong> sobre el 100% de sus datos, sin importar el proveedor, país o sistema.</p>
+    </div>
+  </div>
+  <div class="slide-num">03 / 15</div>
+</section>
+
+<!-- ═══ 04 EL CABALLO DE TROYA ═══ -->
+<section data-label="Caballo de Troya" class="pad">
+  <div class="glow-g" style="width:600px;height:600px;top:-100px;right:-100px"></div>
+  <div style="position:relative">
+    <div class="slide-label">Arquitectura de Red</div>
+    <div class="accent-bar"></div>
+    <h2 class="h2" style="margin-bottom:8px">El Caballo de Troya</h2>
+    <p class="body" style="font-size:20px;margin-bottom:44px">Tres capas. Una sola arquitectura defensiva.</p>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin-bottom:28px">
+      <div class="card card-g" style="border-top:3px solid var(--g)">
+        <div style="font-size:13px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--g);margin-bottom:16px">Capa 1 · Adquisición (B2C)</div>
+        <h3 style="font-size:26px;font-weight:700;margin-bottom:12px">Co-piloto de IA gratuito</h3>
+        <p style="font-size:18px;color:var(--fg2);line-height:1.6">El paciente sube cualquier récord médico (PDF, DICOM) para organizarlo y entenderlo. <strong style="color:var(--fg1)">Resuelve un dolor real.</strong></p>
+      </div>
+      <div class="card card-t" style="border-top:3px solid var(--t)">
+        <div style="font-size:13px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--t);margin-bottom:16px">Capa 2 · Transformación</div>
+        <h3 style="font-size:26px;font-weight:700;margin-bottom:12px">Motor de IA Multimodal</h3>
+        <p style="font-size:18px;color:var(--fg2);line-height:1.6">Ingiere datos sucios y extrae taxonomías limpias con consentimiento explícito. De caos a estructura.</p>
+      </div>
+      <div class="card card-b" style="border-top:3px solid var(--b)">
+        <div style="font-size:13px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--b);margin-bottom:16px">Capa 3 · Activo Subyacente (B2B)</div>
+        <h3 style="font-size:26px;font-weight:700;margin-bottom:12px">Red de Datos de Investigación</h3>
+        <p style="font-size:18px;color:var(--fg2);line-height:1.6">La primera red estructurada y longitudinal de datos de grado de investigación en LATAM.</p>
+      </div>
+    </div>
+    <!-- Arrow flow -->
+    <div style="display:flex;align-items:center;gap:0;padding:0 20px">
+      <div style="flex:1;height:4px;background:linear-gradient(90deg,var(--g),var(--t))"></div>
+      <div style="width:0;height:0;border-top:10px solid transparent;border-bottom:10px solid transparent;border-left:14px solid var(--t)"></div>
+      <div style="flex:1;height:4px;background:linear-gradient(90deg,var(--t),var(--b))"></div>
+      <div style="width:0;height:0;border-top:10px solid transparent;border-bottom:10px solid transparent;border-left:14px solid var(--b)"></div>
+    </div>
+    <div style="margin-top:20px;padding:18px 28px;background:rgba(75,110,245,0.06);border:1px solid rgba(75,110,245,0.15);border-radius:12px;text-align:center">
+      <p style="font-size:20px;color:var(--fg2)">Bresca no es una aplicación de consumo. <strong style="color:var(--fg1)">Es una red de datos.</strong></p>
+    </div>
+  </div>
+  <div class="slide-num">04 / 15</div>
+</section>
+
+<!-- ═══ 05 EL FLYWHEEL DEFENSIVO ═══ -->
+<section data-label="Flywheel Defensivo" class="dot-grid pad">
+  <div class="glow-g" style="width:700px;height:700px;top:-200px;right:-100px"></div>
+  <div style="position:relative">
+    <div class="slide-label">Efecto Red</div>
+    <div class="accent-bar"></div>
+    <h2 class="h2" style="margin-bottom:8px">El Flywheel Defensivo</h2>
+    <p class="body" style="font-size:20px;margin-bottom:44px">Cada giro disminuye el CAC y aumenta el valor del dato.</p>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:28px;margin-bottom:28px">
+      <div class="card card-g" style="text-align:center;padding:40px 28px">
+        <div style="width:64px;height:64px;border-radius:50%;background:var(--grad);display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:28px;font-weight:700;color:#fff">1</div>
+        <h3 style="font-size:26px;font-weight:700;margin-bottom:12px">Pacientes</h3>
+        <p style="font-size:17px;color:var(--fg2);line-height:1.6">Obtienen un vault de salud con IA gratuito, impulsando crecimiento orgánico y referidos.</p>
+      </div>
+      <div class="card card-t" style="text-align:center;padding:40px 28px">
+        <div style="width:64px;height:64px;border-radius:50%;background:var(--grad);display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:28px;font-weight:700;color:#fff">2</div>
+        <h3 style="font-size:26px;font-weight:700;margin-bottom:12px">Activo de Datos</h3>
+        <p style="font-size:17px;color:var(--fg2);line-height:1.6">Cada documento enriquecido crea un perfil longitudinal de alto valor para investigación.</p>
+      </div>
+      <div class="card card-b" style="text-align:center;padding:40px 28px">
+        <div style="width:64px;height:64px;border-radius:50%;background:var(--grad);display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:28px;font-weight:700;color:#fff">3</div>
+        <h3 style="font-size:26px;font-weight:700;margin-bottom:12px">Monetización</h3>
+        <p style="font-size:17px;color:var(--fg2);line-height:1.6">Pharma y CROs pagan por acceso a cohortes pre-calificadas, generando ingresos recurrentes.</p>
+      </div>
+    </div>
+    <!-- Return loop -->
+    <div style="padding:20px 32px;background:rgba(0,200,122,0.05);border:1px solid rgba(0,200,122,0.15);border-radius:14px;display:flex;gap:16px;align-items:center">
+      <div style="width:8px;height:48px;border-radius:10px;background:var(--grad);flex-shrink:0"></div>
+      <div>
+        <div style="font-size:15px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--g);margin-bottom:6px">El Bucle de Retorno</div>
+        <p style="font-size:19px;color:var(--fg2);line-height:1.5">Los ingresos financian mejor IA y UX → atrae más pacientes → cada giro <strong style="color:var(--fg1)">disminuye el CAC y aumenta el valor del dato.</strong></p>
+      </div>
+    </div>
+  </div>
+  <div class="slide-num">05 / 15</div>
+</section>
+
+<!-- ═══ 06 LA TORMENTA PERFECTA ═══ -->
+<section data-label="Tormenta Perfecta" class="line-grid pad">
+  <div class="glow-b" style="width:600px;height:600px;top:-200px;right:-100px"></div>
+  <div style="position:relative">
+    <div class="slide-label">¿Por qué ahora?</div>
+    <div class="accent-bar"></div>
+    <h2 class="h2" style="margin-bottom:44px">La Tormenta Perfecta</h2>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:20px">
+      <div class="card card-g">
+        <div class="icon-box" style="background:rgba(0,200,122,0.1);border:1px solid rgba(0,200,122,0.2)">
+          <svg width="28" height="28" fill="none" viewBox="0 0 24 24" stroke="#00C87A" stroke-width="1.7"><path stroke-linecap="round" stroke-linejoin="round" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"/></svg>
+        </div>
+        <div style="font-size:20px;font-weight:700;color:var(--g);margin-bottom:12px">Regulación</div>
+        <p style="font-size:16px;color:var(--fg2);line-height:1.6">LGPD y Ley 25.326 otorgan explícitamente la <strong style="color:var(--fg1)">propiedad de los datos de salud al paciente</strong> (Últimos 24 meses).</p>
+      </div>
+      <div class="card card-t">
+        <div class="icon-box" style="background:rgba(0,184,212,0.1);border:1px solid rgba(0,184,212,0.2)">
+          <svg width="28" height="28" fill="none" viewBox="0 0 24 24" stroke="#00B8D4" stroke-width="1.7"><path stroke-linecap="round" stroke-linejoin="round" d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18"/></svg>
+        </div>
+        <div style="font-size:20px;font-weight:700;color:var(--t);margin-bottom:12px">Tecnología</div>
+        <p style="font-size:16px;color:var(--fg2);line-height:1.6">Los LLMs multimodales extraen datos de PDFs a <strong style="color:var(--fg1)">&lt;$0.02 USD</strong> por documento. <strong style="color:var(--fg1)">Imposible en 2022.</strong></p>
+      </div>
+      <div class="card card-b">
+        <div class="icon-box" style="background:rgba(75,110,245,0.1);border:1px solid rgba(75,110,245,0.2)">
+          <svg width="28" height="28" fill="none" viewBox="0 0 24 24" stroke="#4B6EF5" stroke-width="1.7"><path stroke-linecap="round" stroke-linejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/></svg>
+        </div>
+        <div style="font-size:20px;font-weight:700;color:var(--b);margin-bottom:12px">Mercado Pharma</div>
+        <p style="font-size:16px;color:var(--fg2);line-height:1.6">El <strong style="color:var(--fg1)">60% de los nuevos ensayos</strong> exigen RWE. LATAM es la región de mayor crecimiento.</p>
+      </div>
+      <div class="card">
+        <div class="icon-box" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1)">
+          <svg width="28" height="28" fill="none" viewBox="0 0 24 24" stroke="#94A3B8" stroke-width="1.7"><path stroke-linecap="round" stroke-linejoin="round" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+        </div>
+        <div style="font-size:20px;font-weight:700;margin-bottom:12px">Distribución</div>
+        <p style="font-size:16px;color:var(--fg2);line-height:1.6">Penetración smartphones LATAM <strong style="color:var(--fg1)">&gt;85%</strong> + adopción nativa de WhatsApp para onboarding.</p>
+      </div>
+    </div>
+  </div>
+  <div class="slide-num">06 / 15</div>
+</section>
+
+<!-- ═══ 07 MAPAS DE ATAQUE ═══ -->
+<section data-label="Mapas de Ataque" class="dot-grid pad">
+  <div class="glow-g" style="width:700px;height:600px;top:-200px;left:-100px"></div>
+  <div style="position:relative">
+    <div class="slide-label">Mercados Objetivo</div>
+    <div class="accent-bar"></div>
+    <h2 class="h2" style="margin-bottom:8px">Los Dos Wedges</h2>
+    <p class="body" style="font-size:20px;margin-bottom:40px">No vendemos un TAM genérico de $48B. Atacamos dos mercados con ineficiencias críticas y cuantificables.</p>
+    <div style="display:flex;flex-direction:column;gap:20px">
+      <!-- Wedge 1 -->
+      <div class="card card-g" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:24px;align-items:center;padding:32px 36px">
+        <div>
+          <div style="font-size:14px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--g);margin-bottom:10px">Wedge 1 · Reclutamiento CRO</div>
+          <div style="font-size:22px;font-weight:700;margin-bottom:6px">Reclutamiento de Pacientes (LATAM)</div>
+          <p style="font-size:16px;color:var(--fg2);line-height:1.5">Mercado: $2.1B/año (CAGR 19%)</p>
+        </div>
+        <div style="text-align:center;padding:0 20px;border-left:1px solid rgba(0,200,122,0.2);border-right:1px solid rgba(0,200,122,0.2)">
+          <div style="font-size:13px;color:var(--fg3);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px">Costo actual</div>
+          <div style="font-size:44px;font-weight:700;color:#EF4444;line-height:1">$6,800</div>
+          <div style="font-size:14px;color:var(--fg2)">por paciente inscrito</div>
+        </div>
+        <div style="text-align:center">
+          <div style="font-size:13px;color:var(--g);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px;font-weight:600">Objetivo Bresca</div>
+          <div style="font-size:56px;font-weight:700;color:var(--g);line-height:1">&lt;$1,200</div>
+          <div style="font-size:14px;color:var(--fg2)">reducción del 82%</div>
+        </div>
+      </div>
+      <!-- Wedge 2 -->
+      <div class="card card-b" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:24px;align-items:center;padding:32px 36px">
+        <div>
+          <div style="font-size:14px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--b);margin-bottom:10px">Wedge 2 · Datasets RWE</div>
+          <div style="font-size:22px;font-weight:700;margin-bottom:6px">Evidencia del Mundo Real (RWE)</div>
+          <p style="font-size:16px;color:var(--fg2);line-height:1.5">Mercado Global: $4.8B (Prima por escasez en LATAM)</p>
+        </div>
+        <div style="text-align:center;padding:0 20px;border-left:1px solid rgba(75,110,245,0.2);border-right:1px solid rgba(75,110,245,0.2)">
+          <div style="font-size:13px;color:var(--fg3);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px">Hito de Valor</div>
+          <div style="font-size:28px;font-weight:700;line-height:1.2;color:var(--b)">50K pacientes longitudinales</div>
+        </div>
+        <div style="text-align:center">
+          <div style="font-size:13px;color:var(--b);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px;font-weight:600">Valor de licencia</div>
+          <div style="font-size:48px;font-weight:700;color:var(--b);line-height:1">$8M–$15M</div>
+          <div style="font-size:14px;color:var(--fg2)">por cohorte única</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="slide-num">07 / 15</div>
+</section>
+
+<!-- ═══ 08 ANATOMÍA DEL MODELO DE NEGOCIO ═══ -->
+<section data-label="Modelo de Negocio" class="line-grid pad">
+  <div class="glow-b" style="width:700px;height:700px;bottom:-300px;right:-200px"></div>
+  <div style="position:relative">
+    <div class="slide-label">Revenue Architecture</div>
+    <div class="accent-bar"></div>
+    <h2 class="h2" style="margin-bottom:40px">Anatomía del Modelo de Negocio</h2>
+    <div style="display:grid;grid-template-columns:300px 1fr 1fr;gap:0;align-items:stretch">
+      <!-- B2C box -->
+      <div style="display:flex;flex-direction:column;gap:0">
+        <div class="card" style="border-color:rgba(255,255,255,0.1);padding:28px;height:100%;display:flex;flex-direction:column;justify-content:center">
+          <div style="font-size:14px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--fg3);margin-bottom:10px">B2C</div>
+          <div style="font-size:22px;font-weight:700;margin-bottom:10px">Costo de Mercadería</div>
+          <p style="font-size:15px;color:var(--fg2);line-height:1.6">Modelo Freemium. Optimizado para la <strong style="color:var(--fg1)">tasa de consentimiento</strong>, no para el ARPU. Premium cubre solo infraestructura.</p>
+        </div>
+      </div>
+      <!-- Arrow + data asset -->
+      <div style="display:flex;align-items:center;justify-content:center;padding:20px">
+        <div style="text-align:center">
+          <div style="font-size:12px;color:var(--fg3);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:12px">genera</div>
+          <div style="width:160px;height:160px;border-radius:12px;background:linear-gradient(135deg,rgba(0,200,122,0.1),rgba(75,110,245,0.1));border:1px solid rgba(255,255,255,0.12);display:flex;flex-direction:column;align-items:center;justify-content:center;margin:0 auto">
+            <svg width="40" height="40" fill="none" viewBox="0 0 24 24" stroke="url(#grad)" stroke-width="1.5"><defs><linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#00C87A"/><stop offset="100%" stop-color="#4B6EF5"/></linearGradient></defs><path stroke-linecap="round" stroke-linejoin="round" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"/></svg>
+            <div style="font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--fg2);margin-top:8px;line-height:1.3;text-align:center">Activo de Datos<br>Estructurado</div>
+          </div>
+          <div style="font-size:12px;color:var(--fg3);letter-spacing:0.1em;text-transform:uppercase;margin-top:12px">monetiza</div>
+        </div>
+      </div>
+      <!-- B2B lines -->
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div style="font-size:14px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--g);margin-bottom:4px">B2B · El Verdadero Negocio</div>
+        <div class="card card-g" style="padding:20px 24px">
+          <div style="font-size:16px;font-weight:700;margin-bottom:4px">Línea 1 · Reclutamiento de Cohortes</div>
+          <div style="font-size:22px;font-weight:700;color:var(--g)">$800–$2,500 por paciente</div>
+        </div>
+        <div class="card card-t" style="padding:20px 24px">
+          <div style="font-size:16px;font-weight:700;margin-bottom:4px">Línea 2 · Licencias de Datasets RWE</div>
+          <div style="font-size:22px;font-weight:700;color:var(--t)">$40K–$500K por estudio</div>
+        </div>
+        <div class="card card-b" style="padding:20px 24px">
+          <div style="font-size:16px;font-weight:700;margin-bottom:4px">Línea 3 · Suscripciones API de Datos</div>
+          <div style="font-size:22px;font-weight:700;color:var(--b)">$15K–$60K/mes por CRO</div>
+        </div>
+        <div style="padding:16px 24px;background:rgba(0,200,122,0.08);border-radius:10px;border:1px solid rgba(0,200,122,0.2)">
+          <p style="font-size:16px;color:var(--fg2)"><strong style="color:var(--g)">Margen Bruto Objetivo: 78%+</strong> · La misma cohorte se monetiza en docenas de estudios.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="slide-num">08 / 15</div>
+</section>
+
+<!-- ═══ 09 EL ARBITRAJE ═══ -->
+<section data-label="El Arbitraje" class="dot-grid" style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:72px 108px">
+  <div class="glow-g" style="width:800px;height:800px;top:-300px;left:-200px"></div>
+  <div class="glow-b" style="width:700px;height:700px;bottom:-300px;right:-200px"></div>
+  <div style="position:relative;width:100%">
+    <div style="text-align:center;margin-bottom:48px">
+      <div class="slide-label" style="margin-bottom:14px">Economics Unitarios</div>
+      <h2 class="h2">El Arbitraje</h2>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:40px;align-items:center">
+      <!-- Entrada -->
+      <div class="card" style="padding:36px 32px">
+        <div style="font-size:14px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--fg3);margin-bottom:20px">Entrada · Costo</div>
+        <div style="display:flex;flex-direction:column;gap:16px">
+          <div style="display:flex;justify-content:space-between;padding-bottom:14px;border-bottom:1px solid var(--border)">
+            <span style="font-size:18px;color:var(--fg2)">CAC Combinado</span>
+            <span style="font-size:22px;font-weight:700;color:#EF4444">$3–$5 USD</span>
+          </div>
+          <div style="display:flex;justify-content:space-between">
+            <span style="font-size:18px;color:var(--fg2)">Costo Total / Paciente Consentido</span>
+            <span style="font-size:22px;font-weight:700;color:#EF4444">$8–$12 USD</span>
+          </div>
+        </div>
+      </div>
+      <!-- Central ROI -->
+      <div style="text-align:center">
+        <div style="font-size:18px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--g);margin-bottom:12px">ROI</div>
+        <div style="font-size:88px;font-weight:700;line-height:1;letter-spacing:-0.04em" class="grad-text">10x–17x</div>
+        <div style="font-size:20px;color:var(--fg2);margin-top:8px">en LTV/CAC</div>
+      </div>
+      <!-- Salida -->
+      <div class="card card-g" style="padding:36px 32px">
+        <div style="font-size:14px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--g);margin-bottom:20px">Salida · Valor</div>
+        <div style="display:flex;flex-direction:column;gap:16px">
+          <div style="display:flex;justify-content:space-between;padding-bottom:14px;border-bottom:1px solid rgba(0,200,122,0.15)">
+            <span style="font-size:18px;color:var(--fg2)">LTV B2B a 3 años</span>
+            <span style="font-size:22px;font-weight:700;color:var(--g)">$85–$140 USD</span>
+          </div>
+          <div style="display:flex;justify-content:space-between">
+            <span style="font-size:18px;color:var(--fg2)">Potencial ARR @ 100K pacientes</span>
+            <span style="font-size:22px;font-weight:700;color:var(--g)">~$10M</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div style="margin-top:28px;padding:20px 32px;background:rgba(0,200,122,0.06);border:1px solid rgba(0,200,122,0.15);border-radius:12px;text-align:center">
+      <p style="font-size:20px;color:var(--fg2)">Con <strong style="color:var(--fg1)">&lt;$1M de inversión</strong> acumulada en adquisición, Bresca desbloquea un potencial de <strong style="color:var(--g)">~$10M en ARR</strong> a 100K pacientes.</p>
+    </div>
+  </div>
+  <div class="slide-num">09 / 15</div>
+</section>
+
+<!-- ═══ 10 TRACCIÓN PURA ═══ -->
+<section data-label="Tracción" class="line-grid pad">
+  <div class="glow-g" style="width:600px;height:600px;top:-200px;right:-100px"></div>
+  <div style="position:relative">
+    <div class="slide-label">Tracción Pura</div>
+    <div class="accent-bar"></div>
+    <h2 class="h2" style="margin-bottom:40px">Las Métricas que Importan</h2>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
+      <div class="card card-g" style="padding:36px 32px">
+        <div style="font-size:14px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--g);margin-bottom:12px">Pull Orgánico Extremo</div>
+        <div style="font-size:72px;font-weight:700;line-height:1;letter-spacing:-0.04em;color:var(--g)">2,400</div>
+        <p style="font-size:18px;color:var(--fg2);margin-top:10px;line-height:1.6">usuarios en Beta activa. Retención mensual del <strong style="color:var(--fg1)">94%</strong>.<br><strong style="color:var(--fg1)">Gasto en marketing: $0.</strong></p>
+      </div>
+      <div class="card card-t" style="padding:36px 32px">
+        <div style="font-size:14px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--t);margin-bottom:12px">El Activo Subyacente</div>
+        <div style="font-size:72px;font-weight:700;line-height:1;letter-spacing:-0.04em;color:var(--t)">18,000</div>
+        <p style="font-size:18px;color:var(--fg2);margin-top:10px;line-height:1.6">estudios médicos cargados. Promedio: <strong style="color:var(--fg1)">7.5 documentos</strong> por usuario. El activo ya hace interés compuesto.</p>
+      </div>
+      <div class="card card-b" style="padding:36px 32px">
+        <div style="font-size:14px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--b);margin-bottom:12px">Validación de Demanda B2B</div>
+        <div style="font-size:72px;font-weight:700;line-height:1;letter-spacing:-0.04em;color:var(--b)">3 CROs</div>
+        <p style="font-size:18px;color:var(--fg2);margin-top:10px;line-height:1.6">en conversaciones comerciales activas, validando <strong style="color:var(--fg1)">disposición a pagar</strong> antes de formar la cohorte.</p>
+      </div>
+      <div class="card" style="padding:36px 32px">
+        <div style="font-size:14px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--fg3);margin-bottom:12px">Accesos Estratégicos</div>
+        <div style="font-size:32px;font-weight:700;line-height:1.2;margin-bottom:12px">Oracle Health</div>
+        <p style="font-size:18px;color:var(--fg2);line-height:1.6">Compromisos formales de asesores clave, incluyendo <strong style="color:var(--fg1)">ejecutivos de Oracle Health</strong>.</p>
+      </div>
+    </div>
+  </div>
+  <div class="slide-num">10 / 15</div>
+</section>
+
+<!-- ═══ 11 SECUENCIA OPERATIVA ═══ -->
+<section data-label="Go To Market" class="dot-grid pad">
+  <div class="glow-g" style="width:600px;height:600px;bottom:-200px;right:0"></div>
+  <div style="position:relative">
+    <div class="slide-label">Secuencia Operativa Go-To-Market</div>
+    <div class="accent-bar"></div>
+    <h2 class="h2" style="margin-bottom:48px">Tres Fases. <span class="grad-text">Un Solo Activo.</span></h2>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:24px">
+      <div class="card card-g" style="border-top:4px solid var(--g);padding:32px 28px">
+        <div style="font-size:13px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--g);margin-bottom:6px">Fase 1 · Meses 0–9</div>
+        <h3 style="font-size:26px;font-weight:700;margin-bottom:16px">Profundidad sobre Amplitud</h3>
+        <div class="h-rule" style="background:rgba(0,200,122,0.2);margin-bottom:16px"></div>
+        <p style="font-size:17px;color:var(--fg2);line-height:1.65;margin-bottom:16px">Solo Argentina. Alianzas exclusivas con 3–5 asociaciones de pacientes en diabetes y oncología.</p>
+        <div style="padding:14px 18px;background:rgba(0,200,122,0.08);border-radius:10px">
+          <div style="font-size:15px;font-weight:700;color:var(--g)">Objetivo</div>
+          <div style="font-size:20px;font-weight:700">Cohorte de 25K pacientes</div>
+        </div>
+      </div>
+      <div class="card card-t" style="border-top:4px solid var(--t);padding:32px 28px">
+        <div style="font-size:13px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--t);margin-bottom:6px">Fase 2 · Meses 9–18</div>
+        <h3 style="font-size:26px;font-weight:700;margin-bottom:16px">Monetización B2B</h3>
+        <div class="h-rule" style="background:rgba(0,184,212,0.2);margin-bottom:16px"></div>
+        <p style="font-size:17px;color:var(--fg2);line-height:1.65;margin-bottom:16px">Primeros contratos con CROs. Usar flujo de caja para financiar la entrada a México y Brasil.</p>
+        <div style="padding:14px 18px;background:rgba(0,184,212,0.08);border-radius:10px">
+          <div style="font-size:15px;font-weight:700;color:var(--t)">Objetivo</div>
+          <div style="font-size:20px;font-weight:700">$500K–$1.5M en contratos</div>
+        </div>
+      </div>
+      <div class="card card-b" style="border-top:4px solid var(--b);padding:32px 28px">
+        <div style="font-size:13px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--b);margin-bottom:6px">Fase 3 · Meses 18–30</div>
+        <h3 style="font-size:26px;font-weight:700;margin-bottom:16px">Expansión Horizontal</h3>
+        <div class="h-rule" style="background:rgba(75,110,245,0.2);margin-bottom:16px"></div>
+        <p style="font-size:17px;color:var(--fg2);line-height:1.65;margin-bottom:16px">Crecer por áreas terapéuticas, no solo geografía. Cada cohorte de enfermedades es un SKU productizado.</p>
+        <div style="padding:14px 18px;background:rgba(75,110,245,0.08);border-radius:10px">
+          <div style="font-size:15px;font-weight:700;color:var(--b)">Objetivo</div>
+          <div style="font-size:20px;font-weight:700">Lanzamiento MX + BR</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="slide-num">11 / 15</div>
+</section>
+
+<!-- ═══ 12 MATRIZ COMPETITIVA ═══ -->
+<section data-label="Competencia" class="line-grid pad">
+  <div class="glow-b" style="width:500px;height:500px;top:-100px;right:-100px"></div>
+  <div style="position:relative">
+    <div class="slide-label">Paisaje Competitivo</div>
+    <div class="accent-bar"></div>
+    <h2 class="h2" style="margin-bottom:36px">Nadie llena <span class="grad-text">todos los vacíos.</span></h2>
+    <table style="width:100%;border-collapse:collapse;font-size:19px">
+      <thead>
+        <tr>
+          <th style="text-align:left;padding:14px 24px;color:var(--fg3);font-size:13px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;border-bottom:1px solid var(--border);width:260px"></th>
+          <th style="padding:14px 22px;text-align:center;color:var(--fg3);font-size:14px;font-weight:600;border-bottom:1px solid var(--border)">Nativo LATAM</th>
+          <th style="padding:14px 22px;text-align:center;color:var(--fg3);font-size:14px;font-weight:600;border-bottom:1px solid var(--border)">100% Propiedad del Paciente</th>
+          <th style="padding:14px 22px;text-align:center;color:var(--fg3);font-size:14px;font-weight:600;border-bottom:1px solid var(--border)">Monetización B2B</th>
+          <th style="padding:14px 22px;text-align:center;color:var(--fg3);font-size:14px;font-weight:600;border-bottom:1px solid var(--border)">Datos Longitudinales</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr style="background:rgba(255,255,255,0.01)">
+          <td style="padding:18px 24px;color:var(--fg2)">Epic / Oracle Health</td>
+          <td style="padding:18px 22px;text-align:center"><span class="dot-empty"></span></td>
+          <td style="padding:18px 22px;text-align:center"><span class="dot-empty"></span></td>
+          <td style="padding:18px 22px;text-align:center"><span class="dot-empty"></span></td>
+          <td style="padding:18px 22px;text-align:center"><span class="dot-partial"></span></td>
+        </tr>
+        <tr>
+          <td style="padding:18px 24px;color:var(--fg2)">Apple / Google Health</td>
+          <td style="padding:18px 22px;text-align:center"><span class="dot-empty"></span></td>
+          <td style="padding:18px 22px;text-align:center"><span class="dot-partial"></span></td>
+          <td style="padding:18px 22px;text-align:center"><span class="dot-empty"></span></td>
+          <td style="padding:18px 22px;text-align:center"><span class="dot-empty"></span></td>
+        </tr>
+        <tr style="background:rgba(255,255,255,0.01)">
+          <td style="padding:18px 24px;color:var(--fg2)">Evidation / Verily</td>
+          <td style="padding:18px 22px;text-align:center"><span class="dot-empty"></span></td>
+          <td style="padding:18px 22px;text-align:center"><span class="dot-partial"></span></td>
+          <td style="padding:18px 22px;text-align:center"><span class="dot-partial"></span></td>
+          <td style="padding:18px 22px;text-align:center"><span class="dot-partial"></span></td>
+        </tr>
+        <tr>
+          <td style="padding:18px 24px;color:var(--fg2)">Apps Locales PHR</td>
+          <td style="padding:18px 22px;text-align:center"><span class="dot-partial"></span></td>
+          <td style="padding:18px 22px;text-align:center"><span class="dot-partial"></span></td>
+          <td style="padding:18px 22px;text-align:center"><span class="dot-empty"></span></td>
+          <td style="padding:18px 22px;text-align:center"><span class="dot-empty"></span></td>
+        </tr>
+        <tr style="background:rgba(0,200,122,0.04);border-top:2px solid rgba(0,200,122,0.2)">
+          <td style="padding:18px 24px;font-weight:700;font-size:22px;color:var(--fg1)">Bresca</td>
+          <td style="padding:18px 22px;text-align:center"><span class="dot-full"></span></td>
+          <td style="padding:18px 22px;text-align:center"><span class="dot-full"></span></td>
+          <td style="padding:18px 22px;text-align:center"><span class="dot-full"></span></td>
+          <td style="padding:18px 22px;text-align:center"><span class="dot-full"></span></td>
+        </tr>
+      </tbody>
+    </table>
+    <div style="margin-top:24px;text-align:center">
+      <p style="font-size:24px;font-weight:600;color:var(--fg1)">Bresca es el único jugador llenando todos los vacíos.</p>
+    </div>
+  </div>
+  <div class="slide-num">12 / 15</div>
+</section>
+
+<!-- ═══ 13 EL FOSO DEFENSIVO ═══ -->
+<section data-label="Foso Defensivo" class="dot-grid pad">
+  <div class="glow-g" style="width:700px;height:700px;top:-200px;right:-150px"></div>
+  <div style="position:relative">
+    <div class="slide-label">Ventaja Competitiva Sostenida</div>
+    <div class="accent-bar"></div>
+    <h2 class="h2" style="margin-bottom:40px">El Foso Defensivo</h2>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+      <div class="card card-g" style="display:flex;gap:20px;align-items:flex-start">
+        <div class="num-badge" style="background:var(--g);margin-top:4px">1</div>
+        <div>
+          <div style="font-size:21px;font-weight:700;color:var(--g);margin-bottom:8px">El Grafo de Consentimiento</div>
+          <p style="font-size:17px;color:var(--fg2);line-height:1.6">Un registro legal irrevocable, paciente por paciente. <strong style="color:var(--fg1)">Imposible de replicar sin empezar desde cero.</strong></p>
+        </div>
+      </div>
+      <div class="card card-t" style="display:flex;gap:20px;align-items:flex-start">
+        <div class="num-badge" style="background:var(--t);margin-top:4px">2</div>
+        <div>
+          <div style="font-size:21px;font-weight:700;color:var(--t);margin-bottom:8px">Profundidad Longitudinal</div>
+          <p style="font-size:17px;color:var(--fg2);line-height:1.6">El valor del registro crece de manera súper-lineal con el tiempo. <strong style="color:var(--fg1)">Una ventaja de 3 años es un foso de 10 años.</strong></p>
+        </div>
+      </div>
+      <div class="card card-b" style="display:flex;gap:20px;align-items:flex-start">
+        <div class="num-badge" style="background:var(--b);margin-top:4px">3</div>
+        <div>
+          <div style="font-size:21px;font-weight:700;color:var(--b);margin-bottom:8px">Postura Regulatoria</div>
+          <p style="font-size:17px;color:var(--fg2);line-height:1.6">Cumplimiento nativo LGPD / Ley 25.326 + arquitectura tipo HIPAA. <strong style="color:var(--fg1)">Barrera de 12 meses</strong> para cualquier nuevo competidor.</p>
+        </div>
+      </div>
+      <div class="card" style="display:flex;gap:20px;align-items:flex-start">
+        <div class="num-badge" style="margin-top:4px">4</div>
+        <div>
+          <div style="font-size:21px;font-weight:700;margin-bottom:8px">Monopolios Locales</div>
+          <p style="font-size:17px;color:var(--fg2);line-height:1.6">Acuerdos de distribución exclusivos con <strong style="color:var(--fg1)">asociaciones de pacientes</strong> por área terapéutica.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="slide-num">13 / 15</div>
+</section>
+
+<!-- ═══ 14 LOS ARQUITECTOS ═══ -->
+<section data-label="Equipo" class="line-grid pad">
+  <div class="glow-g" style="width:800px;height:500px;top:-200px;left:50%;transform:translateX(-50%)"></div>
+  <div style="position:relative">
+    <div class="slide-label">Los Arquitectos</div>
+    <div class="accent-bar"></div>
+    <h2 class="h2" style="margin-bottom:8px">Operadores, <span class="grad-text">no teóricos.</span></h2>
+    <p class="body" style="font-size:20px;margin-bottom:36px">Este equipo ha construido y lanzado infraestructuras en cada dominio que Bresca requiere.</p>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:24px">
+      <div class="card card-g" style="padding:32px 28px">
+        <div style="width:64px;height:64px;border-radius:16px;background:linear-gradient(135deg,var(--g),var(--t));display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;color:#fff;margin-bottom:16px">ER</div>
+        <div style="font-size:22px;font-weight:700;margin-bottom:4px">Esteban Rubens</div>
+        <div style="font-size:14px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--g);margin-bottom:14px">CEO</div>
+        <p style="font-size:16px;color:var(--fg2);line-height:1.6;margin-bottom:16px">Más de 20 años en informática médica. Actualmente Field CTO, Health en Oracle. Autoridad global en datos clínicos.</p>
+        <div style="padding:12px 16px;background:rgba(0,200,122,0.08);border-radius:10px;border:1px solid rgba(0,200,122,0.15)">
+          <span style="font-size:14px;color:var(--fg2)"><strong style="color:var(--g)">Superpoder:</strong> Acceso directo a los compradores institucionales.</span>
+        </div>
+      </div>
+      <div class="card card-t" style="padding:32px 28px">
+        <div style="width:64px;height:64px;border-radius:16px;background:linear-gradient(135deg,var(--t),var(--b));display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;color:#fff;margin-bottom:16px">CS</div>
+        <div style="font-size:22px;font-weight:700;margin-bottom:4px">Cindy Salas Murphy</div>
+        <div style="font-size:14px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--t);margin-bottom:14px">CCO</div>
+        <p style="font-size:16px;color:var(--fg2);line-height:1.6;margin-bottom:16px">20+ años en innovación de salud. CEO de Emma Health. Expertise en mercados de salud LATAM.</p>
+        <div style="padding:12px 16px;background:rgba(0,184,212,0.08);border-radius:10px;border:1px solid rgba(0,184,212,0.15)">
+          <span style="font-size:14px;color:var(--fg2)"><strong style="color:var(--t)">Superpoder:</strong> Ejecución comercial territorial y generación de confianza en LATAM.</span>
+        </div>
+      </div>
+      <div class="card card-b" style="padding:32px 28px">
+        <div style="width:64px;height:64px;border-radius:16px;background:linear-gradient(135deg,var(--b),#6B4EFF);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;color:#fff;margin-bottom:16px">GB</div>
+        <div style="font-size:22px;font-weight:700;margin-bottom:4px">Gabriel Brenta</div>
+        <div style="font-size:14px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--b);margin-bottom:14px">CTO</div>
+        <p style="font-size:16px;color:var(--fg2);line-height:1.6;margin-bottom:16px">25+ años de liderazgo. Ex-Director Nacional de Dominios. Arquitectura a escala nacional.</p>
+        <div style="padding:12px 16px;background:rgba(75,110,245,0.08);border-radius:10px;border:1px solid rgba(75,110,245,0.15)">
+          <span style="font-size:14px;color:var(--fg2)"><strong style="color:var(--b)">Superpoder:</strong> Arquitectura a escala nacional con cumplimiento regulatorio extremo.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="slide-num">14 / 15</div>
+</section>
+
+<!-- ═══ 15 HITOS Y CAPITAL ═══ -->
+<section data-label="Capital" style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:64px 108px">
+  <div class="dot-grid" style="position:absolute;inset:0"></div>
+  <div class="glow-g" style="width:900px;height:700px;top:-300px;left:-200px"></div>
+  <div class="glow-b" style="width:700px;height:700px;bottom:-300px;right:-200px"></div>
+  <div style="position:relative;z-index:1;width:100%">
+    <div style="display:grid;grid-template-columns:auto 1fr;gap:56px;align-items:start;margin-bottom:28px">
+      <div>
+        <div class="slide-label" style="margin-bottom:12px">Solicitud de Capital</div>
+        <div style="font-size:100px;font-weight:700;line-height:1;letter-spacing:-0.05em" class="grad-text">$1.5M</div>
+        <div style="font-size:36px;font-weight:700;color:var(--fg2)">Seed</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:16px;padding-top:8px">
+        <!-- Fund allocation bar -->
+        <div>
+          <div style="font-size:13px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--fg3);margin-bottom:10px">Asignación de Fondos</div>
+          <div style="display:flex;height:12px;border-radius:100px;overflow:hidden;margin-bottom:10px">
+            <div style="flex:45;background:var(--g)"></div>
+            <div style="flex:30;background:#E05A2B"></div>
+            <div style="flex:15;background:#B8960C"></div>
+            <div style="flex:10;background:var(--fg3)"></div>
+          </div>
+          <div style="display:flex;gap:20px;font-size:14px;flex-wrap:wrap">
+            <span><strong style="color:var(--g)">45%</strong> <span style="color:var(--fg2)">Producto / Pipeline IA</span></span>
+            <span><strong style="color:#E05A2B">30%</strong> <span style="color:var(--fg2)">Alianzas y Crecimiento</span></span>
+            <span><strong style="color:#B8960C">15%</strong> <span style="color:var(--fg2)">Clínico y Regulatorio</span></span>
+            <span><strong style="color:var(--fg3)">10%</strong> <span style="color:var(--fg2)">G&amp;A</span></span>
+          </div>
+        </div>
+        <!-- Milestones 18m -->
+        <div class="card card-g" style="padding:20px 24px">
+          <div style="font-size:13px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--g);margin-bottom:10px">Vector de Valor · En 18 meses</div>
+          <div style="display:flex;gap:24px;flex-wrap:wrap">
+            <span style="font-size:17px;color:var(--fg2)">✓ <strong style="color:var(--fg1)">25K pacientes</strong> consentidos en Argentina</span>
+            <span style="font-size:17px;color:var(--fg2)">✓ <strong style="color:var(--fg1)">2 contratos pagos</strong> con CROs</span>
+            <span style="font-size:17px;color:var(--fg2)">✓ <strong style="color:var(--fg1)">$600K+</strong> en ARR</span>
+          </div>
+        </div>
+        <!-- Serie A -->
+        <div class="card card-b" style="padding:20px 24px">
+          <div style="font-size:13px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--b);margin-bottom:10px">Hitos para Serie A · $6–8M</div>
+          <div style="display:flex;gap:24px;flex-wrap:wrap">
+            <span style="font-size:17px;color:var(--fg2)">→ <strong style="color:var(--fg1)">60K pacientes</strong></span>
+            <span style="font-size:17px;color:var(--fg2)">→ <strong style="color:var(--fg1)">$2M+ ARR</strong></span>
+            <span style="font-size:17px;color:var(--fg2)">→ <strong style="color:var(--fg1)">1 contrato RWE Pharma</strong></span>
+            <span style="font-size:17px;color:var(--fg2)">→ <strong style="color:var(--fg1)">Lanzamiento México</strong></span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- CTA -->
+    <div style="text-align:center;padding:24px 36px;background:rgba(0,200,122,0.05);border:1px solid rgba(0,200,122,0.2);border-radius:16px">
+      <img src="assets/logo-horizontal-bicolor.png" alt="Bresca" style="height:32px;margin-bottom:10px">
+      <div style="font-size:26px;font-weight:600;color:var(--fg1)">esteban@bresca.health &nbsp;·&nbsp; bresca.health</div>
+    </div>
+  </div>
+</section>
+
+</deck-stage>
+</body>
+</html>

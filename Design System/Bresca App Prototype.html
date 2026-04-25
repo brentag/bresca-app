@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bresca — Prototype B2C + CRO</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Space Grotesk', sans-serif; background: #0A0C10; display: flex; align-items: stretch; justify-content: center; min-height: 100vh; overflow: hidden; }
+  #root { width: 100%; height: 100vh; display: flex; }
+  @keyframes bounce { 0%,80%,100%{transform:translateY(0)} 40%{transform:translateY(-6px)} }
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 10px; }
+  input[type=range] { -webkit-appearance: none; height: 6px; background: #E2E8F0; border-radius: 100px; outline: none; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%; background: #00C87A; cursor: pointer; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<!-- Load all components in order -->
+<script type="text/babel" src="prototype/AppState.jsx"></script>
+<script type="text/babel" src="prototype/Onboarding.jsx"></script>
+<script type="text/babel" src="prototype/HomeScreen.jsx"></script>
+<script type="text/babel" src="prototype/VaultScreen.jsx"></script>
+<script type="text/babel" src="prototype/OtherScreens.jsx"></script>
+<script type="text/babel" src="prototype/CROPanel.jsx"></script>
+
+<script type="text/babel">
+const { useState, useEffect } = React;
+
+// ── Phone Shell ──────────────────────────────────────────────
+function PhoneShell({ children }) {
+  return React.createElement('div', { style:{ position:'relative', width:375, height:812, borderRadius:44, background:'#1A1A2E', boxShadow:'0 32px 80px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.08), inset 0 0 0 2px #2A2A3E', flexShrink:0, overflow:'hidden', display:'flex', flexDirection:'column' } },
+    // Notch
+    React.createElement('div', { style:{ position:'absolute', top:0, left:'50%', transform:'translateX(-50%)', width:126, height:34, background:'#1A1A2E', borderRadius:'0 0 20px 20px', zIndex:100, display:'flex', alignItems:'center', justifyContent:'center', gap:8 } },
+      React.createElement('div', { style:{ width:12, height:12, borderRadius:'50%', background:'#0D0D1A', border:'2px solid #2A2A3E' } }),
+      React.createElement('div', { style:{ width:60, height:6, borderRadius:100, background:'#0D0D1A' } })
+    ),
+    // Status bar
+    React.createElement('div', { style:{ height:44, display:'flex', alignItems:'flex-end', justifyContent:'space-between', padding:'0 24px 6px', flexShrink:0, zIndex:10, background:'#fff' } },
+      React.createElement('span', { style:{ fontSize:13, fontWeight:600, color:'#0F172A' } }, '9:41'),
+      React.createElement('div', { style:{ display:'flex', gap:5, alignItems:'center' } },
+        React.createElement('svg', { width:16, height:12, viewBox:'0 0 16 12', fill:'#0F172A' },
+          React.createElement('rect', { x:0, y:4, width:3, height:8, rx:1, opacity:0.4 }),
+          React.createElement('rect', { x:4.5, y:2.5, width:3, height:9.5, rx:1, opacity:0.7 }),
+          React.createElement('rect', { x:9, y:0, width:3, height:12, rx:1 }),
+          React.createElement('rect', { x:13.5, y:0, width:2.5, height:12, rx:1 })
+        ),
+        React.createElement('svg', { width:16, height:12, viewBox:'0 0 24 12', fill:'none', stroke:'#0F172A', strokeWidth:1.5 },
+          React.createElement('path', { d:'M1 4C4.5 1 8 0 12 0s7.5 1 10 4', opacity:0.4 }),
+          React.createElement('path', { d:'M4 7c2-2 4-3 8-3s6 1 8 3', opacity:0.7 }),
+          React.createElement('path', { d:'M7.5 10c1-1 2.5-2 4.5-2s3.5 1 4.5 2' }),
+          React.createElement('circle', { cx:12, cy:12, r:1.5, fill:'#0F172A' })
+        ),
+        React.createElement('svg', { width:25, height:13, viewBox:'0 0 25 13', fill:'none' },
+          React.createElement('rect', { x:0.5, y:0.5, width:21, height:12, rx:3.5, stroke:'#0F172A', opacity:0.35 }),
+          React.createElement('rect', { x:2, y:2, width:16, height:9, rx:2, fill:'#0F172A' }),
+          React.createElement('path', { d:'M23 4.5v4a2 2 0 000-4z', fill:'#0F172A', opacity:0.4 })
+        )
+      )
+    ),
+    // Content
+    React.createElement('div', { style:{ flex:1, overflow:'hidden', display:'flex', flexDirection:'column', position:'relative' } },
+      children
+    ),
+    // Home indicator
+    React.createElement('div', { style:{ height:28, display:'flex', alignItems:'center', justifyContent:'center', background:'#fff', flexShrink:0 } },
+      React.createElement('div', { style:{ width:120, height:5, borderRadius:100, background:'rgba(0,0,0,0.2)' } })
+    )
+  );
+}
+
+// ── Main App ─────────────────────────────────────────────────
+function MobileApp() {
+  const [s, d] = useAppState();
+  const tab = s.tab || 'home';
+
+  const renderScreen = () => {
+    if (s.mode === 'onboard') return React.createElement(OnboardingScreen, null);
+    switch(tab) {
+      case 'home':    return React.createElement(HomeScreen, null);
+      case 'vault':   return React.createElement(VaultScreen, null);
+      case 'copilot': return React.createElement(CopilotScreen, null);
+      case 'family':  return React.createElement(FamilyScreen, null);
+      case 'menu':    return React.createElement(MenuScreen, null);
+      default:        return React.createElement(HomeScreen, null);
+    }
+  };
+
+  return React.createElement(React.Fragment, null,
+    renderScreen(),
+    s.mode !== 'onboard' && React.createElement(TabBar, { active: tab, onTab: (t) => d({ tab: t, screen: t === 'vault' ? 'vault' : t === 'copilot' ? 'copilot' : t === 'family' ? 'family' : t === 'menu' ? 'home' : 'home' }) })
+  );
+}
+
+// ── Main layout ───────────────────────────────────────────────
+function App() {
+  const [s, d] = useAppState();
+
+  // Toggle between mobile and CRO mode
+  if (s.mode === 'cro') {
+    return React.createElement('div', { style:{ flex:1, display:'flex', flexDirection:'column', background:'#080809' } },
+      React.createElement(CROPanel, null)
+    );
+  }
+
+  return React.createElement('div', { style:{ flex:1, display:'flex', overflow:'hidden' } },
+    // Left: sidebar with mode switcher + flow map
+    React.createElement('div', { style:{ width:220, background:'#0F1220', borderRight:'1px solid rgba(255,255,255,0.06)', display:'flex', flexDirection:'column', padding:'20px 12px', gap:6, flexShrink:0, overflowY:'auto' } },
+      React.createElement('img', { src:'assets/logo-horizontal-bicolor.png', style:{ height:44, marginBottom:16, alignSelf:'center' } }),
+
+      // Mode switch
+      React.createElement('button', { onClick:()=>d({mode:'cro'}), style:{ display:'flex', gap:8, alignItems:'center', padding:'8px 12px', borderRadius:8, background:'rgba(75,110,245,0.1)', border:'1px solid rgba(75,110,245,0.2)', color:'#7090F7', fontSize:12, fontWeight:600, fontFamily:"'Space Grotesk',sans-serif", cursor:'pointer', marginBottom:12, width:'100%' } },
+        React.createElement(Icon, { name:'database', size:14, color:'#4B6EF5' }),
+        'Ver Panel CRO'
+      ),
+
+      // Flow groups
+      NavGroup('ONBOARDING', [
+        { label:'Bienvenida', screen:'onboard', step:0 },
+        { label:'Valor B2C', screen:'onboard', step:1 },
+        { label:'Crear perfil', screen:'onboard', step:4 },
+        { label:'Consentimiento', screen:'onboard', step:5 },
+      ], s, d),
+      NavGroup('VAULT', [
+        { label:'Lista de estudios', tab:'vault', screen:'vault' },
+        { label:'Detalle documento', tab:'vault', screen:'vault-detail', selectedDoc: window.SAMPLE_DOCS?.[0] },
+        { label:'Subir — Elegir fuente', tab:'vault', screen:'upload-1' },
+        { label:'Subir — Procesando', tab:'vault', screen:'upload-2' },
+        { label:'Subir — Confirmar', tab:'vault', screen:'upload-3' },
+      ], s, d),
+      NavGroup('COPILOT', [
+        { label:'Chat con IA', tab:'copilot', screen:'copilot' },
+      ], s, d),
+      NavGroup('FAMILIA', [
+        { label:'Perfiles', tab:'family', screen:'family' },
+      ], s, d),
+      NavGroup('MÁS FEATURES', [
+        { label:'Timeline de salud', tab:'menu', screen:'timeline' },
+        { label:'Compartir QR', tab:'menu', screen:'sharing' },
+        { label:'Centro de Consentimiento', tab:'menu', screen:'consent' },
+        { label:'Invitación a estudio', tab:'menu', screen:'study-invite' },
+        { label:'Configuración', tab:'menu', screen:'settings' },
+      ], s, d),
+
+      React.createElement('div', { style:{ marginTop:'auto', padding:'10px 12px', background:'rgba(0,200,122,0.06)', borderRadius:10, border:'1px solid rgba(0,200,122,0.15)' } },
+        React.createElement('p', { style:{ fontSize:10, color:'#8899BB', lineHeight:1.5 } }, '⬅ Navegá por los flows usando el mapa o las flechas del teléfono.')
+      )
+    ),
+
+    // Center: phone
+    React.createElement('div', { style:{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', position:'relative' } },
+      // Background glow
+      React.createElement('div', { style:{ position:'absolute', width:400, height:400, borderRadius:'50%', background:'radial-gradient(ellipse,rgba(0,200,122,0.06) 0%,transparent 70%)', pointerEvents:'none' } }),
+      React.createElement(PhoneShell, null,
+        React.createElement(MobileApp, null)
+      )
+    ),
+
+    // Right: info panel
+    React.createElement('div', { style:{ width:220, background:'#0F1220', borderLeft:'1px solid rgba(255,255,255,0.06)', display:'flex', flexDirection:'column', padding:'20px 14px', flexShrink:0, overflowY:'auto' } },
+      React.createElement('p', { style:{ fontSize:11, fontWeight:700, color:'#4A5578', letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:14 } }, 'UX Principles'),
+      [
+        { icon:'shield', title:'Trust First', desc:'Sin dark patterns. Privacidad explicada antes de pedir datos.' },
+        { icon:'eye', title:'Transparencia Radical', desc:'El usuario siempre sabe qué datos se usan y para qué.' },
+        { icon:'heart', title:'Seguridad emocional', desc:'Tono cálido, sin lenguaje clínico frío.' },
+        { icon:'info', title:'Disclosure progresiva', desc:'Consent de investigación: sólo después del valor B2C.' },
+        { icon:'users', title:'Familia-céntrico', desc:'Multi-perfil como ciudadano de primera clase.' },
+      ].map((p, i) =>
+        React.createElement('div', { key:i, style:{ marginBottom:14, paddingBottom:14, borderBottom:'1px solid rgba(255,255,255,0.05)' } },
+          React.createElement('div', { style:{ display:'flex', gap:6, alignItems:'center', marginBottom:4 } },
+            React.createElement(Icon, { name:p.icon, size:13, color:'#00C87A' }),
+            React.createElement('span', { style:{ fontSize:12, fontWeight:700, color:'#F0F4FF' } }, p.title)
+          ),
+          React.createElement('p', { style:{ fontSize:11, color:'#4A5578', lineHeight:1.55 } }, p.desc)
+        )
+      ),
+      React.createElement('div', { style:{ marginTop:8, padding:'10px', background:'rgba(75,110,245,0.08)', borderRadius:10, border:'1px solid rgba(75,110,245,0.15)' } },
+        React.createElement('p', { style:{ fontSize:10, fontWeight:700, color:'#7090F7', marginBottom:4, textTransform:'uppercase', letterSpacing:'0.08em' } }, 'B2B flywheel'),
+        React.createElement('p', { style:{ fontSize:10, color:'#4A5578', lineHeight:1.6 } }, 'Los datos B2C generan el activo. Hacé click en "Panel CRO" para ver el otro lado.')
+      )
+    )
+  );
+}
+
+function NavGroup(title, items, s, d) {
+  return React.createElement('div', { style:{ marginBottom:10 } },
+    React.createElement('p', { style:{ fontSize:9, fontWeight:700, color:'#4A5578', letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:4, paddingLeft:4 } }, title),
+    items.map((item, i) => {
+      const isActive = item.screen === 'onboard'
+        ? s.mode === 'onboard' && s.onboardStep === item.step
+        : s.tab === item.tab && s.screen === item.screen;
+      return React.createElement('button', {
+        key:i,
+        onClick: () => {
+          if (item.screen === 'onboard') {
+            d({ mode:'onboard', onboardStep: item.step });
+          } else {
+            d({ mode:'app', tab: item.tab, screen: item.screen, ...(item.selectedDoc ? { selectedDoc: item.selectedDoc } : {}) });
+          }
+        },
+        style:{ display:'block', width:'100%', textAlign:'left', padding:'6px 10px', borderRadius:6, background: isActive ? 'rgba(0,200,122,0.12)' : 'transparent', border: isActive ? '1px solid rgba(0,200,122,0.2)' : '1px solid transparent', color: isActive ? '#00C87A' : '#8899BB', fontSize:11, fontWeight: isActive ? 600 : 400, fontFamily:"'Space Grotesk',sans-serif", cursor:'pointer', marginBottom:2, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }
+      }, item.label);
+    })
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(React.createElement(App, null));
+</script>
+</body>
+</html>

@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Space Grotesk', sans-serif; background: #fff; padding: 20px 24px; }
+  .grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 8px; margin-bottom: 16px; }
+  .box { background: #E2E8F0; border-radius: 4px; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; padding-bottom: 4px; }
+  .val { font-size: 9px; font-weight: 600; color: #475569; margin-top: 4px; }
+  .tok { font-size: 9px; color: #94A3B8; font-family: monospace; }
+  .radius-row { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 4px; }
+  .rbox { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .rsample { width: 48px; height: 32px; background: linear-gradient(135deg, #00C87A, #4B6EF5); }
+  .rlabel { font-size: 10px; color: #64748B; font-family: monospace; }
+</style></head><body>
+<div class="grid">
+  <div class="box" style="height:16px"><span class="val">4</span></div>
+  <div class="box" style="height:24px"><span class="val">8</span></div>
+  <div class="box" style="height:32px"><span class="val">12</span></div>
+  <div class="box" style="height:40px"><span class="val">16</span></div>
+  <div class="box" style="height:52px"><span class="val">20</span></div>
+  <div class="box" style="height:64px"><span class="val">24</span></div>
+  <div class="box" style="height:80px"><span class="val">32</span></div>
+  <div class="box" style="height:96px"><span class="val">40</span></div>
+</div>
+<div class="radius-row">
+  <div class="rbox"><div class="rsample" style="border-radius:4px"></div><span class="rlabel">sm·4px</span></div>
+  <div class="rbox"><div class="rsample" style="border-radius:8px"></div><span class="rlabel">md·8px</span></div>
+  <div class="rbox"><div class="rsample" style="border-radius:12px"></div><span class="rlabel">lg·12px</span></div>
+  <div class="rbox"><div class="rsample" style="border-radius:16px"></div><span class="rlabel">xl·16px</span></div>
+  <div class="rbox"><div class="rsample" style="border-radius:100px"></div><span class="rlabel">pill</span></div>
+</div>
+</body></html>

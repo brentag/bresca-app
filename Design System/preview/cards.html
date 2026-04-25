@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Space Grotesk', sans-serif; background: #F1F5F9; padding: 24px; display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-start; }
+  .card { background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 4px 16px rgba(0,0,0,0.08); width: 200px; }
+  .card-icon { width: 40px; height: 40px; border-radius: 10px; background: linear-gradient(135deg,#00C87A,#4B6EF5); margin-bottom: 12px; }
+  .card-title { font-size: 15px; font-weight: 700; color: #0F172A; margin-bottom: 6px; }
+  .card-body { font-size: 13px; color: #64748B; line-height: 1.5; }
+  .card-dark { background: #1A2236; border-radius: 12px; padding: 20px; border: 1px solid rgba(255,255,255,0.08); width: 200px; }
+  .card-dark .card-title { color: #F1F5F9; }
+  .card-dark .card-body { color: #64748B; }
+  .stat-card { background: #fff; border-radius: 12px; padding: 16px 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); width: 140px; }
+  .stat-val { font-size: 28px; font-weight: 700; background: linear-gradient(135deg,#00C87A,#4B6EF5); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .stat-label { font-size: 12px; color: #64748B; margin-top: 2px; }
+</style></head><body>
+  <div class="card">
+    <div class="card-icon"></div>
+    <div class="card-title">Radiografía Tórax</div>
+    <div class="card-body">DICOM · 14 MB<br>12 Jan 2024</div>
+  </div>
+  <div class="card-dark">
+    <div class="card-icon"></div>
+    <div class="card-title">Dataset CRO</div>
+    <div class="card-body" style="color:#94A3B8">2,400 studies<br>Consented · Anonymized</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-val">12K+</div>
+    <div class="stat-label">Estudios guardados</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-val">98%</div>
+    <div class="stat-label">Uptime garantizado</div>
+  </div>
+</body></html>

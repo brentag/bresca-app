@@ -1,0 +1,46 @@
+{
+  "expo": {
+    "name": "Bresca",
+    "slug": "bresca",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "bresca",
+    "userInterfaceStyle": "light",
+    "icon": "./assets/icon.png",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#00C87A"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.bresca.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#00C87A"
+      },
+      "package": "com.bresca.app"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      [
+        "expo-notifications",
+        { "color": "#00C87A" }
+      ],
+      [
+        "expo-image-picker",
+        { "photosPermission": "Bresca necesita acceso a tus fotos para subir estudios médicos." }
+      ],
+      [
+        "expo-camera",
+        { "cameraPermission": "Bresca necesita la cámara para fotografiar tus estudios médicos." }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

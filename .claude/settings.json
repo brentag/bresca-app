@@ -1,0 +1,48 @@
+{
+  "model": "claude-sonnet-4-6",
+  "context_files": [
+    "CLAUDE.md",
+    "AGENTS.md"
+  ],
+  "skills_dir": ".claude/skills",
+  "hooks": {
+    "post_test": ".claude/hooks/filter-test-output.sh"
+  },
+  "permissions": {
+    "allow": [
+      "Bash(npm run *)",
+      "Bash(npx expo *)",
+      "Bash(npx tsc *)",
+      "Bash(npx eslint *)",
+      "Bash(npx jest *)",
+      "Bash(npx vitest *)",
+      "Bash(supabase db reset --local)",
+      "Bash(supabase start)",
+      "Bash(supabase stop)",
+      "Bash(supabase status)",
+      "Bash(git status)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git checkout *)",
+      "Bash(git branch *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git stash *)",
+      "Read(**)",
+      "Write(apps/**)",
+      "Write(packages/**)",
+      "Write(docs/**)",
+      "Write(.claude/skills/**)",
+      "Write(CLAUDE.md)",
+      "Write(AGENTS.md)"
+    ],
+    "deny": [
+      "Bash(supabase db push --linked)",
+      "Bash(railway *)",
+      "Bash(eas submit *)",
+      "Bash(git push --force *)",
+      "Write(.env*)",
+      "Write(supabase/migrations/**)"
+    ]
+  }
+}

@@ -1,0 +1,1450 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bresca — Prototype B2C + CRO</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" crossorigin="anonymous"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Space Grotesk', sans-serif; background: #0A0C10; display: flex; align-items: stretch; justify-content: center; min-height: 100vh; overflow: hidden; }
+  #root { width: 100%; height: 100vh; display: flex; }
+  @keyframes bounce { 0%,80%,100%{transform:translateY(0)} 40%{transform:translateY(-6px)} }
+  @keyframes pulse { 0%,100%{opacity:0.4;transform:scale(0.8)} 50%{opacity:1;transform:scale(1)} }
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 10px; }
+  input[type=range] { -webkit-appearance: none; height: 6px; background: #E2E8F0; border-radius: 100px; outline: none; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%; background: #00C87A; cursor: pointer; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+// ── DESIGN TOKENS ────────────────────────────────────────────────────
+const AppColors = {
+  green: '#00C87A', greenLight: 'rgba(0,200,122,0.10)', greenBorder: 'rgba(0,200,122,0.20)',
+  blue: '#4B6EF5', blueLight: 'rgba(75,110,245,0.10)', blueBorder: 'rgba(75,110,245,0.20)',
+  teal: '#00B8D4',
+  grad: 'linear-gradient(135deg,#00C87A 0%,#00B8D4 50%,#4B6EF5 100%)',
+  white: '#FFFFFF', bg: '#F7F9FC', surface: '#FFFFFF',
+  border: '#E8EDF5', borderLight: '#F1F5F9',
+  text1: '#0F172A', text2: '#4A5568', text3: '#94A3B8',
+  warn: '#F59E0B', error: '#EF4444', errorLight: 'rgba(239,68,68,0.1)',
+};
+
+// ── ICON ─────────────────────────────────────────────────────────────
+function Icon({ name, size=20, color='currentColor', strokeWidth=1.8 }) {
+  const paths = {
+    home: 'M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z M9 22V12h6v10',
+    folder: 'M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z',
+    zap: 'M13 2L3 14h9l-1 8 10-12h-9l1-8z',
+    users: 'M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2 M23 21v-2a4 4 0 00-3-3.87 M16 3.13a4 4 0 010 7.75',
+    menu: 'M3 12h18 M3 6h18 M3 18h18',
+    upload: 'M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4 M17 8l-5-5-5 5 M12 3v12',
+    share: 'M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8 M16 6l-4-4-4 4 M12 2v13',
+    shield: 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z',
+    clock: 'M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z M12 6v6l4 2',
+    bell: 'M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9 M13.73 21a2 2 0 01-3.46 0',
+    chevronRight: 'M9 18l6-6-6-6',
+    chevronLeft: 'M15 18l-6-6 6-6',
+    chevronDown: 'M6 9l6 6 6-6',
+    check: 'M20 6L9 17l-5-5',
+    x: 'M18 6L6 18 M6 6l12 12',
+    plus: 'M12 5v14 M5 12h14',
+    camera: 'M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z M12 17a4 4 0 100-8 4 4 0 000 8z',
+    file: 'M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z M14 2v6h6',
+    heart: 'M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z',
+    activity: 'M22 12h-4l-3 9L9 3l-3 9H2',
+    lock: 'M19 11H5a2 2 0 00-2 2v7a2 2 0 002 2h14a2 2 0 002-2v-7a2 2 0 00-2-2z M7 11V7a5 5 0 0110 0v4',
+    info: 'M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z M12 16v-4 M12 8h.01',
+    send: 'M22 2L11 13 M22 2L15 22l-4-9-9-4 22-7z',
+    star: 'M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z',
+    arrowRight: 'M5 12h14 M12 5l7 7-7 7',
+    flasklg: 'M6 2v6l-4 10a2 2 0 001.8 2.8h12.4A2 2 0 0018 18L14 8V2 M6 2h8 M15 13H9',
+    dna: 'M2 15c6.667-6 13.333 0 20-6 M2 9c6.667 6 13.333 0 20 6 M5.5 12H5 M19.5 12H19 M2 15v-1 M2 10v-1 M22 15v-1 M22 10v-1',
+    database: 'M12 2c5.523 0 10 2.239 10 5s-4.477 5-10 5S2 10.761 2 7s4.477-5 10-5z M2 7v5c0 2.761 4.477 5 10 5s10-2.239 10-5V7 M2 12v5c0 2.761 4.477 5 10 5s10-2.239 10-5v-5',
+    filter: 'M22 3H2l8 9.46V19l4 2v-8.54L22 3z',
+    barChart: 'M12 20V10 M18 20V4 M6 20v-4',
+    eye: 'M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z M12 12a3 3 0 100-6 3 3 0 000 6z',
+    trash: 'M3 6h18 M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6 M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2',
+    settings: 'M12 15a3 3 0 100-6 3 3 0 000 6z M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z',
+  };
+  const d = paths[name] || '';
+  return React.createElement('svg', { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: color, strokeWidth, strokeLinecap: 'round', strokeLinejoin: 'round' },
+    ...d.split(' M ').filter(Boolean).map((seg, i) =>
+      React.createElement('path', { key: i, d: (i === 0 ? '' : 'M ') + seg })
+    )
+  );
+}
+
+function Pill({ children, color = AppColors.green, bg, style = {} }) {
+  return React.createElement('span', {
+    style: { display:'inline-flex', alignItems:'center', gap:4, fontSize:11, fontWeight:600, letterSpacing:'0.04em', textTransform:'uppercase', color, background: bg || color + '18', borderRadius:100, padding:'3px 10px', ...style }
+  }, children);
+}
+
+function Card({ children, style = {}, onClick }) {
+  return React.createElement('div', { onClick, style: { background:'#fff', borderRadius:16, padding:'16px', boxShadow:'0 1px 8px rgba(0,0,0,0.06)', border:'1px solid #F0F4FA', cursor: onClick ? 'pointer' : 'default', ...style } }, children);
+}
+
+function Avatar({ name, size = 36, color = AppColors.green }) {
+  const initials = name ? name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase() : '?';
+  return React.createElement('div', { style: { width:size, height:size, borderRadius:'50%', background:color, display:'flex', alignItems:'center', justifyContent:'center', fontSize:size*0.35, fontWeight:700, color:'#fff', flexShrink:0 } }, initials);
+}
+
+function ScreenWrapper({ children, bg = AppColors.bg, style = {} }) {
+  return React.createElement('div', { style: { width:'100%', height:'100%', background: bg, display:'flex', flexDirection:'column', overflow:'hidden', fontFamily:"'Space Grotesk',sans-serif", ...style } }, children);
+}
+
+function TopBar({ title, onBack, action, subtitle }) {
+  return React.createElement('div', { style:{ padding:'12px 16px 8px', background:'#fff', borderBottom:'1px solid #F0F4FA', flexShrink:0 } },
+    onBack && React.createElement('button', { onClick: onBack, style:{ background:'none', border:'none', padding:'0 0 4px', cursor:'pointer', display:'flex', alignItems:'center', gap:4, color:AppColors.text2, fontSize:13 } },
+      React.createElement(Icon, { name:'chevronLeft', size:16, color:AppColors.green }), 'Atrás'
+    ),
+    React.createElement('div', { style:{ display:'flex', justifyContent:'space-between', alignItems:'center' } },
+      React.createElement('div', null,
+        React.createElement('div', { style:{ fontSize:18, fontWeight:700, color:AppColors.text1 } }, title),
+        subtitle && React.createElement('div', { style:{ fontSize:12, color:AppColors.text3, marginTop:1 } }, subtitle)
+      ),
+      action
+    )
+  );
+}
+
+// ── APP STATE ────────────────────────────────────────────────────────
+function createAppState() {
+  const listeners = [];
+  let state = { mode:'onboard', onboardStep:0, tab:'home', screen:'home', uploadStep:0, selectedDoc:null, chatInput:'', showQR:false, activeFamily:'me', studyInvite:null, croTab:'dashboard' };
+  return {
+    get() { return state; },
+    set(patch) { state = { ...state, ...patch }; listeners.forEach(fn => fn(state)); },
+    subscribe(fn) { listeners.push(fn); return () => { const i = listeners.indexOf(fn); if (i>=0) listeners.splice(i,1); }; },
+  };
+}
+window.AppStore = createAppState();
+
+function useAppState() {
+  const [s, setS] = React.useState(window.AppStore.get());
+  React.useEffect(() => window.AppStore.subscribe(setS), []);
+  const dispatch = React.useCallback((patch) => window.AppStore.set(patch), []);
+  return [s, dispatch];
+}
+
+// ── DATA ─────────────────────────────────────────────────────────────
+const SAMPLE_DOCS = [
+  { id:1, type:'Análisis', name:'Análisis de Sangre Completo', date:'15 Mar 2024', lab:'Stamboulian', color:'#00C87A', tag:'Laboratorio', values:[{k:'Glucemia',v:'127 mg/dL',alert:true},{k:'Colesterol',v:'198 mg/dL',alert:false},{k:'Hemoglobina',v:'14.2 g/dL',alert:false}] },
+  { id:2, type:'Imagen', name:'Radiografía de Tórax AP', date:'2 Feb 2024', lab:'Centro Diagnóstico', color:'#4B6EF5', tag:'Imagen', values:[{k:'Resultado',v:'Sin alteraciones agudas',alert:false}] },
+  { id:3, type:'Informe', name:'Ecocardiograma', date:'18 Jan 2024', lab:'Cardiopatía Integral', color:'#00B8D4', tag:'Cardiología', values:[{k:'FE',v:'62%',alert:false},{k:'VI',v:'Normal',alert:false}] },
+  { id:4, type:'Receta', name:'Receta Metformina 500mg', date:'10 Jan 2024', lab:'Dr. García', color:'#F59E0B', tag:'Medicación', values:[] },
+];
+
+const CHAT_HISTORY = [
+  { role:'assistant', text:'¡Hola María! Soy tu Copilot de salud. Puedo ayudarte a entender tus estudios, explicar resultados o preparar preguntas para tu médico. ¿En qué te ayudo hoy?' },
+  { role:'user', text:'¿Qué significa que mi glucemia esté en 127 mg/dL?' },
+  { role:'assistant', text:'Una glucemia de 127 mg/dL en ayunas está por encima del rango normal (70–100 mg/dL) y entra en la zona de pre-diabetes (100–125 mg/dL) o posiblemente diabetes si se repite en dos mediciones.\n\n⚠️ Esto no es un diagnóstico — te recomiendo consultarlo con tu médico para confirmar con una prueba de HbA1c.\n\n¿Querés que te prepare preguntas para la consulta?' },
+];
+
+const FAMILY_MEMBERS = [
+  { id:'me', name:'María García', rel:'Yo', color:AppColors.green, docs:18 },
+  { id:'mom', name:'Graciela García', rel:'Mamá, 68 años', color:'#4B6EF5', docs:7 },
+  { id:'son', name:'Lucas García', rel:'Hijo, 12 años', color:'#F59E0B', docs:4 },
+];
+
+const TIMELINE_EVENTS = [
+  { date:'15 Mar 2024', type:'lab', label:'Análisis de Sangre', icon:'activity', color:AppColors.green, detail:'Glucemia 127 mg/dL', alert:true },
+  { date:'2 Feb 2024', type:'image', label:'Rx Tórax AP', icon:'eye', color:AppColors.blue, detail:'Sin alteraciones' },
+  { date:'18 Jan 2024', type:'cardio', label:'Ecocardiograma', icon:'heart', color:AppColors.teal, detail:'FE 62%, Normal' },
+  { date:'10 Jan 2024', type:'med', label:'Metformina 500mg', icon:'shield', color:'#F59E0B', detail:'Inicio de medicación' },
+  { date:'5 Nov 2023', type:'lab', label:'HbA1c', icon:'activity', color:AppColors.green, detail:'6.8%', alert:true },
+  { date:'12 Sep 2023', type:'consult', label:'Consulta Endocrinología', icon:'users', color:'#94A3B8', detail:'Dr. Pérez — seguimiento' },
+];
+
+const CONSENT_AREAS = [
+  { id:'diabetes', label:'Diabetes y Metabolismo', desc:'Estudios de glucemia, HbA1c, insulinorresistencia', enabled:true, color:AppColors.green },
+  { id:'cardio', label:'Cardiología', desc:'Enfermedades cardiovasculares, hipertensión', enabled:false, color:AppColors.blue },
+  { id:'onco', label:'Oncología', desc:'Detección temprana, tratamientos oncológicos', enabled:false, color:AppColors.teal },
+  { id:'neuro', label:'Neurología', desc:'Salud mental, neurológicos, enfermedades raras', enabled:false, color:'#8B5CF6' },
+];
+
+// ── ONBOARDING ───────────────────────────────────────────────────────
+function ProgressDots({ step, total }) {
+  return React.createElement('div', { style:{ display:'flex', gap:6, justifyContent:'center', marginBottom:24 } },
+    ...Array.from({ length: total }, (_, i) =>
+      React.createElement('div', { key:i, style:{ width: i===step ? 20 : 6, height:6, borderRadius:100, background: i===step ? AppColors.green : '#E2E8F0', transition:'all 300ms' } })
+    )
+  );
+}
+
+function OnboardBtn({ label, onClick, outline }) {
+  return React.createElement('button', { onClick, style: { width:'100%', padding:'14px', borderRadius:100, border: outline ? `2px solid ${AppColors.border}` : 'none', background: outline ? 'transparent' : AppColors.grad, color: outline ? AppColors.text2 : '#fff', fontSize:15, fontWeight:600, fontFamily:"'Space Grotesk',sans-serif", cursor:'pointer' } }, label);
+}
+
+function Welcome({ onNext, step, totalSteps }) {
+  return React.createElement(ScreenWrapper, { bg:'#fff' },
+    React.createElement('div', { style:{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'32px 24px', textAlign:'center' } },
+      React.createElement('div', { style:{ width:80, height:80, borderRadius:24, background:AppColors.grad, display:'flex', alignItems:'center', justifyContent:'center', marginBottom:24, boxShadow:'0 8px 24px rgba(0,200,122,0.3)' } },
+        React.createElement(Icon, { name:'heart', size:36, color:'#fff' })
+      ),
+      React.createElement('img', { src:'assets/logo-horizontal-bicolor.png', alt:'Bresca', style:{ height:28, marginBottom:28 }, onError:(e)=>{e.target.style.display='none'} }),
+      React.createElement('h1', { style:{ fontSize:26, fontWeight:700, color:AppColors.text1, lineHeight:1.2, marginBottom:12 } }, 'Tu historial médico,\nsiempre con vos.'),
+      React.createElement('p', { style:{ fontSize:15, color:AppColors.text2, lineHeight:1.65, maxWidth:280, marginBottom:36 } }, 'Bresca guarda, organiza y te ayuda a entender todos tus estudios médicos — sin importar dónde los hiciste.'),
+      React.createElement(ProgressDots, { step, total: totalSteps }),
+      React.createElement(OnboardBtn, { label: 'Comenzar →', onClick: onNext }),
+    )
+  );
+}
+
+function Value1({ onNext, onSkip, step, totalSteps }) {
+  return React.createElement(ScreenWrapper, { bg:'#fff' },
+    React.createElement('div', { style:{ flex:1, display:'flex', flexDirection:'column', padding:'40px 24px 24px' } },
+      React.createElement('div', { style:{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', textAlign:'center' } },
+        React.createElement('div', { style:{ width:100, height:100, borderRadius:28, background:'rgba(0,200,122,0.1)', display:'flex', alignItems:'center', justifyContent:'center', marginBottom:28, border:'2px solid rgba(0,200,122,0.2)' } },
+          React.createElement(Icon, { name:'folder', size:48, color:AppColors.green })
+        ),
+        React.createElement(Pill, { children:'Vault de Salud' }),
+        React.createElement('h2', { style:{ fontSize:24, fontWeight:700, color:AppColors.text1, marginTop:14, marginBottom:12, lineHeight:1.25 } }, 'Todos tus estudios en un solo lugar'),
+        React.createElement('p', { style:{ fontSize:15, color:AppColors.text2, lineHeight:1.65, maxWidth:280 } }, 'Subí radiografías, análisis, recetas y ecografías. Bresca los organiza automáticamente y los hace legibles.'),
+      ),
+      React.createElement(ProgressDots, { step, total: totalSteps }),
+      React.createElement('div', { style:{ display:'flex', flexDirection:'column', gap:10 } },
+        React.createElement(OnboardBtn, { label: 'Siguiente →', onClick: onNext }),
+        React.createElement(OnboardBtn, { label: 'Saltar introducción', onClick: onSkip, outline: true }),
+      )
+    )
+  );
+}
+
+function Value2({ onNext, onSkip, step, totalSteps }) {
+  return React.createElement(ScreenWrapper, { bg:'#fff' },
+    React.createElement('div', { style:{ flex:1, display:'flex', flexDirection:'column', padding:'40px 24px 24px' } },
+      React.createElement('div', { style:{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', textAlign:'center' } },
+        React.createElement('div', { style:{ width:100, height:100, borderRadius:28, background:'rgba(75,110,245,0.1)', display:'flex', alignItems:'center', justifyContent:'center', marginBottom:28, border:'2px solid rgba(75,110,245,0.2)' } },
+          React.createElement(Icon, { name:'zap', size:48, color:AppColors.blue })
+        ),
+        React.createElement(Pill, { children:'IA Copilot', color:AppColors.blue }),
+        React.createElement('h2', { style:{ fontSize:24, fontWeight:700, color:AppColors.text1, marginTop:14, marginBottom:12, lineHeight:1.25 } }, 'Una IA que entiende tu historia clínica'),
+        React.createElement('p', { style:{ fontSize:15, color:AppColors.text2, lineHeight:1.65, maxWidth:280 } }, 'Preguntale sobre tus resultados en lenguaje simple. Te explica qué significan, sin reemplazar a tu médico.'),
+        React.createElement('div', { style:{ marginTop:24, background:AppColors.bg, borderRadius:14, padding:'12px 16px', textAlign:'left', maxWidth:280, border:`1px solid ${AppColors.border}` } },
+          React.createElement('p', { style:{ fontSize:12, color:AppColors.text3, marginBottom:4 } }, 'Ejemplo de consulta:'),
+          React.createElement('p', { style:{ fontSize:13, color:AppColors.text1, fontStyle:'italic' } }, '"¿Qué significa que mi glucemia esté en 127 mg/dL?"'),
+        ),
+      ),
+      React.createElement(ProgressDots, { step, total: totalSteps }),
+      React.createElement('div', { style:{ display:'flex', flexDirection:'column', gap:10 } },
+        React.createElement(OnboardBtn, { label: 'Siguiente →', onClick: onNext }),
+        React.createElement(OnboardBtn, { label: 'Saltar introducción', onClick: onSkip, outline: true }),
+      )
+    )
+  );
+}
+
+function Value3({ onNext, onSkip, step, totalSteps }) {
+  return React.createElement(ScreenWrapper, { bg:'#fff' },
+    React.createElement('div', { style:{ flex:1, display:'flex', flexDirection:'column', padding:'40px 24px 24px' } },
+      React.createElement('div', { style:{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', textAlign:'center' } },
+        React.createElement('div', { style:{ width:100, height:100, borderRadius:28, background:'rgba(0,184,212,0.1)', display:'flex', alignItems:'center', justifyContent:'center', marginBottom:28, border:'2px solid rgba(0,184,212,0.2)' } },
+          React.createElement(Icon, { name:'share', size:48, color:AppColors.teal })
+        ),
+        React.createElement(Pill, { children:'Compartir Seguro', color:AppColors.teal }),
+        React.createElement('h2', { style:{ fontSize:24, fontWeight:700, color:AppColors.text1, marginTop:14, marginBottom:12, lineHeight:1.25 } }, 'Compartí con tu médico al instante'),
+        React.createElement('p', { style:{ fontSize:15, color:AppColors.text2, lineHeight:1.65, maxWidth:280 } }, 'Generá un QR temporal. Tu médico ve lo que vos elegís, por el tiempo que vos decidís. Sin registros, sin apps.'),
+        React.createElement('div', { style:{ marginTop:20, display:'flex', gap:12, justifyContent:'center' } },
+          ['48hs de acceso','Solo lectura','Vos decidís qué'].map((t,i) =>
+            React.createElement('div', { key:i, style:{ display:'flex', alignItems:'center', gap:4, fontSize:11, color:AppColors.text2 } },
+              React.createElement(Icon, { name:'check', size:12, color:AppColors.green }), t
+            )
+          )
+        ),
+      ),
+      React.createElement(ProgressDots, { step, total: totalSteps }),
+      React.createElement('div', { style:{ display:'flex', flexDirection:'column', gap:10 } },
+        React.createElement(OnboardBtn, { label: 'Crear mi perfil →', onClick: onNext }),
+        React.createElement(OnboardBtn, { label: 'Saltar introducción', onClick: onSkip, outline: true }),
+      )
+    )
+  );
+}
+
+function ProfileSetup({ onNext, step, totalSteps }) {
+  const [name, setName] = React.useState('');
+  const [year, setYear] = React.useState('');
+  const [conditions, setConditions] = React.useState([]);
+  const opts = ['Diabetes', 'Hipertensión', 'Oncología', 'Cardiopatía', 'Ninguna'];
+  const toggle = (c) => setConditions(prev => prev.includes(c) ? prev.filter(x=>x!==c) : [...prev, c]);
+  return React.createElement(ScreenWrapper, { bg:'#fff' },
+    React.createElement('div', { style:{ flex:1, overflowY:'auto', padding:'28px 20px 16px' } },
+      React.createElement(ProgressDots, { step, total: totalSteps }),
+      React.createElement('h2', { style:{ fontSize:22, fontWeight:700, color:AppColors.text1, marginBottom:4 } }, 'Tu perfil'),
+      React.createElement('p', { style:{ fontSize:13, color:AppColors.text2, marginBottom:24 } }, 'Solo para personalizar tu experiencia.'),
+      React.createElement('div', { style:{ marginBottom:14 } },
+        React.createElement('label', { style:{ fontSize:12, fontWeight:600, color:AppColors.text2, display:'block', marginBottom:5, letterSpacing:'0.04em' } }, 'NOMBRE'),
+        React.createElement('input', { value:name, onChange:e=>setName(e.target.value), placeholder:'¿Cómo te llamás?', style:{ width:'100%', padding:'12px 14px', borderRadius:10, border:`1.5px solid ${AppColors.border}`, fontSize:15, fontFamily:"'Space Grotesk',sans-serif", color:AppColors.text1, outline:'none', boxSizing:'border-box' } })
+      ),
+      React.createElement('div', { style:{ marginBottom:20 } },
+        React.createElement('label', { style:{ fontSize:12, fontWeight:600, color:AppColors.text2, display:'block', marginBottom:5, letterSpacing:'0.04em' } }, 'AÑO DE NACIMIENTO'),
+        React.createElement('input', { value:year, onChange:e=>setYear(e.target.value), placeholder:'ej. 1985', type:'number', style:{ width:'100%', padding:'12px 14px', borderRadius:10, border:`1.5px solid ${AppColors.border}`, fontSize:15, fontFamily:"'Space Grotesk',sans-serif", color:AppColors.text1, outline:'none', boxSizing:'border-box' } })
+      ),
+      React.createElement('div', { style:{ marginBottom:24 } },
+        React.createElement('label', { style:{ fontSize:12, fontWeight:600, color:AppColors.text2, display:'block', marginBottom:8, letterSpacing:'0.04em' } }, 'CONDICIONES DE SALUD (opcional)'),
+        React.createElement('div', { style:{ display:'flex', flexWrap:'wrap', gap:8 } },
+          opts.map(c => React.createElement('button', { key:c, onClick:()=>toggle(c), style:{ padding:'7px 14px', borderRadius:100, border:`1.5px solid ${conditions.includes(c) ? AppColors.green : AppColors.border}`, background: conditions.includes(c) ? AppColors.greenLight : 'transparent', color: conditions.includes(c) ? AppColors.green : AppColors.text2, fontSize:13, fontWeight:500, fontFamily:"'Space Grotesk',sans-serif", cursor:'pointer' } }, c))
+        )
+      ),
+      React.createElement('div', { style:{ background:'#F0FDF4', borderRadius:12, padding:'12px 14px', marginBottom:20, display:'flex', gap:10 } },
+        React.createElement(Icon, { name:'shield', size:16, color:AppColors.green }),
+        React.createElement('p', { style:{ fontSize:12, color:'#166534', lineHeight:1.5 } }, 'Tu información es privada. Nunca la compartimos sin tu consentimiento explícito.')
+      ),
+      React.createElement(OnboardBtn, { label: 'Continuar →', onClick: onNext }),
+    )
+  );
+}
+
+function ConsentIntro({ onNext, step, totalSteps }) {
+  return React.createElement(ScreenWrapper, { bg:'#fff' },
+    React.createElement('div', { style:{ flex:1, display:'flex', flexDirection:'column', padding:'28px 20px 20px' } },
+      React.createElement(ProgressDots, { step, total: totalSteps }),
+      React.createElement('div', { style:{ width:56, height:56, borderRadius:16, background:'rgba(75,110,245,0.1)', display:'flex', alignItems:'center', justifyContent:'center', marginBottom:16 } },
+        React.createElement(Icon, { name:'flasklg', size:28, color:AppColors.blue })
+      ),
+      React.createElement('h2', { style:{ fontSize:22, fontWeight:700, color:AppColors.text1, marginBottom:10 } }, 'Sobre la investigación médica'),
+      React.createElement('p', { style:{ fontSize:14, color:AppColors.text2, lineHeight:1.7, marginBottom:20 } }, 'Bresca colabora con organizaciones de investigación clínica. Podés elegir contribuir con tus datos de forma anónima.'),
+      ['Siempre es optativo — vos decidís', 'Tus datos nunca se identifican', 'Podés revocar en cualquier momento', 'Recibís información sobre estudios relevantes'].map((t,i) =>
+        React.createElement('div', { key:i, style:{ display:'flex', gap:10, alignItems:'flex-start', marginBottom:12 } },
+          React.createElement('div', { style:{ width:20, height:20, borderRadius:'50%', background:AppColors.greenLight, border:`1px solid ${AppColors.greenBorder}`, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, marginTop:1 } },
+            React.createElement(Icon, { name:'check', size:10, color:AppColors.green })
+          ),
+          React.createElement('p', { style:{ fontSize:14, color:AppColors.text1 } }, t)
+        )
+      ),
+      React.createElement('div', { style:{ flex:1 } }),
+      React.createElement('p', { style:{ fontSize:11, color:AppColors.text3, textAlign:'center', marginBottom:12 } }, 'Podés explorar y cambiar estas opciones en Configuración → Centro de Consentimiento en cualquier momento.'),
+      React.createElement('div', { style:{ display:'flex', flexDirection:'column', gap:10 } },
+        React.createElement(OnboardBtn, { label: '¡Entendido, empezar!', onClick: onNext }),
+        React.createElement(OnboardBtn, { label: 'Configurar más tarde', onClick: onNext, outline:true }),
+      )
+    )
+  );
+}
+
+function OnboardingScreen() {
+  const [s, d] = useAppState();
+  const step = s.onboardStep || 0;
+  const screens = [Welcome, Value1, Value2, Value3, ProfileSetup, ConsentIntro];
+  const Screen = screens[Math.min(step, screens.length - 1)];
+  return React.createElement(Screen, {
+    onNext: () => { if (step >= screens.length - 1) { d({ mode:'app', tab:'home', screen:'home' }); } else { d({ onboardStep: step + 1 }); } },
+    onSkip: () => d({ mode:'app', tab:'home', screen:'home' }),
+    step, totalSteps: screens.length,
+  });
+}
+
+// ── TAB BAR ──────────────────────────────────────────────────────────
+function TabBar({ active, onTab }) {
+  const tabs = [
+    { id:'home', icon:'home', label:'Inicio' },
+    { id:'vault', icon:'folder', label:'Vault' },
+    { id:'copilot', icon:'zap', label:'Copilot' },
+    { id:'family', icon:'users', label:'Familia' },
+    { id:'menu', icon:'menu', label:'Más' },
+  ];
+  return React.createElement('div', { style:{ display:'flex', background:'#fff', borderTop:'1px solid #F0F4FA', paddingBottom:'env(safe-area-inset-bottom,4px)', flexShrink:0 } },
+    tabs.map(t => React.createElement('button', { key: t.id, onClick: () => onTab(t.id), style:{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'10px 4px 6px', background:'none', border:'none', cursor:'pointer', gap:3 } },
+      React.createElement(Icon, { name:t.icon, size:22, color: active===t.id ? AppColors.green : AppColors.text3 }),
+      React.createElement('span', { style:{ fontSize:10, fontWeight: active===t.id ? 600 : 400, color: active===t.id ? AppColors.green : AppColors.text3 } }, t.label)
+    ))
+  );
+}
+
+// ── HOME SCREEN ──────────────────────────────────────────────────────
+function HomeScreen() {
+  const [s, d] = useAppState();
+  const quickActions = [
+    { icon:'upload', label:'Subir estudio', action:()=>d({tab:'vault', screen:'upload-1'}) },
+    { icon:'zap', label:'Preguntar al Copilot', action:()=>d({tab:'copilot', screen:'copilot'}) },
+    { icon:'share', label:'Compartir vía QR', action:()=>d({tab:'menu', screen:'sharing'}) },
+    { icon:'clock', label:'Ver timeline', action:()=>d({tab:'menu', screen:'timeline'}) },
+  ];
+  return React.createElement(ScreenWrapper, null,
+    React.createElement('div', { style:{ background:'#fff', padding:'14px 16px 12px', borderBottom:'1px solid #F0F4FA', flexShrink:0 } },
+      React.createElement('div', { style:{ display:'flex', justifyContent:'space-between', alignItems:'center' } },
+        React.createElement('div', null,
+          React.createElement('p', { style:{ fontSize:12, color:AppColors.text3, marginBottom:2 } }, 'Buenos días,'),
+          React.createElement('h1', { style:{ fontSize:20, fontWeight:700, color:AppColors.text1 } }, 'María 👋'),
+        ),
+        React.createElement('div', { style:{ display:'flex', gap:10, alignItems:'center' } },
+          React.createElement('button', { onClick:()=>d({tab:'menu', screen:'study-invite'}), style:{ background:'none', border:'none', cursor:'pointer', position:'relative' } },
+            React.createElement(Icon, { name:'bell', size:22, color:AppColors.text2 }),
+            React.createElement('div', { style:{ position:'absolute', top:-2, right:-2, width:8, height:8, borderRadius:'50%', background:AppColors.green } })
+          ),
+          React.createElement(Avatar, { name:'María G', size:34 })
+        )
+      )
+    ),
+    React.createElement('div', { style:{ flex:1, overflowY:'auto', padding:'12px 14px 8px' } },
+      React.createElement('div', { style:{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:8, marginBottom:14 } },
+        [['18', 'estudios', AppColors.green], ['3', 'compartidos', AppColors.blue], ['7 meses', 'de historia', AppColors.teal]].map(([v, l, c]) =>
+          React.createElement(Card, { key:l, style:{ padding:'12px 10px', textAlign:'center' } },
+            React.createElement('div', { style:{ fontSize:18, fontWeight:700, color:c, lineHeight:1 } }, v),
+            React.createElement('div', { style:{ fontSize:10, color:AppColors.text3, marginTop:3 } }, l)
+          )
+        )
+      ),
+      React.createElement(Card, { onClick:()=>d({tab:'menu', screen:'study-invite'}), style:{ marginBottom:14, background:'linear-gradient(135deg,#EEF2FF,#F0FDF4)', border:`1px solid ${AppColors.greenBorder}`, cursor:'pointer' } },
+        React.createElement('div', { style:{ display:'flex', gap:10, alignItems:'flex-start' } },
+          React.createElement('div', { style:{ width:36, height:36, borderRadius:10, background:AppColors.greenLight, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 } },
+            React.createElement(Icon, { name:'flasklg', size:18, color:AppColors.green })
+          ),
+          React.createElement('div', null,
+            React.createElement(Pill, { children:'Invitación a estudio', style:{ fontSize:10, marginBottom:4 } }),
+            React.createElement('p', { style:{ fontSize:13, fontWeight:600, color:AppColors.text1 } }, 'Estudio de Diabetes Tipo 2 — LATAM'),
+            React.createElement('p', { style:{ fontSize:11, color:AppColors.text2, marginTop:2 } }, 'Tu perfil es compatible. Tap para ver detalles →')
+          )
+        )
+      ),
+      React.createElement('h2', { style:{ fontSize:13, fontWeight:600, color:AppColors.text2, letterSpacing:'0.06em', textTransform:'uppercase', marginBottom:8 } }, 'Acciones rápidas'),
+      React.createElement('div', { style:{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, marginBottom:14 } },
+        quickActions.map((a, i) =>
+          React.createElement(Card, { key:i, onClick:a.action, style:{ display:'flex', flexDirection:'column', gap:8, cursor:'pointer' } },
+            React.createElement('div', { style:{ width:36, height:36, borderRadius:10, background:AppColors.greenLight, display:'flex', alignItems:'center', justifyContent:'center' } },
+              React.createElement(Icon, { name:a.icon, size:18, color:AppColors.green })
+            ),
+            React.createElement('span', { style:{ fontSize:13, fontWeight:600, color:AppColors.text1, lineHeight:1.3 } }, a.label)
+          )
+        )
+      ),
+      React.createElement('div', { style:{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:8 } },
+        React.createElement('h2', { style:{ fontSize:13, fontWeight:600, color:AppColors.text2, letterSpacing:'0.06em', textTransform:'uppercase' } }, 'Estudios recientes'),
+        React.createElement('button', { onClick:()=>d({tab:'vault', screen:'vault'}), style:{ background:'none', border:'none', fontSize:12, color:AppColors.green, cursor:'pointer', fontWeight:600 } }, 'Ver todos')
+      ),
+      SAMPLE_DOCS.slice(0,3).map(doc =>
+        React.createElement(Card, { key:doc.id, onClick:()=>d({tab:'vault', screen:'vault-detail', selectedDoc:doc}), style:{ display:'flex', gap:10, alignItems:'center', marginBottom:8, cursor:'pointer' } },
+          React.createElement('div', { style:{ width:38, height:38, borderRadius:10, background:doc.color+'18', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 } },
+            React.createElement(Icon, { name:'file', size:18, color:doc.color })
+          ),
+          React.createElement('div', { style:{ flex:1, minWidth:0 } },
+            React.createElement('p', { style:{ fontSize:13, fontWeight:600, color:AppColors.text1, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' } }, doc.name),
+            React.createElement('p', { style:{ fontSize:11, color:AppColors.text3 } }, `${doc.lab} · ${doc.date}`)
+          ),
+          React.createElement(Icon, { name:'chevronRight', size:14, color:AppColors.text3 })
+        )
+      ),
+    )
+  );
+}
+
+// ── VAULT SCREENS ────────────────────────────────────────────────────
+function VaultScreen() {
+  const [s] = useAppState();
+  const screen = s.screen;
+  if (screen === 'upload-1') return React.createElement(Upload1, null);
+  if (screen === 'upload-2') return React.createElement(Upload2, null);
+  if (screen === 'upload-3') return React.createElement(Upload3, null);
+  if (screen === 'vault-detail') return React.createElement(VaultDetail, null);
+  return React.createElement(VaultList, null);
+}
+
+function VaultList() {
+  const [s, d] = useAppState();
+  const [filter, setFilter] = React.useState('Todos');
+  const tags = ['Todos', 'Laboratorio', 'Imagen', 'Cardiología', 'Medicación'];
+  const docs = filter === 'Todos' ? SAMPLE_DOCS : SAMPLE_DOCS.filter(x=>x.tag===filter);
+  return React.createElement(ScreenWrapper, null,
+    React.createElement(TopBar, { title:'Mi Vault', subtitle:'18 estudios guardados',
+      action: React.createElement('button', { onClick:()=>d({screen:'upload-1'}), style:{ width:32, height:32, borderRadius:'50%', background:AppColors.green, border:'none', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' } },
+        React.createElement(Icon, { name:'plus', size:16, color:'#fff' })
+      )
+    }),
+    React.createElement('div', { style:{ display:'flex', gap:8, padding:'10px 14px', background:'#fff', overflowX:'auto', borderBottom:`1px solid ${AppColors.borderLight}`, flexShrink:0 } },
+      tags.map(t => React.createElement('button', { key:t, onClick:()=>setFilter(t), style:{ flexShrink:0, padding:'5px 14px', borderRadius:100, border:`1.5px solid ${filter===t ? AppColors.green : AppColors.border}`, background:filter===t ? AppColors.greenLight : 'transparent', color:filter===t ? AppColors.green : AppColors.text2, fontSize:12, fontWeight:600, fontFamily:"'Space Grotesk',sans-serif", cursor:'pointer' } }, t))
+    ),
+    React.createElement('div', { style:{ flex:1, overflowY:'auto', padding:'10px 14px' } },
+      docs.map(doc =>
+        React.createElement('div', { key:doc.id, onClick:()=>d({screen:'vault-detail', selectedDoc:doc}),
+          style:{ display:'flex', gap:12, alignItems:'center', background:'#fff', borderRadius:14, padding:'14px 12px', marginBottom:8, boxShadow:'0 1px 6px rgba(0,0,0,0.05)', cursor:'pointer', border:`1px solid ${AppColors.borderLight}` } },
+          React.createElement('div', { style:{ width:44, height:44, borderRadius:12, background:doc.color+'18', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 } },
+            React.createElement(Icon, { name:'file', size:22, color:doc.color })
+          ),
+          React.createElement('div', { style:{ flex:1, minWidth:0 } },
+            React.createElement('p', { style:{ fontSize:14, fontWeight:600, color:AppColors.text1 } }, doc.name),
+            React.createElement('p', { style:{ fontSize:11, color:AppColors.text3, marginTop:2 } }, `${doc.lab} · ${doc.date}`),
+            React.createElement(Pill, { children:doc.tag, style:{ marginTop:4, fontSize:10 } })
+          ),
+          doc.values.some(v=>v.alert) && React.createElement('div', { style:{ width:8, height:8, borderRadius:'50%', background:AppColors.warn, flexShrink:0 } })
+        )
+      )
+    )
+  );
+}
+
+function VaultDetail() {
+  const [s, d] = useAppState();
+  const doc = s.selectedDoc || SAMPLE_DOCS[0];
+  return React.createElement(ScreenWrapper, { bg:'#fff' },
+    React.createElement(TopBar, { title:doc.type, onBack:()=>d({screen:'vault'}),
+      action: React.createElement('button', { onClick:()=>d({tab:'menu', screen:'sharing'}), style:{ background:AppColors.greenLight, border:`1px solid ${AppColors.greenBorder}`, borderRadius:100, padding:'6px 12px', display:'flex', gap:4, alignItems:'center', cursor:'pointer' } },
+        React.createElement(Icon, { name:'share', size:14, color:AppColors.green }),
+        React.createElement('span', { style:{ fontSize:12, fontWeight:600, color:AppColors.green } }, 'Compartir')
+      )
+    }),
+    React.createElement('div', { style:{ flex:1, overflowY:'auto', padding:'14px' } },
+      React.createElement(Card, { style:{ marginBottom:12 } },
+        React.createElement('div', { style:{ display:'flex', gap:12, alignItems:'center', marginBottom:12 } },
+          React.createElement('div', { style:{ width:48, height:48, borderRadius:12, background:doc.color, display:'flex', alignItems:'center', justifyContent:'center' } },
+            React.createElement(Icon, { name:'file', size:24, color:'#fff' })
+          ),
+          React.createElement('div', null,
+            React.createElement('h2', { style:{ fontSize:16, fontWeight:700, color:AppColors.text1 } }, doc.name),
+            React.createElement('p', { style:{ fontSize:12, color:AppColors.text3, marginTop:2 } }, `${doc.lab} · ${doc.date}`)
+          )
+        ),
+        React.createElement('div', { style:{ background:AppColors.bg, borderRadius:10, padding:'12px', minHeight:100, display:'flex', flexDirection:'column', gap:6 } },
+          doc.values.length > 0
+            ? doc.values.map((v, i) =>
+              React.createElement('div', { key:i, style:{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'8px 0', borderBottom: i<doc.values.length-1 ? `1px solid ${AppColors.borderLight}` : 'none' } },
+                React.createElement('span', { style:{ fontSize:13, color:AppColors.text2 } }, v.k),
+                React.createElement('span', { style:{ fontSize:13, fontWeight:700, color: v.alert ? AppColors.warn : AppColors.text1 } }, v.v)
+              ))
+            : React.createElement('p', { style:{ fontSize:12, color:AppColors.text3, textAlign:'center', marginTop:16 } }, 'Vista previa del documento')
+        )
+      ),
+      React.createElement(Card, { style:{ marginBottom:12, background:'#F0FDF4', border:`1px solid ${AppColors.greenBorder}` } },
+        React.createElement('div', { style:{ display:'flex', gap:8, alignItems:'center', marginBottom:8 } },
+          React.createElement(Icon, { name:'zap', size:16, color:AppColors.green }),
+          React.createElement('span', { style:{ fontSize:12, fontWeight:600, color:AppColors.green, textTransform:'uppercase', letterSpacing:'0.04em' } }, 'Explicación del Copilot')
+        ),
+        React.createElement('p', { style:{ fontSize:13, color:AppColors.text1, lineHeight:1.65 } },
+          doc.values.some(v=>v.alert) ? 'Hay valores que están fuera del rango normal. La glucemia en 127 mg/dL puede indicar pre-diabetes. Te recomiendo consultarlo con tu médico.' : 'Los resultados se encuentran dentro de los rangos normales esperados para tu perfil.'
+        ),
+        React.createElement('button', { onClick:()=>d({tab:'copilot', screen:'copilot'}), style:{ marginTop:8, background:'none', border:'none', fontSize:12, color:AppColors.green, fontWeight:600, cursor:'pointer', padding:0, fontFamily:"'Space Grotesk',sans-serif" } }, 'Preguntarle más al Copilot →')
+      ),
+      React.createElement('div', { style:{ display:'flex', gap:10 } },
+        React.createElement('button', { onClick:()=>d({tab:'menu',screen:'sharing'}), style:{ flex:1, padding:'12px', borderRadius:12, background:AppColors.grad, border:'none', color:'#fff', fontWeight:600, fontSize:14, fontFamily:"'Space Grotesk',sans-serif", cursor:'pointer' } }, 'Compartir vía QR'),
+        React.createElement('button', { style:{ width:44, height:44, borderRadius:12, background:AppColors.bg, border:`1px solid ${AppColors.border}`, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' } },
+          React.createElement(Icon, { name:'trash', size:18, color:AppColors.text3 })
+        )
+      )
+    )
+  );
+}
+
+function Upload1() {
+  const [s, d] = useAppState();
+  return React.createElement(ScreenWrapper, { bg:'#fff' },
+    React.createElement(TopBar, { title:'Subir estudio', onBack:()=>d({screen:'vault'}) }),
+    React.createElement('div', { style:{ flex:1, display:'flex', flexDirection:'column', padding:'20px 16px', gap:12 } },
+      React.createElement('p', { style:{ fontSize:13, color:AppColors.text2, marginBottom:4 } }, 'Elegí cómo querés agregar el estudio.'),
+      [
+        { icon:'camera', title:'Sacar foto', desc:'Tomá una foto del informe en papel', color:AppColors.green },
+        { icon:'upload', title:'Subir archivo', desc:'PDF, JPG o DICOM desde tu dispositivo', color:AppColors.blue },
+        { icon:'folder', title:'Desde el laboratorio', desc:'Conectá con Stamboulian, LALCEC y más', color:AppColors.teal },
+      ].map((opt, i) =>
+        React.createElement('button', { key:i, onClick:()=>d({screen:'upload-2'}),
+          style:{ display:'flex', gap:14, alignItems:'center', background:'#fff', borderRadius:14, padding:'16px', border:`1.5px solid ${AppColors.border}`, cursor:'pointer', textAlign:'left' } },
+          React.createElement('div', { style:{ width:44, height:44, borderRadius:12, background:opt.color+'18', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 } },
+            React.createElement(Icon, { name:opt.icon, size:22, color:opt.color })
+          ),
+          React.createElement('div', null,
+            React.createElement('p', { style:{ fontSize:15, fontWeight:600, color:AppColors.text1, marginBottom:2 } }, opt.title),
+            React.createElement('p', { style:{ fontSize:12, color:AppColors.text3 } }, opt.desc)
+          ),
+          React.createElement(Icon, { name:'chevronRight', size:16, color:AppColors.text3 })
+        )
+      ),
+      React.createElement('div', { style:{ marginTop:'auto', padding:'12px', background:AppColors.bg, borderRadius:10, display:'flex', gap:8 } },
+        React.createElement(Icon, { name:'shield', size:14, color:AppColors.green }),
+        React.createElement('p', { style:{ fontSize:11, color:AppColors.text2, lineHeight:1.5 } }, 'Tus documentos se cifran antes de guardarse. Nadie puede acceder a ellos sin tu permiso.')
+      )
+    )
+  );
+}
+
+function Upload2() {
+  const [s, d] = useAppState();
+  const [pct, setPct] = React.useState(0);
+  React.useEffect(() => {
+    const t = setInterval(() => setPct(p => { if(p >= 100) { clearInterval(t); setTimeout(()=>d({screen:'upload-3'}),400); return 100; } return p+8; }), 80);
+    return () => clearInterval(t);
+  }, []);
+  return React.createElement(ScreenWrapper, { bg:'#fff' },
+    React.createElement(TopBar, { title:'Procesando', onBack:()=>d({screen:'upload-1'}) }),
+    React.createElement('div', { style:{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'32px 24px', textAlign:'center' } },
+      React.createElement('div', { style:{ width:80, height:80, borderRadius:24, background:AppColors.greenLight, display:'flex', alignItems:'center', justifyContent:'center', marginBottom:24, border:`2px solid ${AppColors.greenBorder}` } },
+        React.createElement(Icon, { name:'zap', size:36, color:AppColors.green })
+      ),
+      React.createElement('h2', { style:{ fontSize:20, fontWeight:700, color:AppColors.text1, marginBottom:8 } }, pct < 100 ? 'Analizando con IA…' : '¡Listo!'),
+      React.createElement('p', { style:{ fontSize:13, color:AppColors.text2, marginBottom:28, lineHeight:1.6 } },
+        pct < 40 ? 'Reconociendo el tipo de estudio' : pct < 70 ? 'Extrayendo valores y fechas' : pct < 100 ? 'Estructurando la información' : 'El estudio fue procesado correctamente'
+      ),
+      React.createElement('div', { style:{ width:'100%', maxWidth:240, background:AppColors.borderLight, borderRadius:100, height:6, overflow:'hidden' } },
+        React.createElement('div', { style:{ width:`${pct}%`, height:'100%', background:AppColors.grad, borderRadius:100, transition:'width 100ms' } })
+      ),
+      React.createElement('p', { style:{ fontSize:12, color:AppColors.text3, marginTop:10 } }, `${pct}%`),
+    )
+  );
+}
+
+function Upload3() {
+  const [s, d] = useAppState();
+  const [name, setName] = React.useState('Análisis de Sangre — Mayo 2024');
+  const [tag, setTag] = React.useState('Laboratorio');
+  const tags2 = ['Laboratorio','Imagen','Cardiología','Medicación','Otro'];
+  return React.createElement(ScreenWrapper, { bg:'#fff' },
+    React.createElement(TopBar, { title:'Confirmar datos', onBack:()=>d({screen:'upload-1'}) }),
+    React.createElement('div', { style:{ flex:1, overflowY:'auto', padding:'16px' } },
+      React.createElement(Card, { style:{ background:'#F0FDF4', border:`1px solid ${AppColors.greenBorder}`, marginBottom:14 } },
+        React.createElement('div', { style:{ display:'flex', gap:8, alignItems:'center', marginBottom:10 } },
+          React.createElement(Icon, { name:'check', size:14, color:AppColors.green }),
+          React.createElement('span', { style:{ fontSize:12, fontWeight:600, color:AppColors.green } }, 'IA extrajo automáticamente')
+        ),
+        React.createElement('div', { style:{ display:'flex', flexDirection:'column', gap:6 } },
+          [['Tipo','Análisis de sangre completo'],['Fecha','15 Mayo 2024'],['Laboratorio','Stamboulian'],['Glucemia','127 mg/dL ⚠️'],['Colesterol','198 mg/dL'],['Hemoglobina','14.2 g/dL']].map(([k,v]) =>
+            React.createElement('div', { key:k, style:{ display:'flex', justifyContent:'space-between' } },
+              React.createElement('span', { style:{ fontSize:12, color:AppColors.text3 } }, k),
+              React.createElement('span', { style:{ fontSize:12, fontWeight:600, color:AppColors.text1 } }, v)
+            )
+          )
+        )
+      ),
+      React.createElement('div', { style:{ marginBottom:14 } },
+        React.createElement('label', { style:{ fontSize:12, fontWeight:600, color:AppColors.text2, display:'block', marginBottom:5, letterSpacing:'0.04em' } }, 'NOMBRE'),
+        React.createElement('input', { value:name, onChange:e=>setName(e.target.value), style:{ width:'100%', padding:'11px 13px', borderRadius:10, border:`1.5px solid ${AppColors.border}`, fontSize:14, fontFamily:"'Space Grotesk',sans-serif", color:AppColors.text1, outline:'none', boxSizing:'border-box' } })
+      ),
+      React.createElement('div', { style:{ marginBottom:20 } },
+        React.createElement('label', { style:{ fontSize:12, fontWeight:600, color:AppColors.text2, display:'block', marginBottom:6, letterSpacing:'0.04em' } }, 'CATEGORÍA'),
+        React.createElement('div', { style:{ display:'flex', flexWrap:'wrap', gap:6 } },
+          tags2.map(t => React.createElement('button', { key:t, onClick:()=>setTag(t), style:{ padding:'5px 12px', borderRadius:100, border:`1.5px solid ${tag===t ? AppColors.green : AppColors.border}`, background:tag===t ? AppColors.greenLight : 'transparent', color:tag===t ? AppColors.green : AppColors.text2, fontSize:12, fontWeight:600, fontFamily:"'Space Grotesk',sans-serif", cursor:'pointer' } }, t))
+        )
+      ),
+      React.createElement('button', { onClick:()=>d({screen:'vault'}), style:{ width:'100%', padding:'14px', borderRadius:100, background:AppColors.grad, border:'none', color:'#fff', fontSize:15, fontWeight:600, fontFamily:"'Space Grotesk',sans-serif", cursor:'pointer' } }, 'Guardar en mi Vault ✓')
+    )
+  );
+}
+
+// ── COPILOT SCREEN ───────────────────────────────────────────────────
+function CopilotScreen() {
+  const [s, d] = useAppState();
+  const [msgs, setMsgs] = React.useState(CHAT_HISTORY);
+  const [input, setInput] = React.useState('');
+  const [loading, setLoading] = React.useState(false);
+  const bottomRef = React.useRef(null);
+  React.useEffect(() => { if (bottomRef.current) bottomRef.current.scrollIntoView({ block: 'nearest' }); }, [msgs]);
+  const suggestions = ['Preparar preguntas para mi médico', 'Explicar mis valores de colesterol', '¿Qué es la hemoglobina glicosilada?'];
+  const send = (text) => {
+    if (!text.trim()) return;
+    setMsgs(prev => [...prev, { role:'user', text }]);
+    setInput('');
+    setLoading(true);
+    setTimeout(() => {
+      setMsgs(prev => [...prev, { role:'assistant', text: 'Entiendo tu pregunta. Basándome en tu historial clínico, te puedo decir que este es un tema importante que vale la pena explorar con tu médico. ¿Querés que te prepare una lista de preguntas para la consulta?' }]);
+      setLoading(false);
+    }, 1200);
+  };
+  return React.createElement(ScreenWrapper, null,
+    React.createElement(TopBar, { title:'Copilot IA', subtitle:'Asistente médico personal',
+      action: React.createElement('button', { style:{ background:AppColors.greenLight, border:`1px solid ${AppColors.greenBorder}`, borderRadius:100, padding:'5px 12px', fontSize:11, fontWeight:700, color:AppColors.green, cursor:'pointer' } }, '⚕ No diagnóstica')
+    }),
+    React.createElement('div', { style:{ background:'#FFFBEB', borderBottom:'1px solid #FDE68A', padding:'8px 14px', flexShrink:0 } },
+      React.createElement('p', { style:{ fontSize:11, color:'#92400E', lineHeight:1.5 } }, '⚠️ El Copilot no reemplaza la consulta médica. Siempre validá con un profesional de salud.')
+    ),
+    React.createElement('div', { style:{ flex:1, overflowY:'auto', padding:'12px 14px', display:'flex', flexDirection:'column', gap:10 } },
+      msgs.map((m, i) =>
+        React.createElement('div', { key:i, style:{ display:'flex', flexDirection:'column', alignItems: m.role==='user' ? 'flex-end' : 'flex-start', maxWidth:'85%', alignSelf: m.role==='user' ? 'flex-end' : 'flex-start' } },
+          React.createElement('div', { style:{ background: m.role==='user' ? AppColors.grad : '#fff', color: m.role==='user' ? '#fff' : AppColors.text1, padding:'10px 13px', borderRadius: m.role==='user' ? '16px 16px 4px 16px' : '16px 16px 16px 4px', fontSize:13, lineHeight:1.6, boxShadow:'0 1px 4px rgba(0,0,0,0.07)', whiteSpace:'pre-line' } }, m.text)
+        )
+      ),
+      loading && React.createElement('div', { style:{ display:'flex', gap:4, padding:'10px 13px', background:'#fff', borderRadius:'16px 16px 16px 4px', boxShadow:'0 1px 4px rgba(0,0,0,0.07)', width:'fit-content' } },
+        [0,1,2].map(i => React.createElement('div', { key:i, style:{ width:6, height:6, borderRadius:'50%', background:AppColors.text3, animation:`pulse 1.2s ${i*0.2}s infinite` } }))
+      ),
+      React.createElement('div', { ref: bottomRef })
+    ),
+    !loading && msgs.length < 4 && React.createElement('div', { style:{ padding:'6px 14px', display:'flex', gap:6, overflowX:'auto', flexShrink:0 } },
+      suggestions.map((sg, i) => React.createElement('button', { key:i, onClick:()=>send(sg),
+        style:{ flexShrink:0, padding:'6px 12px', borderRadius:100, border:`1.5px solid ${AppColors.border}`, background:'#fff', color:AppColors.text2, fontSize:11, fontWeight:500, fontFamily:"'Space Grotesk',sans-serif", cursor:'pointer' } }, sg))
+    ),
+    React.createElement('div', { style:{ padding:'10px 12px', background:'#fff', borderTop:`1px solid ${AppColors.borderLight}`, display:'flex', gap:8, flexShrink:0 } },
+      React.createElement('input', { value:input, onChange:e=>setInput(e.target.value), onKeyDown:e=>e.key==='Enter' && send(input), placeholder:'Preguntá sobre tus estudios…', style:{ flex:1, padding:'10px 13px', borderRadius:100, border:`1.5px solid ${AppColors.border}`, fontSize:13, fontFamily:"'Space Grotesk',sans-serif", color:AppColors.text1, outline:'none' } }),
+      React.createElement('button', { onClick:()=>send(input), disabled:!input.trim(), style:{ width:38, height:38, borderRadius:'50%', background:input.trim() ? AppColors.grad : AppColors.borderLight, border:'none', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' } },
+        React.createElement(Icon, { name:'send', size:16, color: input.trim() ? '#fff' : AppColors.text3 })
+      )
+    )
+  );
+}
+
+// ── FAMILY SCREENS ───────────────────────────────────────────────────
+function FamilyScreen() {
+  const [s] = useAppState();
+  if (s.screen === 'family-add') return React.createElement(FamilyAdd, null);
+  return React.createElement(FamilyList, null);
+}
+
+function FamilyList() {
+  const [s, d] = useAppState();
+  return React.createElement(ScreenWrapper, null,
+    React.createElement(TopBar, { title:'Familia', subtitle:'3 perfiles activos',
+      action: React.createElement('button', { onClick:()=>d({screen:'family-add'}), style:{ width:32, height:32, borderRadius:'50%', background:AppColors.green, border:'none', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' } },
+        React.createElement(Icon, { name:'plus', size:16, color:'#fff' })
+      )
+    }),
+    React.createElement('div', { style:{ flex:1, overflowY:'auto', padding:'14px' } },
+      React.createElement('p', { style:{ fontSize:12, color:AppColors.text3, marginBottom:12 } }, 'Gestioná el historial médico de toda tu familia desde un solo lugar.'),
+      FAMILY_MEMBERS.map(m =>
+        React.createElement(Card, { key:m.id, onClick:()=>d({activeFamily:m.id}), style:{ marginBottom:10, cursor:'pointer', border: s.activeFamily===m.id ? `2px solid ${AppColors.green}` : `1px solid ${AppColors.borderLight}` } },
+          React.createElement('div', { style:{ display:'flex', gap:12, alignItems:'center' } },
+            React.createElement(Avatar, { name:m.name, size:44, color:m.color }),
+            React.createElement('div', { style:{ flex:1 } },
+              React.createElement('p', { style:{ fontSize:15, fontWeight:700, color:AppColors.text1 } }, m.name),
+              React.createElement('p', { style:{ fontSize:12, color:AppColors.text3, marginTop:2 } }, m.rel),
+              React.createElement('p', { style:{ fontSize:11, color:AppColors.text2, marginTop:4 } }, `${m.docs} estudios guardados`)
+            ),
+            s.activeFamily===m.id
+              ? React.createElement(Pill, { children:'Activo' })
+              : React.createElement(Icon, { name:'chevronRight', size:16, color:AppColors.text3 })
+          )
+        )
+      ),
+      React.createElement('div', { style:{ background:'#EEF2FF', borderRadius:12, padding:'12px 14px', marginTop:8 } },
+        React.createElement('p', { style:{ fontSize:12, fontWeight:600, color:AppColors.blue, marginBottom:4 } }, '👨‍👩‍👧 ¿Por qué el perfil familiar?'),
+        React.createElement('p', { style:{ fontSize:12, color:AppColors.text2, lineHeight:1.6 } }, 'Muchas cuidadoras manejan la salud de toda la familia. Bresca te permite gestionar hasta 6 perfiles desde una sola cuenta.')
+      )
+    )
+  );
+}
+
+function FamilyAdd() {
+  const [s, d] = useAppState();
+  const [name, setName] = React.useState('');
+  const [rel, setRel] = React.useState('');
+  const rels = ['Pareja', 'Hijo/a', 'Madre', 'Padre', 'Abuelo/a', 'Otro'];
+  return React.createElement(ScreenWrapper, { bg:'#fff' },
+    React.createElement(TopBar, { title:'Agregar familiar', onBack:()=>d({screen:'family'}) }),
+    React.createElement('div', { style:{ flex:1, padding:'16px', overflowY:'auto' } },
+      React.createElement('div', { style:{ display:'flex', justifyContent:'center', marginBottom:20 } },
+        React.createElement('div', { style:{ width:72, height:72, borderRadius:'50%', background:AppColors.greenLight, border:`2px dashed ${AppColors.green}`, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' } },
+          React.createElement(Icon, { name:'plus', size:28, color:AppColors.green })
+        )
+      ),
+      React.createElement('div', { style:{ marginBottom:14 } },
+        React.createElement('label', { style:{ fontSize:12, fontWeight:600, color:AppColors.text2, display:'block', marginBottom:5, letterSpacing:'0.04em' } }, 'NOMBRE COMPLETO'),
+        React.createElement('input', { value:name, onChange:e=>setName(e.target.value), placeholder:'Nombre del familiar', style:{ width:'100%', padding:'12px 13px', borderRadius:10, border:`1.5px solid ${AppColors.border}`, fontSize:14, fontFamily:"'Space Grotesk',sans-serif", color:AppColors.text1, outline:'none', boxSizing:'border-box' } })
+      ),
+      React.createElement('div', { style:{ marginBottom:20 } },
+        React.createElement('label', { style:{ fontSize:12, fontWeight:600, color:AppColors.text2, display:'block', marginBottom:6, letterSpacing:'0.04em' } }, 'RELACIÓN'),
+        React.createElement('div', { style:{ display:'flex', flexWrap:'wrap', gap:6 } },
+          rels.map(r => React.createElement('button', { key:r, onClick:()=>setRel(r), style:{ padding:'6px 14px', borderRadius:100, border:`1.5px solid ${rel===r ? AppColors.blue : AppColors.border}`, background:rel===r ? AppColors.blueLight : 'transparent', color:rel===r ? AppColors.blue : AppColors.text2, fontSize:12, fontWeight:600, fontFamily:"'Space Grotesk',sans-serif", cursor:'pointer' } }, r))
+        )
+      ),
+      React.createElement('div', { style:{ background:AppColors.bg, borderRadius:10, padding:'12px 14px', marginBottom:20 } },
+        React.createElement('p', { style:{ fontSize:12, color:AppColors.text2, lineHeight:1.6 } }, '🔒 El familiar recibirá una invitación para aprobar el acceso. Podés revocar el acceso en cualquier momento.')
+      ),
+      React.createElement('button', { onClick:()=>d({screen:'family'}), disabled:!name||!rel, style:{ width:'100%', padding:'14px', borderRadius:100, background: name&&rel ? AppColors.grad : AppColors.borderLight, border:'none', color: name&&rel ? '#fff' : AppColors.text3, fontSize:15, fontWeight:600, fontFamily:"'Space Grotesk',sans-serif", cursor: name&&rel ? 'pointer' : 'default' } }, 'Invitar al familiar')
+    )
+  );
+}
+
+// ── TIMELINE ─────────────────────────────────────────────────────────
+function TimelineScreen() {
+  return React.createElement(ScreenWrapper, null,
+    React.createElement(TopBar, { title:'Timeline', subtitle:'Tu historia clínica completa' }),
+    React.createElement('div', { style:{ flex:1, overflowY:'auto', padding:'12px 14px' } },
+      TIMELINE_EVENTS.map((ev, i) =>
+        React.createElement('div', { key:i, style:{ display:'flex', gap:12, marginBottom:0 } },
+          React.createElement('div', { style:{ display:'flex', flexDirection:'column', alignItems:'center', flexShrink:0 } },
+            React.createElement('div', { style:{ width:36, height:36, borderRadius:'50%', background:ev.color+'18', border:`2px solid ${ev.color}33`, display:'flex', alignItems:'center', justifyContent:'center' } },
+              React.createElement(Icon, { name:ev.icon, size:16, color:ev.color })
+            ),
+            i < TIMELINE_EVENTS.length-1 && React.createElement('div', { style:{ width:2, flex:1, background:AppColors.borderLight, minHeight:20, margin:'4px 0' } })
+          ),
+          React.createElement('div', { style:{ flex:1, paddingBottom:16 } },
+            React.createElement('p', { style:{ fontSize:11, color:AppColors.text3, marginBottom:3 } }, ev.date),
+            React.createElement('div', { style:{ background:'#fff', borderRadius:12, padding:'11px 13px', border:`1px solid ${ev.alert ? AppColors.warn+'44' : AppColors.borderLight}` } },
+              React.createElement('div', { style:{ display:'flex', justifyContent:'space-between', alignItems:'center' } },
+                React.createElement('p', { style:{ fontSize:13, fontWeight:600, color:AppColors.text1 } }, ev.label),
+                ev.alert && React.createElement('div', { style:{ width:8, height:8, borderRadius:'50%', background:AppColors.warn } })
+              ),
+              React.createElement('p', { style:{ fontSize:11, color:AppColors.text2, marginTop:2 } }, ev.detail)
+            )
+          )
+        )
+      )
+    )
+  );
+}
+
+// ── MENU SCREENS ─────────────────────────────────────────────────────
+function MenuScreen() {
+  const [s] = useAppState();
+  const screen = s.screen;
+  if (screen === 'sharing') return React.createElement(SharingScreen, null);
+  if (screen === 'consent') return React.createElement(ConsentScreen, null);
+  if (screen === 'study-invite') return React.createElement(StudyInviteScreen, null);
+  if (screen === 'settings') return React.createElement(SettingsScreen, null);
+  if (screen === 'timeline') return React.createElement(TimelineScreen, null);
+  return React.createElement(MenuList, null);
+}
+
+function MenuList() {
+  const [s, d] = useAppState();
+  const items = [
+    { icon:'share', label:'Compartir vía QR', desc:'Generá acceso temporal para tu médico', screen:'sharing', color:AppColors.green },
+    { icon:'clock', label:'Timeline de salud', desc:'Tu historia clínica ordenada', screen:'timeline', color:AppColors.blue },
+    { icon:'flasklg', label:'Centro de Consentimiento', desc:'Investigación clínica y privacidad', screen:'consent', color:AppColors.teal },
+    { icon:'bell', label:'Invitaciones a estudios', desc:'1 nueva invitación', screen:'study-invite', color:'#F59E0B', badge:1 },
+    { icon:'settings', label:'Configuración y privacidad', desc:'Cuenta, seguridad, datos', screen:'settings', color:AppColors.text3 },
+  ];
+  return React.createElement(ScreenWrapper, null,
+    React.createElement(TopBar, { title:'Más opciones' }),
+    React.createElement('div', { style:{ flex:1, overflowY:'auto', padding:'12px 14px' } },
+      React.createElement(Card, { style:{ display:'flex', gap:12, alignItems:'center', marginBottom:14 } },
+        React.createElement(Avatar, { name:'María García', size:48 }),
+        React.createElement('div', { style:{ flex:1 } },
+          React.createElement('p', { style:{ fontSize:16, fontWeight:700, color:AppColors.text1 } }, 'María García'),
+          React.createElement('p', { style:{ fontSize:12, color:AppColors.text3 } }, 'Plan Free · 18 estudios'),
+          React.createElement(Pill, { children:'Beta Bresca 🎉', style:{ marginTop:4, fontSize:10 } })
+        )
+      ),
+      items.map((item, i) =>
+        React.createElement('button', { key:i, onClick:()=>d({screen:item.screen}),
+          style:{ width:'100%', display:'flex', gap:12, alignItems:'center', background:'#fff', borderRadius:14, padding:'14px 12px', marginBottom:8, border:`1px solid ${AppColors.borderLight}`, cursor:'pointer', textAlign:'left' } },
+          React.createElement('div', { style:{ width:40, height:40, borderRadius:11, background:item.color+'18', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 } },
+            React.createElement(Icon, { name:item.icon, size:20, color:item.color })
+          ),
+          React.createElement('div', { style:{ flex:1 } },
+            React.createElement('p', { style:{ fontSize:14, fontWeight:600, color:AppColors.text1 } }, item.label),
+            React.createElement('p', { style:{ fontSize:11, color:AppColors.text3, marginTop:1 } }, item.desc)
+          ),
+          item.badge && React.createElement('div', { style:{ width:20, height:20, borderRadius:'50%', background:AppColors.warn, display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:700, color:'#fff' } }, item.badge),
+          React.createElement(Icon, { name:'chevronRight', size:14, color:AppColors.text3 })
+        )
+      )
+    )
+  );
+}
+
+function SharingScreen() {
+  const [s, d] = useAppState();
+  const [hours, setHours] = React.useState(48);
+  const [docs, setDocs] = React.useState(['Análisis de Sangre Completo']);
+  const [generated, setGenerated] = React.useState(false);
+  return React.createElement(ScreenWrapper, { bg:'#fff' },
+    React.createElement(TopBar, { title:'Compartir vía QR', onBack:()=>d({screen:'menu'}) }),
+    React.createElement('div', { style:{ flex:1, overflowY:'auto', padding:'16px' } },
+      !generated ? React.createElement('div', null,
+        React.createElement('p', { style:{ fontSize:13, color:AppColors.text2, marginBottom:16, lineHeight:1.6 } }, 'Generá un código QR temporal. Tu médico podrá ver solo lo que vos elegís, por el tiempo que vos decidís.'),
+        React.createElement('div', { style:{ marginBottom:16 } },
+          React.createElement('p', { style:{ fontSize:12, fontWeight:600, color:AppColors.text2, marginBottom:8, letterSpacing:'0.04em', textTransform:'uppercase' } }, 'Documentos a compartir'),
+          SAMPLE_DOCS.map(doc => React.createElement('div', { key:doc.id, style:{ display:'flex', gap:10, alignItems:'center', padding:'10px 0', borderBottom:`1px solid ${AppColors.borderLight}` } },
+            React.createElement('input', { type:'checkbox', checked:docs.includes(doc.name), onChange:()=>setDocs(p=>p.includes(doc.name)?p.filter(x=>x!==doc.name):[...p,doc.name]), style:{ width:16, height:16, accentColor:AppColors.green, flexShrink:0 } }),
+            React.createElement('p', { style:{ fontSize:13, color:AppColors.text1 } }, doc.name)
+          ))
+        ),
+        React.createElement('div', { style:{ marginBottom:20 } },
+          React.createElement('p', { style:{ fontSize:12, fontWeight:600, color:AppColors.text2, marginBottom:8, letterSpacing:'0.04em', textTransform:'uppercase' } }, 'Duración del acceso'),
+          React.createElement('div', { style:{ display:'flex', gap:8 } },
+            [24, 48, 72, 168].map(h => React.createElement('button', { key:h, onClick:()=>setHours(h), style:{ flex:1, padding:'8px 4px', borderRadius:10, border:`1.5px solid ${hours===h ? AppColors.green : AppColors.border}`, background:hours===h ? AppColors.greenLight : 'transparent', color:hours===h ? AppColors.green : AppColors.text2, fontSize:12, fontWeight:600, fontFamily:"'Space Grotesk',sans-serif", cursor:'pointer' } }, h===168?'1 semana':`${h}hs`))
+          )
+        ),
+        React.createElement('button', { onClick:()=>setGenerated(true), style:{ width:'100%', padding:'14px', borderRadius:100, background:AppColors.grad, border:'none', color:'#fff', fontSize:15, fontWeight:600, fontFamily:"'Space Grotesk',sans-serif", cursor:'pointer' } }, 'Generar QR →')
+      ) : React.createElement('div', { style:{ display:'flex', flexDirection:'column', alignItems:'center', textAlign:'center' } },
+        React.createElement('div', { style:{ width:180, height:180, background:'#fff', border:`2px solid ${AppColors.border}`, borderRadius:16, padding:16, marginBottom:16, display:'grid', gridTemplateColumns:'repeat(9,1fr)', gap:2 } },
+          Array.from({length:81}).map((_,i) => React.createElement('div', { key:i, style:{ background: (i*7+13)%3===0 ? '#0F172A' : 'transparent', borderRadius:1 } }))
+        ),
+        React.createElement(Pill, { children:`Válido ${hours}hs · Solo lectura`, style:{marginBottom:12} }),
+        React.createElement('p', { style:{ fontSize:13, color:AppColors.text2, marginBottom:4 } }, 'Mostrá este código a tu médico'),
+        React.createElement('p', { style:{ fontSize:11, color:AppColors.text3, marginBottom:20, lineHeight:1.6 } }, `Expira en ${hours} horas. El médico puede ver: ${docs.join(', ')}.`),
+        React.createElement('div', { style:{ background:'#F0FDF4', border:`1px solid ${AppColors.greenBorder}`, borderRadius:12, padding:'12px 16px', width:'100%', marginBottom:12, textAlign:'left' } },
+          React.createElement('p', { style:{ fontSize:12, color:AppColors.green, fontWeight:600, marginBottom:4 } }, '¿Qué ve el médico?'),
+          React.createElement('p', { style:{ fontSize:12, color:AppColors.text2, lineHeight:1.5 } }, 'Una vista de solo lectura de los documentos seleccionados, sin necesidad de crear cuenta en Bresca.')
+        ),
+        React.createElement('button', { onClick:()=>setGenerated(false), style:{ background:'none', border:'none', fontSize:13, color:AppColors.text3, cursor:'pointer', fontFamily:"'Space Grotesk',sans-serif" } }, 'Generar nuevo QR')
+      )
+    )
+  );
+}
+
+function ConsentScreen() {
+  const [s, d] = useAppState();
+  const [areas, setAreas] = React.useState(CONSENT_AREAS);
+  const [globalConsent, setGlobalConsent] = React.useState(true);
+  const toggle = (id) => setAreas(prev => prev.map(a => a.id===id ? {...a, enabled:!a.enabled} : a));
+  return React.createElement(ScreenWrapper, null,
+    React.createElement(TopBar, { title:'Centro de Consentimiento', onBack:()=>d({screen:'menu'}) }),
+    React.createElement('div', { style:{ flex:1, overflowY:'auto', padding:'14px' } },
+      React.createElement(Card, { style:{ background:'linear-gradient(135deg,#EEF2FF,#F0FDF4)', border:`1px solid ${AppColors.greenBorder}`, marginBottom:14 } },
+        React.createElement('div', { style:{ display:'flex', gap:10, alignItems:'flex-start' } },
+          React.createElement(Icon, { name:'shield', size:20, color:AppColors.green }),
+          React.createElement('div', null,
+            React.createElement('p', { style:{ fontSize:14, fontWeight:700, color:AppColors.text1, marginBottom:4 } }, 'Tus datos, tus reglas'),
+            React.createElement('p', { style:{ fontSize:12, color:AppColors.text2, lineHeight:1.6 } }, 'Podés activar o desactivar tu participación en investigación clínica en cualquier momento, sin consecuencias en tu uso de Bresca.')
+          )
+        )
+      ),
+      React.createElement(Card, { style:{ marginBottom:14 } },
+        React.createElement('div', { style:{ display:'flex', justifyContent:'space-between', alignItems:'center' } },
+          React.createElement('div', null,
+            React.createElement('p', { style:{ fontSize:15, fontWeight:700, color:AppColors.text1 } }, 'Participar en investigación'),
+            React.createElement('p', { style:{ fontSize:12, color:AppColors.text3, marginTop:2 } }, globalConsent ? 'Activo — tus datos pueden usarse en estudios' : 'Inactivo — no participás en estudios')
+          ),
+          React.createElement('button', { onClick:()=>setGlobalConsent(!globalConsent),
+            style:{ width:48, height:26, borderRadius:100, background:globalConsent ? AppColors.green : '#CBD5E1', border:'none', cursor:'pointer', position:'relative', transition:'background 200ms' } },
+            React.createElement('div', { style:{ width:20, height:20, borderRadius:'50%', background:'#fff', position:'absolute', top:3, left:globalConsent?25:3, transition:'left 200ms', boxShadow:'0 1px 4px rgba(0,0,0,0.2)' } })
+          )
+        )
+      ),
+      globalConsent && React.createElement('div', null,
+        React.createElement('p', { style:{ fontSize:12, fontWeight:600, color:AppColors.text2, marginBottom:10, letterSpacing:'0.04em', textTransform:'uppercase' } }, 'Áreas terapéuticas'),
+        areas.map(area =>
+          React.createElement(Card, { key:area.id, style:{ marginBottom:8 } },
+            React.createElement('div', { style:{ display:'flex', gap:10, alignItems:'flex-start' } },
+              React.createElement('div', { style:{ width:36, height:36, borderRadius:10, background:area.color+'18', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 } },
+                React.createElement(Icon, { name:'flasklg', size:16, color:area.color })
+              ),
+              React.createElement('div', { style:{ flex:1 } },
+                React.createElement('p', { style:{ fontSize:13, fontWeight:600, color:AppColors.text1 } }, area.label),
+                React.createElement('p', { style:{ fontSize:11, color:AppColors.text3, marginTop:2, lineHeight:1.5 } }, area.desc)
+              ),
+              React.createElement('button', { onClick:()=>toggle(area.id),
+                style:{ width:40, height:22, borderRadius:100, background:area.enabled ? area.color : '#CBD5E1', border:'none', cursor:'pointer', position:'relative', flexShrink:0, transition:'background 200ms' } },
+                React.createElement('div', { style:{ width:16, height:16, borderRadius:'50%', background:'#fff', position:'absolute', top:3, left:area.enabled?21:3, transition:'left 200ms' } })
+              )
+            )
+          )
+        )
+      ),
+      React.createElement(Card, { style:{ background:AppColors.bg, border:'none', marginTop:8 } },
+        React.createElement('p', { style:{ fontSize:11, color:AppColors.text3, lineHeight:1.7 } }, '📋 Tus datos siempre son anonimizados antes de compartirse. El sponsor nunca te identifica directamente. Podés revocar en cualquier momento. Cumplimiento: LGPD, Ley 25.326, HIPAA.')
+      )
+    )
+  );
+}
+
+function StudyInviteScreen() {
+  const [s, d] = useAppState();
+  const [step, setStep] = React.useState(0);
+  if (step === 2) return React.createElement(ScreenWrapper, { bg:'#fff' },
+    React.createElement('div', { style:{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'32px 24px', textAlign:'center' } },
+      React.createElement('div', { style:{ width:72, height:72, borderRadius:24, background:AppColors.greenLight, display:'flex', alignItems:'center', justifyContent:'center', marginBottom:20, border:`2px solid ${AppColors.greenBorder}` } },
+        React.createElement(Icon, { name:'check', size:32, color:AppColors.green })
+      ),
+      React.createElement('h2', { style:{ fontSize:20, fontWeight:700, marginBottom:8 } }, '¡Gracias por participar!'),
+      React.createElement('p', { style:{ fontSize:14, color:AppColors.text2, lineHeight:1.65, maxWidth:260 } }, 'El equipo del estudio se pondrá en contacto en los próximos 5 días hábiles. Podés revocar tu participación en cualquier momento.'),
+      React.createElement('button', { onClick:()=>d({screen:'menu'}), style:{ marginTop:28, padding:'12px 28px', borderRadius:100, background:AppColors.grad, border:'none', color:'#fff', fontSize:14, fontWeight:600, fontFamily:"'Space Grotesk',sans-serif", cursor:'pointer' } }, 'Volver al inicio')
+    )
+  );
+  if (step === 1) return React.createElement(ScreenWrapper, { bg:'#fff' },
+    React.createElement(TopBar, { title:'Detalle del estudio', onBack:()=>setStep(0) }),
+    React.createElement('div', { style:{ flex:1, overflowY:'auto', padding:'16px' } },
+      React.createElement(Pill, { children:'Estudio Clínico Fase III', style:{ marginBottom:12 } }),
+      React.createElement('h2', { style:{ fontSize:19, fontWeight:700, color:AppColors.text1, marginBottom:8, lineHeight:1.3 } }, 'Estudio LATAM Diabetes Tipo 2 — Metformina vs. nueva molécula'),
+      React.createElement('p', { style:{ fontSize:13, color:AppColors.text3, marginBottom:16 } }, 'Patrocinado por Roche LATAM · CRO: ICON plc'),
+      [['¿De qué se trata?','Comparación de eficacia entre Metformina y un nuevo compuesto oral para diabetes tipo 2 sin insulinoterapia.'],['¿Por qué te invitamos?','Tu perfil clínico (glucemia 127, HbA1c 6.8%, sin insulina) cumple exactamente los criterios de inclusión.'],['¿Qué implica para vos?','3 visitas médicas en 6 meses. Análisis de sangre cada 2 meses. Todo cubierto por el patrocinador.'],['¿Qué data se usa?','Solo los estudios que ya tenés en Bresca, con tu autorización explícita. Siempre anonimizados.']].map(([t,c]) =>
+        React.createElement(Card, { key:t, style:{ marginBottom:10 } },
+          React.createElement('p', { style:{ fontSize:12, fontWeight:700, color:AppColors.green, marginBottom:4, textTransform:'uppercase', letterSpacing:'0.04em' } }, t),
+          React.createElement('p', { style:{ fontSize:13, color:AppColors.text2, lineHeight:1.6 } }, c)
+        )
+      ),
+      React.createElement('div', { style:{ display:'flex', gap:10, marginTop:4 } },
+        React.createElement('button', { onClick:()=>setStep(2), style:{ flex:2, padding:'13px', borderRadius:100, background:AppColors.grad, border:'none', color:'#fff', fontSize:14, fontWeight:600, fontFamily:"'Space Grotesk',sans-serif", cursor:'pointer' } }, 'Me interesa →'),
+        React.createElement('button', { onClick:()=>d({screen:'menu'}), style:{ flex:1, padding:'13px', borderRadius:100, background:'transparent', border:`1.5px solid ${AppColors.border}`, color:AppColors.text2, fontSize:14, fontWeight:600, fontFamily:"'Space Grotesk',sans-serif", cursor:'pointer' } }, 'Declinar')
+      )
+    )
+  );
+  return React.createElement(ScreenWrapper, null,
+    React.createElement(TopBar, { title:'Invitaciones', subtitle:'1 nueva', onBack:()=>d({screen:'menu'}) }),
+    React.createElement('div', { style:{ flex:1, overflowY:'auto', padding:'14px' } },
+      React.createElement(Card, { onClick:()=>setStep(1), style:{ cursor:'pointer', border:`2px solid ${AppColors.greenBorder}`, background:'linear-gradient(135deg,#F0FDF4,#EEF2FF)' } },
+        React.createElement('div', { style:{ display:'flex', gap:10, alignItems:'flex-start', marginBottom:10 } },
+          React.createElement('div', { style:{ width:44, height:44, borderRadius:12, background:AppColors.green, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 } },
+            React.createElement(Icon, { name:'flasklg', size:22, color:'#fff' })
+          ),
+          React.createElement('div', null,
+            React.createElement(Pill, { children:'Nueva · Fase III', style:{marginBottom:4,fontSize:10} }),
+            React.createElement('p', { style:{ fontSize:14, fontWeight:700, color:AppColors.text1, lineHeight:1.3 } }, 'Estudio LATAM Diabetes Tipo 2'),
+          )
+        ),
+        React.createElement('p', { style:{ fontSize:12, color:AppColors.text2, lineHeight:1.5, marginBottom:10 } }, 'Tu perfil es compatible. 3 visitas en 6 meses. Patrocinado por Roche LATAM.'),
+        React.createElement('div', { style:{ display:'flex', justifyContent:'space-between', alignItems:'center' } },
+          React.createElement('p', { style:{ fontSize:11, color:AppColors.text3 } }, 'Expira en 7 días'),
+          React.createElement('span', { style:{ fontSize:12, fontWeight:700, color:AppColors.green } }, 'Ver detalles →')
+        )
+      )
+    )
+  );
+}
+
+function SettingsScreen() {
+  const [s, d] = useAppState();
+  const sections = [
+    { title:'Cuenta', items:[{icon:'users',label:'Mi perfil'},{icon:'lock',label:'Contraseña y seguridad'},{icon:'bell',label:'Notificaciones'}] },
+    { title:'Datos y Privacidad', items:[{icon:'shield',label:'Centro de Consentimiento',action:()=>d({screen:'consent'})},{icon:'eye',label:'Quién accedió a mis datos'},{icon:'trash',label:'Eliminar mi cuenta'}] },
+    { title:'App', items:[{icon:'info',label:'Acerca de Bresca'},{icon:'star',label:'Calificar la app'}] },
+  ];
+  return React.createElement(ScreenWrapper, null,
+    React.createElement(TopBar, { title:'Configuración', onBack:()=>d({screen:'menu'}) }),
+    React.createElement('div', { style:{ flex:1, overflowY:'auto', padding:'14px' } },
+      sections.map(sec => React.createElement('div', { key:sec.title, style:{ marginBottom:18 } },
+        React.createElement('p', { style:{ fontSize:11, fontWeight:600, color:AppColors.text3, letterSpacing:'0.08em', textTransform:'uppercase', marginBottom:6 } }, sec.title),
+        React.createElement('div', { style:{ background:'#fff', borderRadius:14, overflow:'hidden', border:`1px solid ${AppColors.borderLight}` } },
+          sec.items.map((item,i) => React.createElement('button', { key:i, onClick:item.action||undefined,
+            style:{ width:'100%', display:'flex', gap:12, alignItems:'center', padding:'13px 14px', background:'none', border:'none', borderBottom:i<sec.items.length-1?`1px solid ${AppColors.borderLight}`:'none', cursor:'pointer', textAlign:'left' } },
+            React.createElement(Icon, { name:item.icon, size:18, color:AppColors.text2 }),
+            React.createElement('span', { style:{ fontSize:14, color:AppColors.text1 } }, item.label),
+            React.createElement('div', { style:{ marginLeft:'auto' } }, React.createElement(Icon, { name:'chevronRight', size:14, color:AppColors.text3 }))
+          ))
+        )
+      ))
+    )
+  );
+}
+
+// ── CRO PANEL ────────────────────────────────────────────────────────
+function CROPanel() {
+  const [s, d] = useAppState();
+  const [tab, setTab] = React.useState('dashboard');
+  const [studyStep, setStudyStep] = React.useState(0);
+  const tabs = [
+    { id:'dashboard', icon:'home', label:'Dashboard' },
+    { id:'cohorts', icon:'users', label:'Cohortes' },
+    { id:'study', icon:'flasklg', label:'Nuevo Estudio' },
+    { id:'matching', icon:'filter', label:'Matching' },
+    { id:'analytics', icon:'barChart', label:'Analytics' },
+  ];
+  const screens = { dashboard: CRODashboard, cohorts: CROCohorts, study: CROStudyCreate, matching: CROMatching, analytics: CROAnalytics };
+  const Screen = screens[tab] || CRODashboard;
+  return React.createElement('div', { style:{ width:'100%', height:'100%', display:'flex', flexDirection:'column', background:'#080809', fontFamily:"'Space Grotesk',sans-serif", color:'#F0F4FF', fontSize:14 } },
+    React.createElement('div', { style:{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0 24px', height:52, background:'#0F1320', borderBottom:'1px solid rgba(255,255,255,0.07)', flexShrink:0 } },
+      React.createElement('div', { style:{ display:'flex', alignItems:'center', gap:20 } },
+        React.createElement('img', { src:'assets/logo-horizontal-bicolor.png', style:{ height:24 }, onError:(e)=>{e.target.style.display='none'} }),
+        React.createElement('span', { style:{ fontSize:11, fontWeight:600, color:'#00C87A', letterSpacing:'0.12em', textTransform:'uppercase', background:'rgba(0,200,122,0.1)', padding:'3px 10px', borderRadius:100, border:'1px solid rgba(0,200,122,0.2)' } }, 'CRO Portal'),
+      ),
+      React.createElement('div', { style:{ display:'flex', gap:4 } },
+        tabs.map(t => React.createElement('button', { key:t.id, onClick:()=>setTab(t.id), style:{ display:'flex', alignItems:'center', gap:6, padding:'6px 12px', borderRadius:8, background:tab===t.id ? 'rgba(0,200,122,0.1)' : 'transparent', border:tab===t.id ? '1px solid rgba(0,200,122,0.2)' : '1px solid transparent', color:tab===t.id ? '#00C87A' : '#8899BB', cursor:'pointer', fontSize:12, fontWeight:600, fontFamily:"'Space Grotesk',sans-serif" } },
+          React.createElement(Icon, { name:t.icon, size:14, color:tab===t.id ? '#00C87A' : '#8899BB' }), t.label
+        ))
+      ),
+      React.createElement('div', { style:{ display:'flex', alignItems:'center', gap:10 } },
+        React.createElement(Avatar, { name:'Syneos Research', size:30, color:'#4B6EF5' }),
+        React.createElement('span', { style:{ fontSize:12, color:'#8899BB' } }, 'Syneos Health LATAM'),
+        React.createElement('button', { onClick:()=>d({mode:'app', tab:'home', screen:'home'}), style:{ marginLeft:8, padding:'5px 12px', borderRadius:100, background:'transparent', border:'1px solid rgba(255,255,255,0.1)', color:'#8899BB', fontSize:11, fontFamily:"'Space Grotesk',sans-serif", cursor:'pointer' } }, '← App Paciente')
+      )
+    ),
+    React.createElement('div', { style:{ flex:1, overflow:'auto' } },
+      React.createElement(Screen, { onTabChange: setTab, studyStep, setStudyStep })
+    )
+  );
+}
+
+function CRODashboard({ onTabChange }) {
+  const stats = [
+    { label:'Pacientes en plataforma', value:'2,400+', delta:'+340 este mes', color:'#00C87A' },
+    { label:'Consentidos para investigación', value:'680', delta:'28% del total', color:'#00B8D4' },
+    { label:'Cohortes activas', value:'3', delta:'Diabetes, Cardio, Oncología', color:'#4B6EF5' },
+    { label:'Invitaciones enviadas', value:'142', delta:'Tasa respuesta: 34%', color:'#F59E0B' },
+  ];
+  const recentStudies = [
+    { name:'DIAB-LATAM-01', area:'Diabetes tipo 2', status:'Reclutando', match:47, goal:100 },
+    { name:'CARDIO-AR-02', area:'Cardiología', status:'Pre-screening', match:12, goal:30 },
+  ];
+  return React.createElement('div', { style:{ padding:'20px 24px' } },
+    React.createElement('div', { style:{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:20 } },
+      React.createElement('div', null,
+        React.createElement('h1', { style:{ fontSize:22, fontWeight:700 } }, 'Dashboard'),
+        React.createElement('p', { style:{ fontSize:13, color:'#8899BB', marginTop:2 } }, 'Syneos Health LATAM · Abril 2026')
+      ),
+      React.createElement('button', { onClick:()=>onTabChange('study'), style:{ padding:'9px 18px', borderRadius:100, background:'linear-gradient(135deg,#00C87A,#4B6EF5)', border:'none', color:'#fff', fontSize:13, fontWeight:600, fontFamily:"'Space Grotesk',sans-serif", cursor:'pointer', display:'flex', alignItems:'center', gap:6 } },
+        React.createElement(Icon, { name:'plus', size:14, color:'#fff' }), 'Nuevo estudio'
+      )
+    ),
+    React.createElement('div', { style:{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:12, marginBottom:20 } },
+      stats.map((st, i) =>
+        React.createElement('div', { key:i, style:{ background:'#151C2E', borderRadius:12, padding:'16px 18px', border:'1px solid rgba(255,255,255,0.07)' } },
+          React.createElement('p', { style:{ fontSize:11, color:'#8899BB', letterSpacing:'0.06em', textTransform:'uppercase', marginBottom:8 } }, st.label),
+          React.createElement('p', { style:{ fontSize:28, fontWeight:700, color:st.color, lineHeight:1 } }, st.value),
+          React.createElement('p', { style:{ fontSize:11, color:'#4A5578', marginTop:4 } }, st.delta)
+        )
+      )
+    ),
+    React.createElement('div', { style:{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16 } },
+      React.createElement('div', { style:{ background:'#151C2E', borderRadius:12, padding:'16px', border:'1px solid rgba(255,255,255,0.07)' } },
+        React.createElement('h3', { style:{ fontSize:14, fontWeight:700, marginBottom:14 } }, 'Estudios activos'),
+        recentStudies.map((st, i) =>
+          React.createElement('div', { key:i, style:{ marginBottom:14, paddingBottom:14, borderBottom: i < recentStudies.length-1 ? '1px solid rgba(255,255,255,0.06)' : 'none' } },
+            React.createElement('div', { style:{ display:'flex', justifyContent:'space-between', marginBottom:6 } },
+              React.createElement('span', { style:{ fontSize:13, fontWeight:600 } }, st.name),
+              React.createElement('span', { style:{ fontSize:11, padding:'2px 8px', borderRadius:100, background:'rgba(0,200,122,0.1)', color:'#00C87A', border:'1px solid rgba(0,200,122,0.2)' } }, st.status)
+            ),
+            React.createElement('p', { style:{ fontSize:11, color:'#8899BB', marginBottom:8 } }, st.area),
+            React.createElement('div', { style:{ background:'rgba(255,255,255,0.06)', borderRadius:100, height:6, overflow:'hidden' } },
+              React.createElement('div', { style:{ width:`${(st.match/st.goal)*100}%`, height:'100%', background:'linear-gradient(90deg,#00C87A,#4B6EF5)', borderRadius:100 } })
+            ),
+            React.createElement('p', { style:{ fontSize:11, color:'#4A5578', marginTop:4 } }, `${st.match} / ${st.goal} pacientes`)
+          )
+        )
+      ),
+      React.createElement('div', { style:{ background:'#151C2E', borderRadius:12, padding:'16px', border:'1px solid rgba(255,255,255,0.07)' } },
+        React.createElement('h3', { style:{ fontSize:14, fontWeight:700, marginBottom:14 } }, 'Distribución terapéutica'),
+        [['Diabetes tipo 2','#00C87A',52],['Cardiología','#4B6EF5',28],['Oncología','#00B8D4',15],['Otros','#4A5578',5]].map(([l,c,pct]) =>
+          React.createElement('div', { key:l, style:{ display:'flex', alignItems:'center', gap:10, marginBottom:10 } },
+            React.createElement('div', { style:{ width:10, height:10, borderRadius:'50%', background:c, flexShrink:0 } }),
+            React.createElement('span', { style:{ fontSize:12, color:'#8899BB', flex:1 } }, l),
+            React.createElement('div', { style:{ width:80, background:'rgba(255,255,255,0.06)', borderRadius:100, height:5, overflow:'hidden' } },
+              React.createElement('div', { style:{ width:`${pct}%`, height:'100%', background:c, borderRadius:100 } })
+            ),
+            React.createElement('span', { style:{ fontSize:11, color:'#4A5578', width:28, textAlign:'right' } }, pct+'%')
+          )
+        )
+      )
+    )
+  );
+}
+
+function CROCohorts() {
+  const [area, setArea] = React.useState('Todos');
+  const areas = ['Todos','Diabetes','Cardiología','Oncología','Enf. raras'];
+  const cohorts = [
+    { name:'Diabetes tipo 2 — Argentina', n:420, density:'Alta', geo:'CABA + GBA', match:94 },
+    { name:'Hipertensión — Arg + Chile', n:280, density:'Media', geo:'Multisitio', match:71 },
+    { name:'Oncología mamaria', n:98, density:'Alta', geo:'CABA', match:88 },
+    { name:'Enfermedad renal crónica', n:145, density:'Media', geo:'Córdoba + Rosario', match:62 },
+  ];
+  return React.createElement('div', { style:{ padding:'20px 24px' } },
+    React.createElement('div', { style:{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16 } },
+      React.createElement('h1', { style:{ fontSize:22, fontWeight:700 } }, 'Cohortes disponibles'),
+      React.createElement('div', { style:{ display:'flex', gap:6 } },
+        areas.map(a => React.createElement('button', { key:a, onClick:()=>setArea(a), style:{ padding:'5px 12px', borderRadius:100, background:area===a ? 'rgba(0,200,122,0.1)' : 'transparent', border:`1px solid ${area===a ? 'rgba(0,200,122,0.3)' : 'rgba(255,255,255,0.1)'}`, color:area===a ? '#00C87A' : '#8899BB', fontSize:11, fontWeight:600, fontFamily:"'Space Grotesk',sans-serif", cursor:'pointer' } }, a))
+      )
+    ),
+    React.createElement('div', { style:{ background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,255,255,0.07)', borderRadius:12, overflow:'hidden' } },
+      React.createElement('table', { style:{ width:'100%', borderCollapse:'collapse', fontSize:13 } },
+        React.createElement('thead', null,
+          React.createElement('tr', { style:{ background:'rgba(255,255,255,0.04)' } },
+            ['Cohorte','Pacientes','Densidad','Geografía','Match %',''].map((h, i) =>
+              React.createElement('th', { key:i, style:{ padding:'11px 14px', textAlign:'left', fontSize:11, fontWeight:600, color:'#4A5578', letterSpacing:'0.06em', textTransform:'uppercase', borderBottom:'1px solid rgba(255,255,255,0.07)' } }, h)
+            )
+          )
+        ),
+        React.createElement('tbody', null,
+          cohorts.map((c, i) =>
+            React.createElement('tr', { key:i, style:{ borderBottom:'1px solid rgba(255,255,255,0.05)' } },
+              React.createElement('td', { style:{ padding:'13px 14px', fontWeight:600, color:'#F0F4FF' } }, c.name),
+              React.createElement('td', { style:{ padding:'13px 14px', color:'#00C87A', fontWeight:700 } }, c.n.toLocaleString()),
+              React.createElement('td', { style:{ padding:'13px 14px' } },
+                React.createElement('span', { style:{ fontSize:11, padding:'2px 8px', borderRadius:100, background: c.density==='Alta'?'rgba(0,200,122,0.1)':'rgba(245,158,11,0.1)', color:c.density==='Alta'?'#00C87A':'#F59E0B' } }, c.density)
+              ),
+              React.createElement('td', { style:{ padding:'13px 14px', color:'#8899BB' } }, c.geo),
+              React.createElement('td', { style:{ padding:'13px 14px' } },
+                React.createElement('div', { style:{ display:'flex', alignItems:'center', gap:8 } },
+                  React.createElement('div', { style:{ width:50, background:'rgba(255,255,255,0.06)', borderRadius:100, height:5, overflow:'hidden' } },
+                    React.createElement('div', { style:{ width:`${c.match}%`, height:'100%', background:'linear-gradient(90deg,#00C87A,#4B6EF5)', borderRadius:100 } })
+                  ),
+                  React.createElement('span', { style:{ fontSize:12, fontWeight:700, color:c.match>80?'#00C87A':'#F59E0B' } }, c.match+'%')
+                )
+              ),
+              React.createElement('td', { style:{ padding:'13px 14px' } },
+                React.createElement('button', { style:{ padding:'5px 12px', borderRadius:100, background:'rgba(0,200,122,0.1)', border:'1px solid rgba(0,200,122,0.2)', color:'#00C87A', fontSize:11, fontWeight:600, fontFamily:"'Space Grotesk',sans-serif", cursor:'pointer' } }, 'Ver detalle')
+              )
+            )
+          )
+        )
+      )
+    )
+  );
+}
+
+function CROStudyCreate({ studyStep, setStudyStep }) {
+  const steps = ['Área terapéutica','Criterios','Geografía','Objetivo','Revisión'];
+  const [area, setArea] = React.useState('');
+  const [geo, setGeo] = React.useState(['Argentina']);
+  const [goal, setGoal] = React.useState(100);
+  return React.createElement('div', { style:{ padding:'20px 24px', maxWidth:720 } },
+    React.createElement('h1', { style:{ fontSize:22, fontWeight:700, marginBottom:4 } }, 'Crear nuevo estudio'),
+    React.createElement('div', { style:{ display:'flex', gap:0, marginBottom:24, background:'rgba(255,255,255,0.04)', borderRadius:8, padding:4, width:'fit-content' } },
+      steps.map((st, i) => React.createElement('div', { key:i, style:{ padding:'6px 14px', borderRadius:6, background: i===studyStep ? 'rgba(0,200,122,0.15)' : 'transparent', color: i===studyStep ? '#00C87A' : '#4A5578', fontSize:12, fontWeight: i===studyStep ? 700 : 500 } }, `${i+1}. ${st}`))
+    ),
+    studyStep === 0 && React.createElement('div', { style:{ display:'flex', flexDirection:'column', gap:10 } },
+      React.createElement('p', { style:{ fontSize:13, color:'#8899BB', marginBottom:4 } }, 'Seleccioná el área terapéutica principal del estudio.'),
+      ['Diabetes tipo 2','Cardiología','Oncología mamaria','Hipertensión','Salud mental','Enfermedad renal','Otro'].map(a =>
+        React.createElement('button', { key:a, onClick:()=>setArea(a), style:{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'13px 16px', borderRadius:10, background:area===a ? 'rgba(0,200,122,0.08)' : '#151C2E', border:`1px solid ${area===a ? 'rgba(0,200,122,0.3)' : 'rgba(255,255,255,0.07)'}`, color:area===a ? '#00C87A' : '#F0F4FF', fontSize:13, fontWeight:area===a?700:400, fontFamily:"'Space Grotesk',sans-serif", cursor:'pointer', textAlign:'left' } },
+          a, area===a && React.createElement(Icon, { name:'check', size:14, color:'#00C87A' })
+        )
+      )
+    ),
+    studyStep === 1 && React.createElement('div', { style:{ display:'flex', flexDirection:'column', gap:14 } },
+      React.createElement('p', { style:{ fontSize:13, color:'#8899BB' } }, 'Definí los criterios de inclusión.'),
+      [['Rango de edad','18–70 años'],['HbA1c mínima','6.5%'],['Tratamiento actual','Metformina']].map(([k,v]) =>
+        React.createElement('div', { key:k },
+          React.createElement('label', { style:{ fontSize:11, fontWeight:600, color:'#8899BB', display:'block', marginBottom:5, letterSpacing:'0.04em' } }, k.toUpperCase()),
+          React.createElement('input', { defaultValue:v, style:{ width:'100%', padding:'10px 12px', borderRadius:8, background:'#0F1320', border:'1px solid rgba(255,255,255,0.1)', color:'#F0F4FF', fontSize:13, fontFamily:"'Space Grotesk',sans-serif", outline:'none', boxSizing:'border-box' } })
+        )
+      )
+    ),
+    studyStep === 2 && React.createElement('div', { style:{ display:'flex', flexDirection:'column', gap:10 } },
+      React.createElement('p', { style:{ fontSize:13, color:'#8899BB', marginBottom:4 } }, 'Seleccioná los países/regiones.'),
+      ['Argentina','México','Colombia','Brasil','Chile'].map(g =>
+        React.createElement('button', { key:g, onClick:()=>setGeo(prev=>prev.includes(g)?prev.filter(x=>x!==g):[...prev,g]), style:{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'12px 16px', borderRadius:10, background:geo.includes(g) ? 'rgba(75,110,245,0.08)' : '#151C2E', border:`1px solid ${geo.includes(g) ? 'rgba(75,110,245,0.3)' : 'rgba(255,255,255,0.07)'}`, color:geo.includes(g) ? '#7090F7' : '#F0F4FF', fontSize:13, fontFamily:"'Space Grotesk',sans-serif", cursor:'pointer' } },
+          g, geo.includes(g) && React.createElement(Icon, { name:'check', size:14, color:'#7090F7' })
+        )
+      )
+    ),
+    studyStep === 3 && React.createElement('div', { style:{ display:'flex', flexDirection:'column', gap:16 } },
+      React.createElement('p', { style:{ fontSize:13, color:'#8899BB' } }, 'Definí cuántos pacientes necesitás recrutar.'),
+      React.createElement('label', { style:{ fontSize:28, fontWeight:700, color:'#00C87A' } }, `${goal} pacientes`),
+      React.createElement('input', { type:'range', min:10, max:500, value:goal, onChange:e=>setGoal(+e.target.value), style:{ width:'100%', accentColor:'#00C87A' } }),
+      React.createElement('div', { style:{ background:'rgba(0,200,122,0.08)', borderRadius:10, padding:'12px 16px', border:'1px solid rgba(0,200,122,0.2)' } },
+        React.createElement('p', { style:{ fontSize:13, color:'#00C87A' } }, 'Cohorte disponible estimada: ~340 pacientes compatibles en LATAM')
+      )
+    ),
+    studyStep === 4 && React.createElement('div', { style:{ display:'flex', flexDirection:'column', gap:14 } },
+      React.createElement('p', { style:{ fontSize:13, color:'#8899BB' } }, 'Revisá antes de lanzar.'),
+      [['Área terapéutica', area || 'Diabetes tipo 2'],['Países', geo.join(', ')],['Objetivo', `${goal} pacientes`],['Criterios','HbA1c ≥6.5% · 18-70 años · Metformina']].map(([k,v]) =>
+        React.createElement('div', { key:k, style:{ display:'flex', justifyContent:'space-between', padding:'10px 0', borderBottom:'1px solid rgba(255,255,255,0.06)' } },
+          React.createElement('span', { style:{ fontSize:12, color:'#8899BB' } }, k),
+          React.createElement('span', { style:{ fontSize:13, fontWeight:600 } }, v)
+        )
+      )
+    ),
+    React.createElement('div', { style:{ display:'flex', gap:10, marginTop:24 } },
+      studyStep > 0 && React.createElement('button', { onClick:()=>setStudyStep(s=>s-1), style:{ padding:'10px 20px', borderRadius:100, background:'transparent', border:'1px solid rgba(255,255,255,0.1)', color:'#8899BB', fontSize:13, fontFamily:"'Space Grotesk',sans-serif", cursor:'pointer' } }, '← Atrás'),
+      React.createElement('button', { onClick:()=>setStudyStep(s=>Math.min(s+1,4)), style:{ padding:'10px 24px', borderRadius:100, background:'linear-gradient(135deg,#00C87A,#4B6EF5)', border:'none', color:'#fff', fontSize:13, fontWeight:600, fontFamily:"'Space Grotesk',sans-serif", cursor:'pointer' } }, studyStep===4 ? 'Lanzar estudio →' : 'Continuar →')
+    )
+  );
+}
+
+function CROMatching() {
+  const pts = [
+    { id:'PAC-2841', score:96, age:'47', conds:'Diabetes T2 · HTA', data:'14 documentos · 18 meses', geo:'CABA' },
+    { id:'PAC-1092', score:88, age:'55', conds:'Diabetes T2', data:'9 documentos · 12 meses', geo:'Rosario' },
+    { id:'PAC-3317', score:81, age:'62', conds:'Diabetes T2 · Cardiopatía', data:'22 documentos · 24 meses', geo:'Córdoba' },
+    { id:'PAC-4451', score:74, age:'39', conds:'Diabetes T2', data:'6 documentos · 8 meses', geo:'Mendoza' },
+  ];
+  return React.createElement('div', { style:{ padding:'20px 24px' } },
+    React.createElement('div', { style:{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:10 } },
+      React.createElement('div', null,
+        React.createElement('h1', { style:{ fontSize:22, fontWeight:700 } }, 'Patient Matching'),
+        React.createElement('p', { style:{ fontSize:13, color:'#8899BB', marginTop:2 } }, 'DIAB-LATAM-01 · 4 pacientes con alto match')
+      )
+    ),
+    React.createElement('div', { style:{ background:'rgba(0,200,122,0.06)', borderRadius:10, padding:'10px 14px', border:'1px solid rgba(0,200,122,0.15)', marginBottom:16, display:'flex', gap:10, alignItems:'center' } },
+      React.createElement(Icon, { name:'shield', size:14, color:'#00C87A' }),
+      React.createElement('p', { style:{ fontSize:12, color:'#8899BB' } }, 'Los datos son completamente anonimizados. Nunca ves información identificable del paciente.')
+    ),
+    React.createElement('div', { style:{ display:'flex', flexDirection:'column', gap:10 } },
+      pts.map((p, i) =>
+        React.createElement('div', { key:i, style:{ background:'#151C2E', borderRadius:12, padding:'14px 16px', border:'1px solid rgba(255,255,255,0.07)', display:'flex', alignItems:'center', gap:14 } },
+          React.createElement('div', { style:{ width:52, height:52, borderRadius:12, background:p.score>90?'rgba(0,200,122,0.15)':p.score>80?'rgba(0,184,212,0.15)':'rgba(75,110,245,0.15)', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', flexShrink:0 } },
+            React.createElement('span', { style:{ fontSize:18, fontWeight:700, color:p.score>90?'#00C87A':p.score>80?'#00B8D4':'#4B6EF5', lineHeight:1 } }, p.score),
+            React.createElement('span', { style:{ fontSize:9, color:'#4A5578', marginTop:2 } }, 'score')
+          ),
+          React.createElement('div', { style:{ flex:1 } },
+            React.createElement('div', { style:{ display:'flex', justifyContent:'space-between', marginBottom:3 } },
+              React.createElement('span', { style:{ fontSize:13, fontWeight:600, color:'#F0F4FF' } }, p.id + ' · ' + p.age + 'a'),
+              React.createElement('span', { style:{ fontSize:11, color:'#4A5578' } }, p.geo)
+            ),
+            React.createElement('p', { style:{ fontSize:12, color:'#8899BB', marginBottom:2 } }, p.conds),
+            React.createElement('p', { style:{ fontSize:11, color:'#4A5578' } }, p.data)
+          ),
+          React.createElement('button', { style:{ padding:'7px 14px', borderRadius:100, background:'rgba(0,200,122,0.1)', border:'1px solid rgba(0,200,122,0.2)', color:'#00C87A', fontSize:12, fontWeight:600, fontFamily:"'Space Grotesk',sans-serif", cursor:'pointer' } }, 'Invitar')
+        )
+      )
+    )
+  );
+}
+
+function CROAnalytics() {
+  const funnel = [
+    { label:'Pacientes identificados', n:340, pct:100, color:'#8899BB' },
+    { label:'Invitaciones enviadas', n:142, pct:42, color:'#00B8D4' },
+    { label:'Respondieron', n:87, pct:26, color:'#4B6EF5' },
+    { label:'Interesados', n:54, pct:16, color:'#00C87A' },
+    { label:'Enrolados', n:31, pct:9, color:'#00C87A' },
+  ];
+  return React.createElement('div', { style:{ padding:'20px 24px' } },
+    React.createElement('h1', { style:{ fontSize:22, fontWeight:700, marginBottom:20 } }, 'Analytics de Reclutamiento'),
+    React.createElement('div', { style:{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16 } },
+      React.createElement('div', { style:{ background:'#151C2E', borderRadius:12, padding:'18px', border:'1px solid rgba(255,255,255,0.07)' } },
+        React.createElement('h3', { style:{ fontSize:14, fontWeight:700, marginBottom:16 } }, 'Funnel DIAB-LATAM-01'),
+        React.createElement('div', { style:{ display:'flex', flexDirection:'column', gap:8 } },
+          funnel.map((f, i) =>
+            React.createElement('div', { key:i },
+              React.createElement('div', { style:{ display:'flex', justifyContent:'space-between', marginBottom:4 } },
+                React.createElement('span', { style:{ fontSize:12, color:'#8899BB' } }, f.label),
+                React.createElement('span', { style:{ fontSize:13, fontWeight:700, color:f.color } }, f.n)
+              ),
+              React.createElement('div', { style:{ background:'rgba(255,255,255,0.06)', borderRadius:100, height:6, overflow:'hidden' } },
+                React.createElement('div', { style:{ width:`${f.pct}%`, height:'100%', background:f.color, borderRadius:100, opacity:0.9 } })
+              )
+            )
+          )
+        )
+      ),
+      React.createElement('div', { style:{ background:'#151C2E', borderRadius:12, padding:'18px', border:'1px solid rgba(255,255,255,0.07)' } },
+        React.createElement('h3', { style:{ fontSize:14, fontWeight:700, marginBottom:16 } }, 'KPIs clave'),
+        [['Tasa de respuesta','34%','#00C87A'],['Conversión a interés','38%','#00B8D4'],['Enrollment rate','9%','#4B6EF5'],['Costo por paciente identificado','$12 USD','#F59E0B'],['Costo vs. benchmark tradicional','−82%','#00C87A']].map(([k,v,c]) =>
+          React.createElement('div', { key:k, style:{ display:'flex', justifyContent:'space-between', padding:'9px 0', borderBottom:'1px solid rgba(255,255,255,0.05)' } },
+            React.createElement('span', { style:{ fontSize:12, color:'#8899BB' } }, k),
+            React.createElement('span', { style:{ fontSize:14, fontWeight:700, color:c } }, v)
+          )
+        )
+      )
+    )
+  );
+}
+
+// ── PHONE SHELL + APP SHELL ──────────────────────────────────────────
+function PhoneShell({ children }) {
+  return React.createElement('div', { style:{ position:'relative', width:375, height:812, borderRadius:44, background:'#1A1A2E', boxShadow:'0 32px 80px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.08), inset 0 0 0 2px #2A2A3E', flexShrink:0, overflow:'hidden', display:'flex', flexDirection:'column' } },
+    React.createElement('div', { style:{ position:'absolute', top:0, left:'50%', transform:'translateX(-50%)', width:126, height:34, background:'#1A1A2E', borderRadius:'0 0 20px 20px', zIndex:100, display:'flex', alignItems:'center', justifyContent:'center', gap:8 } },
+      React.createElement('div', { style:{ width:12, height:12, borderRadius:'50%', background:'#0D0D1A', border:'2px solid #2A2A3E' } }),
+      React.createElement('div', { style:{ width:60, height:6, borderRadius:100, background:'#0D0D1A' } })
+    ),
+    React.createElement('div', { style:{ height:44, display:'flex', alignItems:'flex-end', justifyContent:'space-between', padding:'0 24px 6px', flexShrink:0, zIndex:10, background:'#fff' } },
+      React.createElement('span', { style:{ fontSize:13, fontWeight:600, color:'#0F172A' } }, '9:41'),
+      React.createElement('div', { style:{ display:'flex', gap:5, alignItems:'center' } },
+        React.createElement('svg', { width:16, height:12, viewBox:'0 0 16 12', fill:'#0F172A' },
+          React.createElement('rect', { x:0, y:4, width:3, height:8, rx:1, opacity:0.4 }),
+          React.createElement('rect', { x:4.5, y:2.5, width:3, height:9.5, rx:1, opacity:0.7 }),
+          React.createElement('rect', { x:9, y:0, width:3, height:12, rx:1 }),
+          React.createElement('rect', { x:13.5, y:0, width:2.5, height:12, rx:1 })
+        ),
+        React.createElement('svg', { width:16, height:12, viewBox:'0 0 24 12', fill:'none', stroke:'#0F172A', strokeWidth:1.5 },
+          React.createElement('path', { d:'M1 4C4.5 1 8 0 12 0s7.5 1 10 4', opacity:0.4 }),
+          React.createElement('path', { d:'M4 7c2-2 4-3 8-3s6 1 8 3', opacity:0.7 }),
+          React.createElement('path', { d:'M7.5 10c1-1 2.5-2 4.5-2s3.5 1 4.5 2' }),
+          React.createElement('circle', { cx:12, cy:12, r:1.5, fill:'#0F172A' })
+        ),
+        React.createElement('svg', { width:25, height:13, viewBox:'0 0 25 13', fill:'none' },
+          React.createElement('rect', { x:0.5, y:0.5, width:21, height:12, rx:3.5, stroke:'#0F172A', opacity:0.35 }),
+          React.createElement('rect', { x:2, y:2, width:16, height:9, rx:2, fill:'#0F172A' }),
+          React.createElement('path', { d:'M23 4.5v4a2 2 0 000-4z', fill:'#0F172A', opacity:0.4 })
+        )
+      )
+    ),
+    React.createElement('div', { style:{ flex:1, overflow:'hidden', display:'flex', flexDirection:'column', position:'relative' } }, children),
+    React.createElement('div', { style:{ height:28, display:'flex', alignItems:'center', justifyContent:'center', background:'#fff', flexShrink:0 } },
+      React.createElement('div', { style:{ width:120, height:5, borderRadius:100, background:'rgba(0,0,0,0.2)' } })
+    )
+  );
+}
+
+function MobileApp() {
+  const [s, d] = useAppState();
+  const tab = s.tab || 'home';
+  const renderScreen = () => {
+    if (s.mode === 'onboard') return React.createElement(OnboardingScreen, null);
+    switch(tab) {
+      case 'home':    return React.createElement(HomeScreen, null);
+      case 'vault':   return React.createElement(VaultScreen, null);
+      case 'copilot': return React.createElement(CopilotScreen, null);
+      case 'family':  return React.createElement(FamilyScreen, null);
+      case 'menu':    return React.createElement(MenuScreen, null);
+      default:        return React.createElement(HomeScreen, null);
+    }
+  };
+  return React.createElement(React.Fragment, null,
+    renderScreen(),
+    s.mode !== 'onboard' && React.createElement(TabBar, { active: tab, onTab: (t) => d({ tab: t, screen: t === 'vault' ? 'vault' : t === 'copilot' ? 'copilot' : t === 'family' ? 'family' : 'home' }) })
+  );
+}
+
+function NavGroup(title, items, s, d) {
+  return React.createElement('div', { style:{ marginBottom:10 } },
+    React.createElement('p', { style:{ fontSize:9, fontWeight:700, color:'#4A5578', letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:4, paddingLeft:4 } }, title),
+    items.map((item, i) => {
+      const isActive = item.screen === 'onboard'
+        ? s.mode === 'onboard' && s.onboardStep === item.step
+        : s.tab === item.tab && s.screen === item.screen;
+      return React.createElement('button', { key:i,
+        onClick: () => {
+          if (item.screen === 'onboard') { d({ mode:'onboard', onboardStep: item.step }); }
+          else { d({ mode:'app', tab: item.tab, screen: item.screen, ...(item.selectedDoc ? { selectedDoc: item.selectedDoc } : {}) }); }
+        },
+        style:{ display:'block', width:'100%', textAlign:'left', padding:'6px 10px', borderRadius:6, background: isActive ? 'rgba(0,200,122,0.12)' : 'transparent', border: isActive ? '1px solid rgba(0,200,122,0.2)' : '1px solid transparent', color: isActive ? '#00C87A' : '#8899BB', fontSize:11, fontWeight: isActive ? 600 : 400, fontFamily:"'Space Grotesk',sans-serif", cursor:'pointer', marginBottom:2, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }
+      }, item.label);
+    })
+  );
+}
+
+function App() {
+  const [s, d] = useAppState();
+  if (s.mode === 'cro') {
+    return React.createElement('div', { style:{ flex:1, display:'flex', flexDirection:'column', background:'#080809' } },
+      React.createElement(CROPanel, null)
+    );
+  }
+  return React.createElement('div', { style:{ flex:1, display:'flex', overflow:'hidden' } },
+    React.createElement('div', { style:{ width:220, background:'#0F1220', borderRight:'1px solid rgba(255,255,255,0.06)', display:'flex', flexDirection:'column', padding:'20px 12px', gap:6, flexShrink:0, overflowY:'auto' } },
+      React.createElement('img', { src:'assets/logo-horizontal-bicolor.png', style:{ height:44, marginBottom:16, alignSelf:'center' }, onError:(e)=>{e.target.style.display='none'} }),
+      React.createElement('button', { onClick:()=>d({mode:'cro'}), style:{ display:'flex', gap:8, alignItems:'center', padding:'8px 12px', borderRadius:8, background:'rgba(75,110,245,0.1)', border:'1px solid rgba(75,110,245,0.2)', color:'#7090F7', fontSize:12, fontWeight:600, fontFamily:"'Space Grotesk',sans-serif", cursor:'pointer', marginBottom:12, width:'100%' } },
+        React.createElement(Icon, { name:'database', size:14, color:'#4B6EF5' }), 'Ver Panel CRO'
+      ),
+      NavGroup('ONBOARDING', [
+        { label:'Bienvenida', screen:'onboard', step:0 },
+        { label:'Valor — Vault', screen:'onboard', step:1 },
+        { label:'Valor — Copilot', screen:'onboard', step:2 },
+        { label:'Valor — Compartir', screen:'onboard', step:3 },
+        { label:'Crear perfil', screen:'onboard', step:4 },
+        { label:'Consentimiento', screen:'onboard', step:5 },
+      ], s, d),
+      NavGroup('VAULT', [
+        { label:'Lista de estudios', tab:'vault', screen:'vault' },
+        { label:'Detalle documento', tab:'vault', screen:'vault-detail', selectedDoc: SAMPLE_DOCS[0] },
+        { label:'Subir — Elegir fuente', tab:'vault', screen:'upload-1' },
+        { label:'Subir — Procesando', tab:'vault', screen:'upload-2' },
+        { label:'Subir — Confirmar', tab:'vault', screen:'upload-3' },
+      ], s, d),
+      NavGroup('COPILOT', [
+        { label:'Chat con IA', tab:'copilot', screen:'copilot' },
+      ], s, d),
+      NavGroup('FAMILIA', [
+        { label:'Perfiles', tab:'family', screen:'family' },
+        { label:'Agregar familiar', tab:'family', screen:'family-add' },
+      ], s, d),
+      NavGroup('MÁS FEATURES', [
+        { label:'Timeline de salud', tab:'menu', screen:'timeline' },
+        { label:'Compartir QR', tab:'menu', screen:'sharing' },
+        { label:'Centro de Consentimiento', tab:'menu', screen:'consent' },
+        { label:'Invitación a estudio', tab:'menu', screen:'study-invite' },
+        { label:'Configuración', tab:'menu', screen:'settings' },
+      ], s, d),
+      React.createElement('div', { style:{ marginTop:'auto', padding:'10px 12px', background:'rgba(0,200,122,0.06)', borderRadius:10, border:'1px solid rgba(0,200,122,0.15)' } },
+        React.createElement('p', { style:{ fontSize:10, color:'#8899BB', lineHeight:1.5 } }, '⬅ Navegá por los flows usando el mapa o las flechas del teléfono.')
+      )
+    ),
+    React.createElement('div', { style:{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', position:'relative' } },
+      React.createElement('div', { style:{ position:'absolute', width:400, height:400, borderRadius:'50%', background:'radial-gradient(ellipse,rgba(0,200,122,0.06) 0%,transparent 70%)', pointerEvents:'none' } }),
+      React.createElement(PhoneShell, null, React.createElement(MobileApp, null))
+    ),
+    React.createElement('div', { style:{ width:220, background:'#0F1220', borderLeft:'1px solid rgba(255,255,255,0.06)', display:'flex', flexDirection:'column', padding:'20px 14px', flexShrink:0, overflowY:'auto' } },
+      React.createElement('p', { style:{ fontSize:11, fontWeight:700, color:'#4A5578', letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:14 } }, 'UX Principles'),
+      [
+        { icon:'shield', title:'Trust First', desc:'Sin dark patterns. Privacidad explicada antes de pedir datos.' },
+        { icon:'eye', title:'Transparencia Radical', desc:'El usuario siempre sabe qué datos se usan y para qué.' },
+        { icon:'heart', title:'Seguridad emocional', desc:'Tono cálido, sin lenguaje clínico frío.' },
+        { icon:'info', title:'Disclosure progresiva', desc:'Consent de investigación: sólo después del valor B2C.' },
+        { icon:'users', title:'Familia-céntrico', desc:'Multi-perfil como ciudadano de primera clase.' },
+      ].map((p, i) =>
+        React.createElement('div', { key:i, style:{ marginBottom:14, paddingBottom:14, borderBottom:'1px solid rgba(255,255,255,0.05)' } },
+          React.createElement('div', { style:{ display:'flex', gap:6, alignItems:'center', marginBottom:4 } },
+            React.createElement(Icon, { name:p.icon, size:13, color:'#00C87A' }),
+            React.createElement('span', { style:{ fontSize:12, fontWeight:700, color:'#F0F4FF' } }, p.title)
+          ),
+          React.createElement('p', { style:{ fontSize:11, color:'#4A5578', lineHeight:1.55 } }, p.desc)
+        )
+      ),
+      React.createElement('div', { style:{ marginTop:8, padding:'10px', background:'rgba(75,110,245,0.08)', borderRadius:10, border:'1px solid rgba(75,110,245,0.15)' } },
+        React.createElement('p', { style:{ fontSize:10, fontWeight:700, color:'#7090F7', marginBottom:4, textTransform:'uppercase', letterSpacing:'0.08em' } }, 'B2B flywheel'),
+        React.createElement('p', { style:{ fontSize:10, color:'#4A5578', lineHeight:1.6 } }, 'Los datos B2C generan el activo. Hacé click en "Panel CRO" para ver el otro lado.')
+      )
+    )
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(React.createElement(App, null));
+</script>
+</body>
+</html>
+
