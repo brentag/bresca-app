@@ -48,6 +48,7 @@ jobs:
         run: |
           git config user.email "github-actions@github.com"
           git config user.name "GitHub Actions"
+          cp -r apps/web-cro/dist /tmp/deploy-dist
           git fetch origin
           if git show-ref --verify --quiet refs/remotes/origin/deploy; then
             git checkout -b deploy origin/deploy
@@ -56,7 +57,7 @@ jobs:
             git rm -rf . --quiet
           fi
           git rm -rf . --quiet 2>/dev/null || true
-          cp -r apps/web-cro/dist/. .
+          cp -r /tmp/deploy-dist/. .
           git add -A
           git diff --staged --quiet || git commit -m "deploy: build $(date +'%Y-%m-%d %H:%M:%S')"
           git push origin deploy
