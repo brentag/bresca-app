@@ -51,5 +51,5 @@ jobs:
           git config user.email "github-actions@github.com"
           git config user.name "GitHub Actions"
           git add -A
-          git commit -m "deploy: build $(date +'%Y-%m-%d %H:%M:%S')"
+          git commit --allow-empty -m "deploy: build $(date +'%Y-%m-%d %H:%M:%S')"
           git push --force https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git HEAD:deploy
