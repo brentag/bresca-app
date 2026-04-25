@@ -45,8 +45,18 @@ jobs:
           EOF
 
       - name: Push dist to deploy branch
-        uses: JamesIves/github-pages-deploy-action@v4
-        with:
-          branch: deploy
-          folder: apps/web-cro/dist
-          clean: true
+        run: |
+          git config user.email "github-actions@github.com"
+          git config user.name "GitHub Actions"
+          git fetch origin
+          if git show-ref --verify --quiet refs/remotes/origin/deploy; then
+            git checkout -b deploy origin/deploy
+          else
+            git checkout --orphan deploy
+            git rm -rf . --quiet
+          fi
+          git rm -rf . --quiet 2>/dev/null || true
+          cp -r apps/web-cro/dist/. .
+          git add -A
+          git diff --staged --quiet || git commit -m "deploy: build $(date +'%Y-%m-%d %H:%M:%S')"
+          git push origin deploy
