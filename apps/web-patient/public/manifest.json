@@ -1,0 +1,15 @@
+{
+  "name": "Bresca — Tu historial médico",
+  "short_name": "Bresca",
+  "description": "Guardá, organizá y compartí tus estudios médicos de forma segura.",
+  "theme_color": "#00C87A",
+  "background_color": "#ffffff",
+  "display": "standalone",
+  "orientation": "portrait",
+  "start_url": "/",
+  "scope": "/",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

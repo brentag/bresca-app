@@ -11,7 +11,11 @@ async function requireCro(req: Parameters<typeof requireAuth>[0], res: Parameter
   if (res.headersSent) return;
 
   const allowlist = (process.env.CRO_ALLOWED_EMAILS ?? '').split(',').map((e) => e.trim().toLowerCase()).filter(Boolean);
-  if (allowlist.length === 0) { next(); return; } // no restriction in dev
+  if (allowlist.length === 0) {
+    if (process.env.NODE_ENV !== 'production') { next(); return; }
+    res.status(403).json({ error: 'CRO access not configured' });
+    return;
+  }
 
   const { data } = await supabase.auth.admin.getUserById(res.locals.userId);
   const email = data.user?.email?.toLowerCase() ?? '';

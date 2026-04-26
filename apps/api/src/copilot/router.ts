@@ -64,12 +64,19 @@ router.post('/chat', requireAuth, async (req, res) => {
     { role: 'user', content: message },
   ];
 
-  const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-6',
-    max_tokens: COPILOT_MAX_TOKENS,
-    system: systemPrompt,
-    messages,
-  });
+  let response: Anthropic.Message;
+  try {
+    response = await anthropic.messages.create({
+      model: 'claude-sonnet-4-6',
+      max_tokens: COPILOT_MAX_TOKENS,
+      system: systemPrompt,
+      messages,
+    });
+  } catch (err) {
+    console.error('Anthropic API error:', err);
+    res.status(503).json({ error: 'Servicio temporalmente no disponible. Intentá en unos minutos.' });
+    return;
+  }
 
   const text = response.content.find((b) => b.type === 'text')?.text ?? '';
 

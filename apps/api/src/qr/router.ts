@@ -100,10 +100,21 @@ router.get('/:token', async (req, res) => {
     .in('id', qrToken.study_ids)
     .eq('confirmed', true);
 
-  res.json({
-    studies: studies ?? [],
-    expires_at: qrToken.expires_at,
-  });
+  const SAFE_FIELDS = new Set([
+    'Hemoglobina','Hematocrito','Leucocitos','Plaquetas','VCM','Glucosa','Creatinina',
+    'Colesterol total','Triglicéridos','Ácido úrico','TSH','T4L','T3L','CVF','VEF1',
+    'Relación VEF1/CVF','Ritmo','FC','QRS','Conclusión','Hallazgo','Técnica',
+  ]);
+
+  const safeStudies = (studies ?? []).map(s => ({
+    ...s,
+    extracted_fields: Object.fromEntries(
+      Object.entries((s.extracted_fields as Record<string, unknown>) ?? {})
+        .filter(([k]) => SAFE_FIELDS.has(k))
+    ),
+  }));
+
+  res.json({ studies: safeStudies, expires_at: qrToken.expires_at });
 });
 
 export default router;
