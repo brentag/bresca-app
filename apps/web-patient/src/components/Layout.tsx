@@ -32,8 +32,7 @@ export default function Layout() {
 }
 
 const navStyle: React.CSSProperties = {
-  position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)',
-  width: '100%', maxWidth: 430,
+  position: 'fixed', bottom: 0, left: 0, right: 0,
   display: 'flex', backgroundColor: '#fff',
   borderTop: '1px solid #E2E8F0',
   paddingBottom: 'env(safe-area-inset-bottom, 0px)',
