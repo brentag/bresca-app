@@ -1,6 +1,9 @@
 {
-  "buildCommand": "pnpm --filter=@bresca/web-cro build",
-  "outputDirectory": "apps/web-cro/dist",
+  "buildCommand": "pnpm --filter=@bresca/web-patient build",
+  "outputDirectory": "apps/web-patient/dist",
   "installCommand": "pnpm install",
-  "framework": null
+  "framework": null,
+  "rewrites": [
+    { "source": "/((?!assets|icons|manifest\\.json|sw\\.js).*)", "destination": "/index.html" }
+  ]
 }
