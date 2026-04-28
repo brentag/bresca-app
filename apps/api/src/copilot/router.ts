@@ -1,4 +1,4 @@
-import Anthropic from '@anthropic-ai/sdk';
+import OpenAI from 'openai';
 import { Router } from 'express';
 import { z } from 'zod';
 import { COPILOT_MAX_TOKENS } from '@bresca/shared';
@@ -8,7 +8,10 @@ import { checkRateLimit } from './rate-limit';
 import { COPILOT_SYSTEM_PROMPT_V1 } from './system-prompt';
 
 const router = Router();
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+const deepseek = new OpenAI({
+  apiKey: process.env.DEEPSEEK_API_KEY,
+  baseURL: 'https://api.deepseek.com',
+});
 
 const ChatSchema = z.object({
   message: z.string().min(1).max(2000),
@@ -59,26 +62,23 @@ router.post('/chat', requireAuth, async (req, res) => {
   const vaultContext = await buildVaultContext(userId);
   const systemPrompt = COPILOT_SYSTEM_PROMPT_V1.replace('{{VAULT_CONTEXT}}', vaultContext);
 
-  const messages: Anthropic.MessageParam[] = [
-    ...history.map((h) => ({ role: h.role, content: h.content })),
-    { role: 'user', content: message },
-  ];
-
-  let response: Anthropic.Message;
+  let text: string;
   try {
-    response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-6',
+    const response = await deepseek.chat.completions.create({
+      model: 'deepseek-chat',
       max_tokens: COPILOT_MAX_TOKENS,
-      system: systemPrompt,
-      messages,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        ...history.map((h) => ({ role: h.role as 'user' | 'assistant', content: h.content })),
+        { role: 'user', content: message },
+      ],
     });
+    text = response.choices[0]?.message?.content ?? '';
   } catch (err) {
-    console.error('Anthropic API error:', err);
+    console.error('DeepSeek API error:', err);
     res.status(503).json({ error: 'Servicio temporalmente no disponible. Intentá en unos minutos.' });
     return;
   }
-
-  const text = response.content.find((b) => b.type === 'text')?.text ?? '';
 
   res.json({ reply: text, remaining });
 });
