@@ -12,7 +12,13 @@ export default function Email() {
   async function send() {
     if (!email.includes('@')) { setError('Ingresá un email válido.'); return; }
     setLoading(true); setError('');
-    const { error: err } = await supabase.auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
+    const { error: err } = await supabase.auth.signInWithOtp({
+      email,
+      options: {
+        shouldCreateUser: true,
+        emailRedirectTo: `${window.location.origin}/auth/verify`,
+      },
+    });
     setLoading(false);
     if (err) { setError('No pudimos enviar el código. Intentá de nuevo.'); return; }
     nav('/auth/verify', { state: { email } });
