@@ -30,7 +30,7 @@ export default function Conditions() {
     <div style={wrap}>
       <ProgressDots step={2} total={4} />
       <h2 style={title}>Condiciones de salud</h2>
-      <p style={sub}>Opcional — ayuda al Copilot a contextualizar mejor.</p>
+      <p style={sub}>Opcional — ayuda al Asistente a darte respuestas más precisas.</p>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 32 }}>
         {OPTIONS.map(c => (
           <button

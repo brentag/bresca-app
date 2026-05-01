@@ -10,19 +10,21 @@ import Year from './pages/onboarding/Year';
 import Conditions from './pages/onboarding/Conditions';
 import ConsentIntro from './pages/onboarding/ConsentIntro';
 import Layout from './components/Layout';
+import Home from './pages/app/Home';
 import Vault from './pages/app/Vault';
 import Upload from './pages/app/Upload';
 import StudyDetail from './pages/app/StudyDetail';
 import QRGenerate from './pages/app/QRGenerate';
 import QRView from './pages/app/QRView';
-import Copilot from './pages/app/Copilot';
+import Asistente from './pages/app/Copilot';
 import Family from './pages/app/Family';
 import Menu from './pages/app/Menu';
+import ConsentCenter from './pages/app/ConsentCenter';
 
 function RootRedirect() {
   const { session, loading } = useSession();
   if (loading) return <FullPageSpinner />;
-  return session ? <Navigate to="/app/vault" replace /> : <Navigate to="/welcome" replace />;
+  return session ? <Navigate to="/app/home" replace /> : <Navigate to="/welcome" replace />;
 }
 
 export default function App() {
@@ -40,14 +42,16 @@ export default function App() {
           <Route path="/onboarding/consent"    element={<ProtectedRoute><ConsentIntro /></ProtectedRoute>} />
           <Route path="/qr/:token" element={<QRView />} />
           <Route path="/app" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
-            <Route index element={<Navigate to="/app/vault" replace />} />
+            <Route index element={<Navigate to="/app/home" replace />} />
+            <Route path="home"         element={<Home />} />
             <Route path="vault"        element={<Vault />} />
             <Route path="vault/upload" element={<Upload />} />
             <Route path="vault/:id"    element={<StudyDetail />} />
             <Route path="vault/qr"     element={<QRGenerate />} />
-            <Route path="copilot"      element={<Copilot />} />
+            <Route path="copilot"      element={<Asistente />} />
             <Route path="family"       element={<Family />} />
             <Route path="menu"         element={<Menu />} />
+            <Route path="consent"      element={<ConsentCenter />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

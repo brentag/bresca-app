@@ -16,7 +16,7 @@ export default function Menu() {
 
   const items = [
     { icon: <User size={20} color="#64748B" />, label: 'Mi perfil', sub: profile?.display_name ?? '', action: () => {} },
-    { icon: <Shield size={20} color="#64748B" />, label: 'Centro de consentimiento', sub: 'Gestioná tus permisos', action: () => {} },
+    { icon: <Shield size={20} color="#64748B" />, label: 'Centro de consentimiento', sub: 'Gestioná tus permisos', action: () => nav('/app/consent') },
   ];
 
   return (

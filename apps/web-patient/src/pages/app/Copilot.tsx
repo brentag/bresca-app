@@ -5,7 +5,7 @@ import { Spinner } from '../../components/Spinner';
 
 type Message = { role: 'user' | 'assistant'; content: string };
 
-export default function Copilot() {
+export default function Asistente() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -27,7 +27,7 @@ export default function Copilot() {
       setMessages([...next, { role: 'assistant', content: reply }]);
       setRemaining(rem);
     } catch {
-      setError('Error al conectar con el Copilot. Intentá de nuevo.');
+      setError('Error al conectar con el Asistente. Intentá de nuevo.');
     }
     setLoading(false);
   }
@@ -35,7 +35,7 @@ export default function Copilot() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: '#F7F9FC' }}>
       <div style={{ padding: '16px 20px', background: '#fff', borderBottom: '1px solid #E2E8F0' }}>
-        <h1 style={{ fontSize: 20, fontWeight: 700, color: '#0F172A' }}>Copilot</h1>
+        <h1 style={{ fontSize: 20, fontWeight: 700, color: '#0F172A' }}>Asistente</h1>
         <p style={{ fontSize: 13, color: '#64748B' }}>
           Tu asistente médico personal{remaining !== null ? ` · ${remaining} consultas restantes hoy` : ''}
         </p>

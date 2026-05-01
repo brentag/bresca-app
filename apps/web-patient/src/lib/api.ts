@@ -43,3 +43,20 @@ export async function getQRView(token: string) {
   if (!res.ok) throw new Error(`qr view error ${res.status}`);
   return res.json() as Promise<{ studies: unknown[]; expires_at: string }>;
 }
+
+export type ExtractResult = {
+  study_type: string;
+  lab_name: string | null;
+  study_date: string;
+  extracted_fields: Record<string, string>;
+};
+
+export async function extractStudy(storage_path: string, mime_type: string, category: string): Promise<ExtractResult> {
+  const res = await fetch(`${BASE}/extract`, {
+    method: 'POST',
+    headers: await authHeaders(),
+    body: JSON.stringify({ storage_path, mime_type, category }),
+  });
+  if (!res.ok) throw new Error(`extract error ${res.status}`);
+  return res.json() as Promise<ExtractResult>;
+}

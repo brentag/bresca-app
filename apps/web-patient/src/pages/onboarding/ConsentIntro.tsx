@@ -1,7 +1,10 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Check, FlaskConical } from 'lucide-react';
 import { ProgressDots } from './ProgressDots';
 import { wrap, title, sub, btn, skip } from './_styles';
+import { supabase } from '../../lib/supabase';
+import { useProfile } from '../../lib/useProfile';
 
 const POINTS = [
   'Siempre es optativo — vos decidís',
@@ -12,6 +15,24 @@ const POINTS = [
 
 export default function ConsentIntro() {
   const nav = useNavigate();
+  const { profile } = useProfile();
+  const [loading, setLoading] = useState(false);
+
+  async function acceptAndContinue() {
+    if (profile && !loading) {
+      setLoading(true);
+      await supabase.from('consent_audit').insert({
+        profile_id: profile.id,
+        layer: 'research',
+        area_id: null,
+        granted: true,
+        revoked_at: null,
+      });
+      setLoading(false);
+    }
+    nav('/app/home', { replace: true });
+  }
+
   return (
     <div style={wrap}>
       <ProgressDots step={3} total={4} />
@@ -33,8 +54,10 @@ export default function ConsentIntro() {
       <p style={{ fontSize: 11, color: '#94A3B8', textAlign: 'center', marginBottom: 16 }}>
         Podés cambiar estas opciones en Menú → Consentimiento en cualquier momento.
       </p>
-      <button onClick={() => nav('/app/vault', { replace: true })} style={btn}>¡Entendido, empezar!</button>
-      <button onClick={() => nav('/app/vault', { replace: true })} style={skip}>Configurar más tarde</button>
+      <button onClick={acceptAndContinue} disabled={loading} style={{ ...btn, opacity: loading ? 0.7 : 1 }}>
+        {loading ? 'Guardando…' : '¡Entendido, empezar!'}
+      </button>
+      <button onClick={() => nav('/app/home', { replace: true })} style={skip}>Configurar más tarde</button>
     </div>
   );
 }

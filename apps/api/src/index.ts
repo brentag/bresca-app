@@ -5,6 +5,7 @@ import cors from 'cors';
 import copilotRouter from './copilot/router';
 import qrRouter from './qr/router';
 import croRouter from './cro/router';
+import extractRouter from './extract/router';
 
 const app = express();
 const PORT = process.env.PORT ?? 3000;
@@ -20,6 +21,7 @@ app.get('/health', (_req, res) => {
 app.use('/copilot', copilotRouter);
 app.use('/qr', qrRouter);
 app.use('/cro', croRouter);
+app.use('/extract', extractRouter);
 
 app.listen(PORT, () => {
   console.log(`API running on port ${PORT}`);

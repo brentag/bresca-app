@@ -31,7 +31,7 @@ export default function Year() {
     <div style={wrap}>
       <ProgressDots step={1} total={4} />
       <h2 style={title}>¿Cuál es tu año de nacimiento?</h2>
-      <p style={sub}>Opcional — para personalizar el Copilot.</p>
+      <p style={sub}>Opcional — para personalizar tu Asistente de salud.</p>
       <input value={year} onChange={e => setYear(e.target.value)} type="number" inputMode="numeric" placeholder="ej. 1985" style={input} autoFocus />
       {error && <p style={err}>{error}</p>}
       <button onClick={save} disabled={loading} style={btn}>

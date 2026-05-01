@@ -1,12 +1,13 @@
 import React from 'react';
 import { Outlet, NavLink } from 'react-router-dom';
-import { Archive, MessageCircle, Users, Menu } from 'lucide-react';
+import { Home, Archive, MessageCircle, Users, Menu } from 'lucide-react';
 
 const NAV = [
-  { to: '/app/vault',   label: 'Vault',   Icon: Archive },
-  { to: '/app/copilot', label: 'Copilot', Icon: MessageCircle },
-  { to: '/app/family',  label: 'Familia', Icon: Users },
-  { to: '/app/menu',    label: 'Menú',    Icon: Menu },
+  { to: '/app/home',    label: 'Inicio',    Icon: Home },
+  { to: '/app/vault',   label: 'Vault',     Icon: Archive },
+  { to: '/app/copilot', label: 'Asistente', Icon: MessageCircle },
+  { to: '/app/family',  label: 'Familia',   Icon: Users },
+  { to: '/app/menu',    label: 'Menú',      Icon: Menu },
 ];
 
 export default function Layout() {

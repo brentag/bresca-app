@@ -1,10 +1,11 @@
-import React, { useRef, useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Camera, Image, ArrowLeft } from 'lucide-react';
+import { Camera, Image, ArrowLeft, ScanLine } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useProfile } from '../../lib/useProfile';
 import { useSession } from '../../lib/session';
-import { CATEGORIES, mockExtract } from '../../lib/vault';
+import { CATEGORIES } from '../../lib/vault';
+import { extractStudy } from '../../lib/api';
 import { CategoryChip } from '../../components/CategoryChip';
 import { Spinner } from '../../components/Spinner';
 import type { Database } from '@bresca/shared';
@@ -19,8 +20,16 @@ type Draft = {
   storagePath?: string;
 };
 
+type ProcessingStage = 'uploading' | 'reading' | 'analyzing';
+
 const MIME_MAP: Record<string, string> = {
   jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp', pdf: 'application/pdf',
+};
+
+const STAGE_LABEL: Record<ProcessingStage, string> = {
+  uploading: 'Subiendo archivo…',
+  reading: 'Leyendo el documento…',
+  analyzing: 'Analizando con IA…',
 };
 
 export default function Upload() {
@@ -28,35 +37,58 @@ export default function Upload() {
   const { user } = useSession();
   const { profile } = useProfile();
   const [step, setStep] = useState<Step>('source');
+  const [stage, setStage] = useState<ProcessingStage>('uploading');
   const [draft, setDraft] = useState<Draft | null>(null);
   const [category, setCategory] = useState('hematología');
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
+  const [extractError, setExtractError] = useState('');
 
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
+    setExtractError('');
     setStep('processing');
+    setStage('uploading');
 
-    let storagePath: string | undefined;
+    const ext = file.name.split('.').pop()?.toLowerCase() ?? 'jpg';
+    const mime = (MIME_MAP[ext] ?? 'image/jpeg') as string;
+    const storagePath = `${user!.id}/${Date.now()}.${ext}`;
+
     try {
-      const ext = file.name.split('.').pop()?.toLowerCase() ?? 'jpg';
-      storagePath = `${user!.id}/${Date.now()}.${ext}`;
-      const mime = MIME_MAP[ext] ?? 'image/jpeg';
-      const { error } = await supabase.storage.from('studies').upload(storagePath, file, { contentType: mime });
-      if (error) storagePath = undefined;
-    } catch { storagePath = undefined; }
+      const { error: uploadError } = await supabase.storage
+        .from('studies')
+        .upload(storagePath, file, { contentType: mime });
 
-    // Mock OCR — replace with real Document AI call when ready
-    await new Promise<void>(r => setTimeout(r, 1500));
-    const extracted = mockExtract(category);
-    setDraft({ ...extracted, category, storagePath });
-    setStep('review');
+      if (uploadError) throw uploadError;
+
+      setStage('reading');
+      // Brief pause so the user sees the stage transition
+      await new Promise<void>(r => setTimeout(r, 400));
+
+      setStage('analyzing');
+      const extracted = await extractStudy(storagePath, mime, category);
+
+      setDraft({
+        category,
+        study_type: extracted.study_type,
+        lab_name: extracted.lab_name ?? '',
+        study_date: extracted.study_date,
+        extracted_fields: extracted.extracted_fields,
+        storagePath,
+      });
+      setStep('review');
+    } catch (err) {
+      console.error('Processing error:', err);
+      setExtractError('No pudimos procesar el archivo. Revisá que sea un PDF o imagen legible e intentá de nuevo.');
+      setStep('source');
+    }
   }
 
   async function saveStudy() {
     if (!draft || !profile) return;
-    setSaving(true); setSaveError('');
+    setSaving(true);
+    setSaveError('');
     const { error } = await supabase.from('studies').insert({
       profile_id: profile.id,
       study_type: draft.study_type,
@@ -87,6 +119,12 @@ export default function Upload() {
 
       {step === 'source' && (
         <div style={{ flex: 1, padding: '20px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
+          {extractError && (
+            <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 12, padding: '12px 16px', fontSize: 14, color: '#DC2626' }}>
+              {extractError}
+            </div>
+          )}
+
           <div>
             <h2 style={{ fontSize: 17, fontWeight: 700, color: '#0F172A', marginBottom: 12 }}>¿Qué tipo de estudio es?</h2>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
@@ -99,13 +137,11 @@ export default function Upload() {
           <div>
             <h2 style={{ fontSize: 17, fontWeight: 700, color: '#0F172A', marginBottom: 12 }}>¿Cómo querés subir el archivo?</h2>
             <div style={{ display: 'flex', gap: 12 }}>
-              {/* capture="environment" abre cámara trasera en mobile */}
               <label style={sourceCardStyle}>
                 <Camera size={32} color="#00C87A" />
                 <span style={{ fontSize: 14, fontWeight: 600, color: '#0F172A' }}>Cámara</span>
                 <input type="file" accept="image/jpeg,image/png,image/webp" capture="environment" onChange={handleFile} style={{ display: 'none' }} />
               </label>
-              {/* Sin capture — abre galería o file picker */}
               <label style={sourceCardStyle}>
                 <Image size={32} color="#4B6EF5" />
                 <span style={{ fontSize: 14, fontWeight: 600, color: '#0F172A' }}>Galería / PDF</span>
@@ -113,14 +149,33 @@ export default function Upload() {
               </label>
             </div>
           </div>
+
+          <div style={{ background: '#F0FDF4', borderRadius: 12, padding: '12px 16px', display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+            <ScanLine size={18} color="#00C87A" style={{ marginTop: 1, flexShrink: 0 }} />
+            <p style={{ fontSize: 13, color: '#166534', lineHeight: 1.5 }}>
+              Bresca lee tu documento con IA y extrae los valores automáticamente. Podés corregir cualquier campo antes de guardar.
+            </p>
+          </div>
         </div>
       )}
 
       {step === 'processing' && (
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
-          <Spinner size="lg" />
-          <p style={{ fontSize: 17, fontWeight: 600, color: '#0F172A' }}>Extrayendo datos del estudio…</p>
-          <p style={{ fontSize: 14, color: '#64748B' }}>Esto toma unos segundos</p>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 20, padding: 32 }}>
+          <div style={{ position: 'relative', width: 80, height: 80 }}>
+            <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', background: 'linear-gradient(135deg,#00C87A22,#4B6EF522)', animation: 'pulse 2s infinite' }} />
+            <div style={{ position: 'absolute', inset: 8, borderRadius: '50%', background: 'linear-gradient(135deg,#00C87A,#4B6EF5)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <ScanLine size={28} color="#fff" />
+            </div>
+          </div>
+          <div style={{ textAlign: 'center' }}>
+            <p style={{ fontSize: 17, fontWeight: 700, color: '#0F172A', marginBottom: 6 }}>{STAGE_LABEL[stage]}</p>
+            <p style={{ fontSize: 14, color: '#64748B' }}>
+              {stage === 'uploading' && 'Guardando el archivo de forma segura'}
+              {stage === 'reading' && 'Extrayendo el texto del documento'}
+              {stage === 'analyzing' && 'DeepSeek está identificando los valores médicos'}
+            </p>
+          </div>
+          <Spinner size="sm" />
         </div>
       )}
 
@@ -132,15 +187,25 @@ export default function Upload() {
           <div style={fieldGroupStyle}>
             <FieldRow label="Tipo de estudio" value={draft.study_type} onChange={v => setDraft({ ...draft, study_type: v })} />
             <FieldRow label="Laboratorio / Centro" value={draft.lab_name} onChange={v => setDraft({ ...draft, lab_name: v })} />
-            <FieldRow label="Fecha (AAAA-MM-DD)" value={draft.study_date} onChange={v => setDraft({ ...draft, study_date: v })} type="date" />
+            <FieldRow label="Fecha" value={draft.study_date} onChange={v => setDraft({ ...draft, study_date: v })} type="date" />
           </div>
 
-          <p style={{ fontSize: 11, fontWeight: 600, color: '#94A3B8', letterSpacing: '0.08em', marginTop: 16, marginBottom: 8 }}>RESULTADOS</p>
-          <div style={fieldGroupStyle}>
-            {Object.entries(draft.extracted_fields).map(([key, val]) => (
-              <FieldRow key={key} label={key} value={val} onChange={v => setDraft({ ...draft, extracted_fields: { ...draft.extracted_fields, [key]: v } })} />
-            ))}
-          </div>
+          {Object.keys(draft.extracted_fields).length > 0 && (
+            <>
+              <p style={{ fontSize: 11, fontWeight: 600, color: '#94A3B8', letterSpacing: '0.08em', marginTop: 16, marginBottom: 8 }}>RESULTADOS EXTRAÍDOS</p>
+              <div style={fieldGroupStyle}>
+                {Object.entries(draft.extracted_fields).map(([key, val]) => (
+                  <FieldRow key={key} label={key} value={val} onChange={v => setDraft({ ...draft, extracted_fields: { ...draft.extracted_fields, [key]: v } })} />
+                ))}
+              </div>
+            </>
+          )}
+
+          {Object.keys(draft.extracted_fields).length === 0 && (
+            <div style={{ marginTop: 16, background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 12, padding: '12px 16px', fontSize: 13, color: '#92400E' }}>
+              No encontramos valores específicos en el documento. Podés agregar los resultados manualmente o guardar el estudio tal como está.
+            </div>
+          )}
 
           {saveError && <p style={{ color: '#EF4444', fontSize: 13, marginTop: 12 }}>{saveError}</p>}
           <button
@@ -165,5 +230,11 @@ function FieldRow({ label, value, onChange, type = 'text' }: { label: string; va
   );
 }
 
-const sourceCardStyle: React.CSSProperties = { flex: 1, background: '#fff', borderRadius: 16, padding: '24px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, border: '1.5px solid #E2E8F0', cursor: 'pointer', minHeight: 110 };
-const fieldGroupStyle: React.CSSProperties = { background: '#fff', borderRadius: 14, overflow: 'hidden', border: '1px solid #E2E8F0' };
+const sourceCardStyle: React.CSSProperties = {
+  flex: 1, background: '#fff', borderRadius: 16, padding: '24px 16px',
+  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10,
+  border: '1.5px solid #E2E8F0', cursor: 'pointer', minHeight: 110,
+};
+const fieldGroupStyle: React.CSSProperties = {
+  background: '#fff', borderRadius: 14, overflow: 'hidden', border: '1px solid #E2E8F0',
+};

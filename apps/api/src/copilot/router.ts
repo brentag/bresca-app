@@ -33,17 +33,21 @@ async function buildVaultContext(userId: string): Promise<string> {
 
   const { data: studies } = await supabase
     .from('studies')
-    .select('study_type, category, study_date')
+    .select('study_type, category, study_date, extracted_fields')
     .eq('profile_id', profile.id)
     .eq('confirmed', true)
     .order('study_date', { ascending: false })
-    .limit(20);
+    .limit(15);
 
   if (!studies || studies.length === 0) return 'Sin estudios registrados.';
 
-  return studies
-    .map((s) => `- ${s.study_type} (${s.category}) — ${s.study_date}`)
-    .join('\n');
+  return studies.map((s) => {
+    const fields = s.extracted_fields as Record<string, string> | null;
+    const values = fields && Object.keys(fields).length > 0
+      ? '\n' + Object.entries(fields).map(([k, v]) => `    ${k}: ${v}`).join('\n')
+      : '';
+    return `- ${s.study_type} (${s.category}) — ${s.study_date}${values}`;
+  }).join('\n');
 }
 
 router.post('/chat', requireAuth, async (req, res) => {
