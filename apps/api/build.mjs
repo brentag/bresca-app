@@ -9,9 +9,6 @@ await build({
   outfile: 'dist/index.js',
   external: [
     'dotenv/config',
-    // pdf-parse v2 and tesseract.js use browser APIs / native workers — must stay external
-    'pdf-parse',
-    'tesseract.js',
   ],
   sourcemap: true,
   minify: false,

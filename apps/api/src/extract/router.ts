@@ -1,16 +1,9 @@
-import OpenAI from 'openai';
 import { Router } from 'express';
 import { z } from 'zod';
 import { requireAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
-import { extractTextFromBuffer } from './ocr';
 
 const router = Router();
-
-const deepseek = new OpenAI({
-  apiKey: process.env.DEEPSEEK_API_KEY,
-  baseURL: 'https://api.deepseek.com',
-});
 
 const ExtractSchema = z.object({
   storage_path: z.string().min(1),
@@ -18,67 +11,7 @@ const ExtractSchema = z.object({
   category: z.string().min(1),
 });
 
-const EXTRACT_SYSTEM_PROMPT = `\
-Sos un experto en análisis de estudios médicos latinoamericanos.
-Tu tarea es extraer información estructurada de texto de documentos médicos (laboratorios, imágenes, electrocardiogramas, recetas, etc.).
-
-Respondé SIEMPRE con un JSON válido, sin markdown, sin explicaciones. El formato exacto es:
-{
-  "study_type": "nombre del estudio (ej: Hemograma completo, Radiografía de tórax)",
-  "lab_name": "nombre del laboratorio o centro médico (puede ser null)",
-  "study_date": "fecha en formato YYYY-MM-DD (puede ser null si no encontrás)",
-  "extracted_fields": {
-    "Campo 1": "valor con unidad (ej: 14.2 g/dL)",
-    "Campo 2": "valor con unidad"
-  }
-}
-
-Reglas:
-- Incluí solo los campos con valores concretos encontrados en el texto
-- No inventes valores que no estén en el texto
-- Si el texto está muy ilegible o vacío, retorná extracted_fields vacío
-- Las claves de extracted_fields en español
-- study_date: si no hay año explícito, tomá el año actual`;
-
-async function structureWithDeepSeek(
-  rawText: string,
-  category: string,
-): Promise<{
-  study_type: string;
-  lab_name: string | null;
-  study_date: string;
-  extracted_fields: Record<string, string>;
-}> {
-  const today = new Date().toISOString().slice(0, 10);
-
-  const response = await deepseek.chat.completions.create({
-    model: 'deepseek-chat',
-    max_tokens: 1024,
-    temperature: 0,
-    messages: [
-      { role: 'system', content: EXTRACT_SYSTEM_PROMPT },
-      {
-        role: 'user',
-        content: `Categoría del estudio: ${category}\nFecha de hoy: ${today}\n\nTexto extraído del documento:\n---\n${rawText.slice(0, 4000)}\n---`,
-      },
-    ],
-  });
-
-  const content = response.choices[0]?.message?.content ?? '{}';
-
-  // Clean potential markdown code fences
-  const clean = content.replace(/```json\n?|\n?```/g, '').trim();
-
-  const parsed = JSON.parse(clean);
-  return {
-    study_type: parsed.study_type ?? 'Estudio clínico',
-    lab_name: parsed.lab_name ?? null,
-    study_date: parsed.study_date ?? today,
-    extracted_fields: parsed.extracted_fields ?? {},
-  };
-}
-
-// POST /extract — authenticated
+// POST /extract — encola el job de OCR, responde 202 {job_id} en <100ms
 router.post('/', requireAuth, async (req, res) => {
   const parse = ExtractSchema.safeParse(req.body);
   if (!parse.success) {
@@ -86,39 +19,44 @@ router.post('/', requireAuth, async (req, res) => {
     return;
   }
 
-  const { storage_path, mime_type, category } = parse.data;
+  const userId = (req as unknown as { user: { id: string } }).user.id;
 
-  // Download the file from Supabase Storage using service role
-  const { data: fileData, error: downloadError } = await supabase.storage
-    .from('studies')
-    .download(storage_path);
-
-  if (downloadError || !fileData) {
-    res.status(404).json({ error: 'File not found in storage' });
+  // El storage_path sigue la convención `${user.id}/${ts}.${ext}` del frontend
+  if (!parse.data.storage_path.startsWith(`${userId}/`)) {
+    res.status(403).json({ error: 'storage_path_mismatch' });
     return;
   }
 
-  const buffer = Buffer.from(await fileData.arrayBuffer());
+  const { data: profile, error: profErr } = await supabase
+    .from('profiles')
+    .select('id')
+    .eq('user_id', userId)
+    .single();
 
-  let rawText: string;
-  try {
-    rawText = await extractTextFromBuffer(buffer, mime_type);
-  } catch (err) {
-    console.error('OCR error:', err);
-    // If OCR fails entirely, still try DeepSeek with empty context
-    rawText = '';
-  }
-
-  let structured;
-  try {
-    structured = await structureWithDeepSeek(rawText, category);
-  } catch (err) {
-    console.error('DeepSeek extract error:', err);
-    res.status(503).json({ error: 'Error al procesar el documento. Intentá de nuevo.' });
+  if (profErr || !profile) {
+    res.status(404).json({ error: 'profile_not_found' });
     return;
   }
 
-  res.json(structured);
+  const { data: draft, error: insErr } = await supabase
+    .from('study_drafts')
+    .insert({
+      profile_id:   profile.id,
+      storage_path: parse.data.storage_path,
+      mime_type:    parse.data.mime_type,
+      category:     parse.data.category,
+      status:       'pending',
+    })
+    .select('id')
+    .single();
+
+  if (insErr || !draft) {
+    console.error('[extract] insert draft failed', insErr);
+    res.status(500).json({ error: 'enqueue_failed' });
+    return;
+  }
+
+  res.status(202).json({ job_id: draft.id });
 });
 
 export default router;

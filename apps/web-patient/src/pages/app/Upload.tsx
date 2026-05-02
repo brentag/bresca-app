@@ -5,7 +5,7 @@ import { supabase } from '../../lib/supabase';
 import { useProfile } from '../../lib/useProfile';
 import { useSession } from '../../lib/session';
 import { CATEGORIES } from '../../lib/vault';
-import { extractStudy } from '../../lib/api';
+import { enqueueExtract, waitForDraft } from '../../lib/api';
 import { CategoryChip } from '../../components/CategoryChip';
 import { Spinner } from '../../components/Spinner';
 import type { Database } from '@bresca/shared';
@@ -46,7 +46,7 @@ export default function Upload() {
 
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (!file || !profile) return;
     setExtractError('');
     setStep('processing');
     setStage('uploading');
@@ -56,25 +56,32 @@ export default function Upload() {
     const storagePath = `${user!.id}/${Date.now()}.${ext}`;
 
     try {
+      // 1) Subir archivo a Storage (directo desde el browser)
       const { error: uploadError } = await supabase.storage
         .from('studies')
         .upload(storagePath, file, { contentType: mime });
 
       if (uploadError) throw uploadError;
 
+      // 2) Encolar job en la API — responde 202 {job_id} en <100ms
       setStage('reading');
-      // Brief pause so the user sees the stage transition
-      await new Promise<void>(r => setTimeout(r, 400));
+      const { job_id } = await enqueueExtract(storagePath, mime, category);
 
+      // 3) Esperar resultado vía Realtime + fallback polling (90s timeout)
       setStage('analyzing');
-      const extracted = await extractStudy(storagePath, mime, category);
+      const result = await waitForDraft(job_id, 90_000);
 
+      if (result.status === 'failed') {
+        throw new Error(result.error_log ?? 'processing_failed');
+      }
+
+      const today = new Date().toISOString().slice(0, 10);
       setDraft({
         category,
-        study_type: extracted.study_type,
-        lab_name: extracted.lab_name ?? '',
-        study_date: extracted.study_date,
-        extracted_fields: extracted.extracted_fields,
+        study_type:       result.study_type ?? 'Estudio clínico',
+        lab_name:         result.lab_name ?? '',
+        study_date:       result.study_date ?? today,
+        extracted_fields: (result.extracted_fields ?? {}) as Record<string, string>,
         storagePath,
       });
       setStep('review');

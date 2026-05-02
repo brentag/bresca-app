@@ -44,19 +44,79 @@ export async function getQRView(token: string) {
   return res.json() as Promise<{ studies: unknown[]; expires_at: string }>;
 }
 
-export type ExtractResult = {
-  study_type: string;
+export type DraftRealtimeRow = {
+  id: string;
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  study_type: string | null;
   lab_name: string | null;
-  study_date: string;
-  extracted_fields: Record<string, string>;
+  study_date: string | null;
+  extracted_fields: Record<string, string> | null;
+  error_log: string | null;
 };
 
-export async function extractStudy(storage_path: string, mime_type: string, category: string): Promise<ExtractResult> {
+export async function enqueueExtract(
+  storage_path: string,
+  mime_type: string,
+  category: string,
+): Promise<{ job_id: string }> {
   const res = await fetch(`${BASE}/extract`, {
     method: 'POST',
     headers: await authHeaders(),
     body: JSON.stringify({ storage_path, mime_type, category }),
   });
-  if (!res.ok) throw new Error(`extract error ${res.status}`);
-  return res.json() as Promise<ExtractResult>;
+  if (!res.ok) throw new Error(`extract enqueue error ${res.status}`);
+  return res.json() as Promise<{ job_id: string }>;
+}
+
+export function waitForDraft(jobId: string, timeoutMs: number): Promise<DraftRealtimeRow> {
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    const finish = (fn: () => void) => {
+      if (!settled) { settled = true; fn(); }
+    };
+
+    const channel = supabase
+      .channel(`draft-${jobId}`)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'study_drafts', filter: `id=eq.${jobId}` },
+        (payload) => {
+          const row = payload.new as DraftRealtimeRow;
+          if (row.status === 'completed' || row.status === 'failed') {
+            finish(() => {
+              clearTimeout(timer);
+              clearInterval(poll);
+              supabase.removeChannel(channel);
+              resolve(row);
+            });
+          }
+        },
+      )
+      .subscribe();
+
+    // Fallback polling cada 4s — cubre cold starts de Realtime o jobs ya completos
+    const poll = setInterval(async () => {
+      const { data } = await supabase
+        .from('study_drafts')
+        .select('id,status,study_type,lab_name,study_date,extracted_fields,error_log')
+        .eq('id', jobId)
+        .single();
+      if (data && (data.status === 'completed' || data.status === 'failed')) {
+        finish(() => {
+          clearTimeout(timer);
+          clearInterval(poll);
+          supabase.removeChannel(channel);
+          resolve(data as DraftRealtimeRow);
+        });
+      }
+    }, 4000);
+
+    const timer = setTimeout(() => {
+      finish(() => {
+        clearInterval(poll);
+        supabase.removeChannel(channel);
+        reject(new Error('extract_timeout'));
+      });
+    }, timeoutMs);
+  });
 }

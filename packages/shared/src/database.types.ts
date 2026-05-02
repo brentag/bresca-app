@@ -197,28 +197,58 @@ export type Database = {
       }
       study_drafts: {
         Row: {
+          category: string | null
+          completed_at: string | null
           created_at: string
+          error_log: string | null
           expires_at: string
           extracted_fields: Json
           id: string
+          lab_name: string | null
+          mime_type: string | null
           profile_id: string
-          raw_text: string
+          raw_text: string | null
+          started_at: string | null
+          status: string
+          storage_path: string | null
+          study_date: string | null
+          study_type: string | null
         }
         Insert: {
+          category?: string | null
+          completed_at?: string | null
           created_at?: string
+          error_log?: string | null
           expires_at?: string
           extracted_fields?: Json
           id?: string
+          lab_name?: string | null
+          mime_type?: string | null
           profile_id: string
-          raw_text: string
+          raw_text?: string | null
+          started_at?: string | null
+          status?: string
+          storage_path?: string | null
+          study_date?: string | null
+          study_type?: string | null
         }
         Update: {
+          category?: string | null
+          completed_at?: string | null
           created_at?: string
+          error_log?: string | null
           expires_at?: string
           extracted_fields?: Json
           id?: string
+          lab_name?: string | null
+          mime_type?: string | null
           profile_id?: string
-          raw_text?: string
+          raw_text?: string | null
+          started_at?: string | null
+          status?: string
+          storage_path?: string | null
+          study_date?: string | null
+          study_type?: string | null
         }
         Relationships: [
           {
