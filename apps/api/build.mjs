@@ -8,8 +8,10 @@ await build({
   format: 'cjs',
   outfile: 'dist/index.js',
   external: [
-    // keep native deps external
     'dotenv/config',
+    // pdf-parse v2 and tesseract.js use browser APIs / native workers — must stay external
+    'pdf-parse',
+    'tesseract.js',
   ],
   sourcemap: true,
   minify: false,
