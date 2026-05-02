@@ -22,17 +22,21 @@ Fecha: Abril 2026 | Equipo: 1 dev + Claude Code | Stack: React Native + React We
 
 | Capa | Tecnología |
 |---|---|
-| Mobile B2C | React Native (Expo) |
-| Web B2B (CRO) | React + Vite |
+| Mobile B2C | React Native (Expo) — pendiente |
+| Web B2C (paciente) | Vite + React SPA — **en producción** |
+| Web B2B (CRO) | Vite + React SPA — pendiente deploy |
 | Backend | Node.js + Express |
 | Base de datos | PostgreSQL vía Supabase |
 | Auth + Storage | Supabase (RLS, buckets) |
-| OCR | Google Document AI (fallback: AWS Textract) |
-| AI Copilot | Claude API (Anthropic) con contexto clínico del vault |
-| Notificaciones | expo-notifications (iOS + Android) |
-| Deploy backend | Railway |
-| Deploy web | Vercel |
+| OCR | ~~Google Document AI~~ → **Tesseract.js + pdf-parse + DeepSeek** |
+| AI Copilot / Asistente | ~~Claude API~~ → **DeepSeek (`deepseek-chat`)** — API OpenAI-compatible |
+| Notificaciones | expo-notifications (iOS + Android) — pendiente |
+| Deploy backend | ~~Railway~~ → **Render.com** (https://bresca-api.onrender.com) |
+| Deploy web | **Vercel** (https://bresca-app-api.vercel.app) |
 | Compliance base | RLS por usuario/perfil, consentimiento auditado en DB |
+
+> **Nota (2026-05-02):** Stack ajustado durante el desarrollo del MVP para reducir dependencias externas y costos. OCR no requiere API de terceros — pipeline completo en el servidor propio.  
+> Ver decisiones detalladas en `checkpoint_deploy_2026-05-02.md`.
 
 ---
 
