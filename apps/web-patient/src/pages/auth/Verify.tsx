@@ -1,7 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
-import { Spinner } from '../../components/Spinner';
+import { Spinner, FullPageSpinner } from '../../components/Spinner';
+
+async function redirectAfterLogin(nav: ReturnType<typeof useNavigate>) {
+  const { data: profile } = await supabase.from('profiles').select('id').maybeSingle();
+  nav(profile ? '/app/home' : '/onboarding/name', { replace: true });
+}
 
 export default function Verify() {
   const nav = useNavigate();
@@ -10,15 +15,34 @@ export default function Verify() {
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  // true mientras esperamos que Supabase procese el hash del magic link
+  const [checkingLink, setCheckingLink] = useState(() => window.location.hash.includes('access_token'));
+
+  useEffect(() => {
+    if (!checkingLink) return;
+    // Supabase detecta automáticamente el token en el hash — esperamos el evento
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session) {
+        redirectAfterLogin(nav);
+      }
+    });
+    // Fallback: si ya hay sesión activa al montar
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) { redirectAfterLogin(nav); }
+      else { setCheckingLink(false); }
+    });
+    return () => subscription.unsubscribe();
+  }, []);
 
   async function verify() {
     setLoading(true); setError('');
     const { error: err } = await supabase.auth.verifyOtp({ email, token: otp, type: 'email' });
     setLoading(false);
     if (err) { setError('Código incorrecto o vencido. Intentá de nuevo.'); return; }
-    const { data: profile } = await supabase.from('profiles').select('id').maybeSingle();
-    nav(profile ? '/app/vault' : '/onboarding/name', { replace: true });
+    await redirectAfterLogin(nav);
   }
+
+  if (checkingLink) return <FullPageSpinner />;
 
   return (
     <div style={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column', padding: '60px 24px 32px', background: '#fff' }}>
