@@ -11,7 +11,10 @@ export default function Login() {
   async function sendOtp(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true); setError('');
-    const { error } = await supabase.auth.signInWithOtp({ email: email.trim().toLowerCase() });
+    const { error } = await supabase.auth.signInWithOtp({
+      email: email.trim().toLowerCase(),
+      options: { emailRedirectTo: window.location.origin },
+    });
     setLoading(false);
     if (error) { setError(error.message); return; }
     setStep('otp');
