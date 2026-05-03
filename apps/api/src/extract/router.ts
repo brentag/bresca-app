@@ -6,7 +6,7 @@ import { supabase } from '../lib/supabase';
 const router = Router();
 
 const ExtractSchema = z.object({
-  storage_path: z.string().min(1),
+  storage_paths: z.array(z.string().min(1)).min(1).max(20),
   mime_type: z.enum(['image/jpeg', 'image/png', 'image/webp', 'application/pdf']),
   category: z.string().min(1),
 });
@@ -21,8 +21,8 @@ router.post('/', requireAuth, async (req, res) => {
 
   const userId = (req as unknown as { user: { id: string } }).user.id;
 
-  // El storage_path sigue la convención `${user.id}/${ts}.${ext}` del frontend
-  if (!parse.data.storage_path.startsWith(`${userId}/`)) {
+  // Todos los paths deben pertenecer al usuario autenticado
+  if (!parse.data.storage_paths.every(p => p.startsWith(`${userId}/`))) {
     res.status(403).json({ error: 'storage_path_mismatch' });
     return;
   }
@@ -41,11 +41,12 @@ router.post('/', requireAuth, async (req, res) => {
   const { data: draft, error: insErr } = await supabase
     .from('study_drafts')
     .insert({
-      profile_id:   profile.id,
-      storage_path: parse.data.storage_path,
-      mime_type:    parse.data.mime_type,
-      category:     parse.data.category,
-      status:       'pending',
+      profile_id:    profile.id,
+      storage_path:  parse.data.storage_paths[0],   // primary (trigger + backward compat)
+      storage_paths: parse.data.storage_paths,
+      mime_type:     parse.data.mime_type,
+      category:      parse.data.category,
+      status:        'pending',
     })
     .select('id')
     .single();

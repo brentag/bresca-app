@@ -20,20 +20,20 @@ Fecha: Abril 2026 | Equipo: 1 dev + Claude Code | Stack: React Native + React We
 
 ## Stack técnico
 
-| Capa | Tecnología |
-|---|---|
-| Mobile B2C | React Native (Expo) — pendiente |
-| Web B2C (paciente) | Vite + React SPA — **en producción** |
-| Web B2B (CRO) | Vite + React SPA — pendiente deploy |
-| Backend | Node.js + Express |
-| Base de datos | PostgreSQL vía Supabase |
-| Auth + Storage | Supabase (RLS, buckets) |
-| OCR | ~~Google Document AI~~ → **Tesseract.js + pdf-parse + DeepSeek** |
+| Capa                   | Tecnología                                                              |
+| ---------------------- | ----------------------------------------------------------------------- |
+| Mobile B2C             | React Native (Expo) — pendiente                                         |
+| Web B2C (paciente)     | Vite + React SPA — **en producción**                                    |
+| Web B2B (CRO)          | Vite + React SPA — pendiente deploy                                     |
+| Backend                | Node.js + Express                                                       |
+| Base de datos          | PostgreSQL vía Supabase                                                 |
+| Auth + Storage         | Supabase (RLS, buckets)                                                 |
+| OCR                    | ~~Google Document AI~~ → **Tesseract.js + pdf-parse + DeepSeek**        |
 | AI Copilot / Asistente | ~~Claude API~~ → **DeepSeek (`deepseek-chat`)** — API OpenAI-compatible |
-| Notificaciones | expo-notifications (iOS + Android) — pendiente |
-| Deploy backend | ~~Railway~~ → **Render.com** (https://bresca-api.onrender.com) |
-| Deploy web | **Vercel** (https://bresca-app-api.vercel.app) |
-| Compliance base | RLS por usuario/perfil, consentimiento auditado en DB |
+| Notificaciones         | expo-notifications (iOS + Android) — pendiente                          |
+| Deploy backend         | ~~Railway~~ → **Render.com** (https://bresca-api.onrender.com)          |
+| Deploy web             | **Vercel** (https://bresca-app-api.vercel.app)                          |
+| Compliance base        | RLS por usuario/perfil, consentimiento auditado en DB                   |
 
 > **Nota (2026-05-02):** Stack ajustado durante el desarrollo del MVP para reducir dependencias externas y costos. OCR no requiere API de terceros — pipeline completo en el servidor propio.  
 > Ver decisiones detalladas en `checkpoint_deploy_2026-05-02.md`.
@@ -212,6 +212,34 @@ F5                                              QA + Deploy
 - [ ] Investigador CRO ve pacientes anónimos con fit score sin acceder a datos identificables
 - [ ] Flujo completo invitación → consentimiento → enrollment funcional end-to-end
 - [ ] RLS auditado: ningún perfil accede datos de otro perfil bajo ningún escenario
+
+---
+
+## Mejoras post-MVP documentadas
+
+Estas mejoras están fuera del alcance del MVP pero deben ser consideradas en la siguiente fase de producto.
+
+### OCR — Calidad y validación cruzada
+
+**Objetivo:** alcanzar un score de reconocimiento de campos clínicos > 95%, validado por dos motores independientes.
+
+**Motivación:** el MVP usa DeepSeek Vision como único motor de OCR para imágenes. Un único motor no permite detectar errores de extracción silenciosos (campos que parecen extraídos correctamente pero tienen valores incorrectos). En contexto médico, un valor erróneo no detectado es más peligroso que un campo vacío.
+
+**Propuesta técnica:**
+- Correr dos motores de OCR en paralelo sobre el mismo documento (ej: DeepSeek Vision + Google Document AI, o Tesseract + DeepSeek)
+- Comparar los campos extraídos por ambos motores campo por campo
+- Si los valores coinciden → confianza alta, marcar como verificado automáticamente
+- Si difieren → marcar el campo como "baja confianza" y resaltarlo en la pantalla de revisión para que el usuario lo corrija
+- Score de confianza por campo visible en la UI (ej: ✅ verificado / ⚠️ revisar)
+
+**Métricas de éxito:**
+- ≥ 95% de campos numéricos extraídos correctamente en un dataset de 100 estudios de laboratorio típicos de LATAM
+- Tasa de discrepancia entre motores < 5% en estudios de buena calidad
+
+**Dependencias:**
+- Requiere activar Google Document AI (GOOGLE_DOCAI_KEY — rotación mensual, ver variables de entorno)
+- La comparación puede correr en la Edge Function o en un segundo paso del pipeline
+- El campo de confianza podría almacenarse como metadata en `extracted_fields` (ej: `{ "Glucemia": "98 mg/dL", "_conf_Glucemia": "high" }`) o en una columna separada `field_confidence jsonb`
 
 ---
 

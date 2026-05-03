@@ -30,6 +30,7 @@ si no hay año tomá el actual, extracted_fields vacío si el texto es ilegible.
 type DraftRow = {
   id: string;
   storage_path: string;
+  storage_paths: string[] | null;
   mime_type: string;
   category: string;
 };
@@ -41,6 +42,8 @@ type Structured = {
   extracted_fields: Record<string, string>;
   raw_text: string;
 };
+
+type PageResult = Omit<Structured, 'raw_text'> & { raw_text?: string };
 
 Deno.serve(async (req) => {
   // ── Auth: shared secret del webhook ─────────────────────────
@@ -59,11 +62,10 @@ Deno.serve(async (req) => {
     .update({ status: 'processing', started_at: new Date().toISOString() })
     .eq('id', draft_id)
     .eq('status', 'pending')
-    .select('id, storage_path, mime_type, category')
+    .select('id, storage_path, storage_paths, mime_type, category')
     .single<DraftRow>();
 
   if (claimErr || !draft) {
-    // Otro worker ya lo tomó, o el draft no existe
     return new Response('already-claimed', { status: 200 });
   }
 
@@ -95,35 +97,78 @@ Deno.serve(async (req) => {
       })
       .eq('id', draft.id);
 
-    // Respondemos 200 para que pg_net no reintente automáticamente
     return new Response('failed', { status: 200 });
   }
 });
 
 async function process(draft: DraftRow): Promise<Structured> {
+  const today = new Date().toISOString().slice(0, 10);
+  const paths = draft.storage_paths ?? [draft.storage_path];
+
+  if (paths.length === 1) {
+    return processSinglePath(paths[0], draft.mime_type, draft.category, today);
+  }
+
+  // Multi-página: procesar cada una y mergear resultados
+  const results: PageResult[] = [];
+  for (const path of paths) {
+    const mime = mimeFromPath(path);
+    const r = await processSinglePath(path, mime, draft.category, today);
+    results.push(r);
+  }
+  return mergeResults(results);
+}
+
+async function processSinglePath(
+  path: string,
+  mime: string,
+  category: string,
+  today: string,
+): Promise<Structured> {
   const { data: file, error: dlErr } = await supabase.storage
     .from('studies')
-    .download(draft.storage_path);
+    .download(path);
 
   if (dlErr || !file) {
-    throw new Error(`storage_download_failed: ${dlErr?.message ?? 'null'}`);
+    throw new Error(`storage_download_failed: ${path} — ${dlErr?.message ?? 'null'}`);
   }
 
   const buffer = new Uint8Array(await file.arrayBuffer());
-  const today = new Date().toISOString().slice(0, 10);
 
-  if (draft.mime_type === 'application/pdf') {
+  if (mime === 'application/pdf') {
     const { text } = await extractText(buffer, { mergePages: true });
     const rawText = (Array.isArray(text) ? text.join('\n') : text).trim();
-    const structured = await structureFromText(rawText, draft.category, today);
+    const structured = await structureFromText(rawText, category, today);
     return { ...structured, raw_text: rawText };
   }
 
-  // Imágenes: DeepSeek Vision — un solo round-trip, sin WASM
-  const base64 = encodeBase64(buffer);
-  const dataUrl = `data:${draft.mime_type};base64,${base64}`;
-  const structured = await structureFromImage(dataUrl, draft.category, today);
+  // Imagen: DeepSeek Vision
+  const base64  = encodeBase64(buffer);
+  const dataUrl = `data:${mime};base64,${base64}`;
+  const structured = await structureFromImage(dataUrl, category, today);
   return { ...structured, raw_text: '' };
+}
+
+function mergeResults(pages: PageResult[]): Structured {
+  const merged: Structured = {
+    study_type:       '',
+    lab_name:         null,
+    study_date:       '',
+    extracted_fields: {},
+    raw_text:         '',
+  };
+
+  for (const page of pages) {
+    if (!merged.study_type && page.study_type) merged.study_type = page.study_type;
+    if (!merged.lab_name   && page.lab_name)   merged.lab_name   = page.lab_name;
+    if (!merged.study_date && page.study_date) merged.study_date = page.study_date;
+    // Páginas posteriores pueden sobreescribir campos de páginas anteriores (más completas)
+    Object.assign(merged.extracted_fields, page.extracted_fields);
+    if (page.raw_text) merged.raw_text += (merged.raw_text ? '\n' : '') + page.raw_text;
+  }
+
+  merged.study_type = merged.study_type || 'Estudio clínico';
+  return merged;
 }
 
 async function structureFromText(
@@ -181,6 +226,14 @@ function parseStructured(content: string, today: string): Omit<Structured, 'raw_
     study_date:       parsed.study_date ?? today,
     extracted_fields: parsed.extracted_fields ?? {},
   };
+}
+
+function mimeFromPath(path: string): string {
+  const ext = path.split('.').pop()?.toLowerCase() ?? '';
+  if (ext === 'pdf')  return 'application/pdf';
+  if (ext === 'png')  return 'image/png';
+  if (ext === 'webp') return 'image/webp';
+  return 'image/jpeg';
 }
 
 function encodeBase64(buf: Uint8Array): string {

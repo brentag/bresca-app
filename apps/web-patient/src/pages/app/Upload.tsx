@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Camera, Image, ArrowLeft, ScanLine } from 'lucide-react';
+import { Camera, Image, ArrowLeft, ScanLine, Plus, X, FileText } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useProfile } from '../../lib/useProfile';
 import { useSession } from '../../lib/session';
@@ -17,18 +17,18 @@ type Draft = {
   lab_name: string;
   study_date: string;
   extracted_fields: Record<string, string>;
-  storagePath?: string;
+  storagePaths: string[];
 };
-
 type ProcessingStage = 'uploading' | 'reading' | 'analyzing';
+type SelectedFile = { id: string; file: File; preview: string };
 
 const MIME_MAP: Record<string, string> = {
   jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp', pdf: 'application/pdf',
 };
 
 const STAGE_LABEL: Record<ProcessingStage, string> = {
-  uploading: 'Subiendo archivo…',
-  reading: 'Leyendo el documento…',
+  uploading: 'Subiendo archivos…',
+  reading:   'Leyendo el documento…',
   analyzing: 'Analizando con IA…',
 };
 
@@ -36,44 +36,62 @@ export default function Upload() {
   const nav = useNavigate();
   const { user } = useSession();
   const { profile } = useProfile();
-  const [step, setStep] = useState<Step>('source');
-  const [stage, setStage] = useState<ProcessingStage>('uploading');
-  const [draft, setDraft] = useState<Draft | null>(null);
-  const [category, setCategory] = useState('hematología');
-  const [saving, setSaving] = useState(false);
-  const [saveError, setSaveError] = useState('');
+  const [step, setStep]               = useState<Step>('source');
+  const [stage, setStage]             = useState<ProcessingStage>('uploading');
+  const [files, setFiles]             = useState<SelectedFile[]>([]);
+  const [draft, setDraft]             = useState<Draft | null>(null);
+  const [category, setCategory]       = useState('hematología');
+  const [saving, setSaving]           = useState(false);
+  const [saveError, setSaveError]     = useState('');
   const [extractError, setExtractError] = useState('');
 
-  async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file || !profile) return;
+  function addFiles(e: React.ChangeEvent<HTMLInputElement>) {
+    const incoming = Array.from(e.target.files ?? []);
+    if (!incoming.length) return;
+    setFiles(prev => [
+      ...prev,
+      ...incoming.map(file => ({
+        id:      `${Date.now()}-${Math.random()}`,
+        file,
+        preview: file.type.startsWith('image/') ? URL.createObjectURL(file) : '',
+      })),
+    ]);
+    e.target.value = '';
+  }
+
+  function removeFile(id: string) {
+    setFiles(prev => prev.filter(f => f.id !== id));
+  }
+
+  async function processFiles() {
+    if (!files.length || !profile) return;
     setExtractError('');
     setStep('processing');
     setStage('uploading');
 
-    const ext = file.name.split('.').pop()?.toLowerCase() ?? 'jpg';
-    const mime = (MIME_MAP[ext] ?? 'image/jpeg') as string;
-    const storagePath = `${user!.id}/${Date.now()}.${ext}`;
-
     try {
-      // 1) Subir archivo a Storage (directo desde el browser)
-      const { error: uploadError } = await supabase.storage
-        .from('studies')
-        .upload(storagePath, file, { contentType: mime });
+      // Subir todos los archivos en paralelo
+      const uploads = await Promise.all(
+        files.map(async ({ file }) => {
+          const ext  = file.name.split('.').pop()?.toLowerCase() ?? 'jpg';
+          const mime = MIME_MAP[ext] ?? 'image/jpeg';
+          const path = `${user!.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+          const { error } = await supabase.storage
+            .from('studies')
+            .upload(path, file, { contentType: mime });
+          if (error) throw error;
+          return { path, mime };
+        }),
+      );
 
-      if (uploadError) throw uploadError;
-
-      // 2) Encolar job en la API — responde 202 {job_id} en <100ms
       setStage('reading');
-      const { job_id } = await enqueueExtract(storagePath, mime, category);
+      const storagePaths = uploads.map(u => u.path);
+      const primaryMime  = uploads[0].mime;
+      const { job_id }   = await enqueueExtract(storagePaths, primaryMime, category);
 
-      // 3) Esperar resultado vía Realtime + fallback polling (90s timeout)
       setStage('analyzing');
       const result = await waitForDraft(job_id, 90_000);
-
-      if (result.status === 'failed') {
-        throw new Error(result.error_log ?? 'processing_failed');
-      }
+      if (result.status === 'failed') throw new Error(result.error_log ?? 'processing_failed');
 
       const today = new Date().toISOString().slice(0, 10);
       setDraft({
@@ -82,7 +100,7 @@ export default function Upload() {
         lab_name:         result.lab_name ?? '',
         study_date:       result.study_date ?? today,
         extracted_fields: (result.extracted_fields ?? {}) as Record<string, string>,
-        storagePath,
+        storagePaths,
       });
       setStep('review');
     } catch (err) {
@@ -97,22 +115,25 @@ export default function Upload() {
     setSaving(true);
     setSaveError('');
     const { error } = await supabase.from('studies').insert({
-      profile_id: profile.id,
-      study_type: draft.study_type,
-      category: draft.category,
-      study_date: draft.study_date,
-      lab_name: draft.lab_name || null,
+      profile_id:       profile.id,
+      study_type:       draft.study_type,
+      category:         draft.category,
+      study_date:       draft.study_date,
+      lab_name:         draft.lab_name || null,
       extracted_fields: draft.extracted_fields as Database['public']['Tables']['studies']['Row']['extracted_fields'],
-      confirmed: true,
-      storage_path: draft.storagePath ?? null,
+      confirmed:        true,
+      storage_path:     draft.storagePaths[0] ?? null,
     });
     setSaving(false);
     if (error) { setSaveError('No pudimos guardar el estudio. Intentá de nuevo.'); return; }
     nav('/app/vault', { replace: true });
   }
 
+  const pageLabel = files.length === 1 ? '1 página' : `${files.length} páginas`;
+
   return (
     <div style={{ minHeight: '100dvh', background: '#F7F9FC', display: 'flex', flexDirection: 'column' }}>
+      {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', background: '#fff', borderBottom: '1px solid #E2E8F0' }}>
         <button
           onClick={() => step === 'source' ? nav(-1) : setStep('source')}
@@ -124,14 +145,17 @@ export default function Upload() {
         <div style={{ width: 60 }} />
       </div>
 
+      {/* ── PASO: source ── */}
       {step === 'source' && (
         <div style={{ flex: 1, padding: '20px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
+
           {extractError && (
             <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 12, padding: '12px 16px', fontSize: 14, color: '#DC2626' }}>
               {extractError}
             </div>
           )}
 
+          {/* Selector de categoría */}
           <div>
             <h2 style={{ fontSize: 17, fontWeight: 700, color: '#0F172A', marginBottom: 12 }}>¿Qué tipo de estudio es?</h2>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
@@ -141,31 +165,120 @@ export default function Upload() {
             </div>
           </div>
 
+          {/* Selector de origen */}
           <div>
-            <h2 style={{ fontSize: 17, fontWeight: 700, color: '#0F172A', marginBottom: 12 }}>¿Cómo querés subir el archivo?</h2>
+            <h2 style={{ fontSize: 17, fontWeight: 700, color: '#0F172A', marginBottom: 12 }}>
+              {files.length === 0 ? '¿Cómo querés subir el archivo?' : 'Agregar más páginas'}
+            </h2>
             <div style={{ display: 'flex', gap: 12 }}>
               <label style={sourceCardStyle}>
-                <Camera size={32} color="#00C87A" />
-                <span style={{ fontSize: 14, fontWeight: 600, color: '#0F172A' }}>Cámara</span>
-                <input type="file" accept="image/jpeg,image/png,image/webp" capture="environment" onChange={handleFile} style={{ display: 'none' }} />
+                <Camera size={28} color="#00C87A" />
+                <span style={{ fontSize: 13, fontWeight: 600, color: '#0F172A' }}>Cámara</span>
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  capture="environment"
+                  onChange={addFiles}
+                  style={{ display: 'none' }}
+                />
               </label>
               <label style={sourceCardStyle}>
-                <Image size={32} color="#4B6EF5" />
-                <span style={{ fontSize: 14, fontWeight: 600, color: '#0F172A' }}>Galería / PDF</span>
-                <input type="file" accept="image/jpeg,image/png,image/webp,application/pdf" onChange={handleFile} style={{ display: 'none' }} />
+                <Image size={28} color="#4B6EF5" />
+                <span style={{ fontSize: 13, fontWeight: 600, color: '#0F172A' }}>Galería / PDF</span>
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,application/pdf"
+                  multiple
+                  onChange={addFiles}
+                  style={{ display: 'none' }}
+                />
               </label>
             </div>
           </div>
 
+          {/* Thumbnails de páginas seleccionadas */}
+          {files.length > 0 && (
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                <span style={{ fontSize: 13, fontWeight: 600, color: '#475569' }}>
+                  {pageLabel} seleccionada{files.length !== 1 ? 's' : ''}
+                </span>
+                <button
+                  onClick={() => setFiles([])}
+                  style={{ fontSize: 12, color: '#94A3B8', background: 'none', border: 'none', cursor: 'pointer' }}
+                >
+                  Limpiar todo
+                </button>
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+                {files.map((f, i) => (
+                  <div key={f.id} style={{ position: 'relative', width: 72, height: 72 }}>
+                    {f.preview ? (
+                      <img
+                        src={f.preview}
+                        alt={`Página ${i + 1}`}
+                        style={{ width: 72, height: 72, objectFit: 'cover', borderRadius: 10, border: '1.5px solid #E2E8F0' }}
+                      />
+                    ) : (
+                      <div style={{ width: 72, height: 72, borderRadius: 10, background: '#F1F5F9', border: '1.5px solid #E2E8F0', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+                        <FileText size={22} color="#94A3B8" />
+                        <span style={{ fontSize: 9, color: '#94A3B8', textAlign: 'center', padding: '0 4px', lineHeight: 1.2 }}>
+                          {f.file.name.slice(-12)}
+                        </span>
+                      </div>
+                    )}
+                    {/* Número de página */}
+                    <div style={{ position: 'absolute', bottom: 4, left: 4, background: 'rgba(0,0,0,0.55)', borderRadius: 4, padding: '1px 5px', fontSize: 10, color: '#fff', fontWeight: 600 }}>
+                      {i + 1}
+                    </div>
+                    {/* Botón quitar */}
+                    <button
+                      onClick={() => removeFile(f.id)}
+                      style={{ position: 'absolute', top: -6, right: -6, width: 20, height: 20, borderRadius: '50%', background: '#EF4444', border: '2px solid #fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0 }}
+                    >
+                      <X size={10} color="#fff" strokeWidth={3} />
+                    </button>
+                  </div>
+                ))}
+
+                {/* Botón agregar otra */}
+                <label style={{ width: 72, height: 72, borderRadius: 10, border: '1.5px dashed #CBD5E1', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, cursor: 'pointer', background: '#F8FAFC' }}>
+                  <Plus size={20} color="#94A3B8" />
+                  <span style={{ fontSize: 10, color: '#94A3B8' }}>Agregar</span>
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,application/pdf"
+                    multiple
+                    onChange={addFiles}
+                    style={{ display: 'none' }}
+                  />
+                </label>
+              </div>
+            </div>
+          )}
+
+          {/* Tip */}
           <div style={{ background: '#F0FDF4', borderRadius: 12, padding: '12px 16px', display: 'flex', alignItems: 'flex-start', gap: 10 }}>
             <ScanLine size={18} color="#00C87A" style={{ marginTop: 1, flexShrink: 0 }} />
             <p style={{ fontSize: 13, color: '#166534', lineHeight: 1.5 }}>
-              Bresca lee tu documento con IA y extrae los valores automáticamente. Podés corregir cualquier campo antes de guardar.
+              Si el estudio tiene varias páginas, agregá todas las fotos antes de procesar. Bresca las analiza juntas.
             </p>
           </div>
+
+          {/* Botón procesar */}
+          {files.length > 0 && (
+            <button
+              onClick={processFiles}
+              style={{ width: '100%', padding: '16px', borderRadius: 14, border: 'none', background: '#00C87A', color: '#fff', fontSize: 16, fontWeight: 600, cursor: 'pointer', minHeight: 52, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+            >
+              <ScanLine size={18} color="#fff" />
+              Procesar {pageLabel}
+            </button>
+          )}
         </div>
       )}
 
+      {/* ── PASO: processing ── */}
       {step === 'processing' && (
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 20, padding: 32 }}>
           <div style={{ position: 'relative', width: 80, height: 80 }}>
@@ -177,8 +290,8 @@ export default function Upload() {
           <div style={{ textAlign: 'center' }}>
             <p style={{ fontSize: 17, fontWeight: 700, color: '#0F172A', marginBottom: 6 }}>{STAGE_LABEL[stage]}</p>
             <p style={{ fontSize: 14, color: '#64748B' }}>
-              {stage === 'uploading' && 'Guardando el archivo de forma segura'}
-              {stage === 'reading' && 'Extrayendo el texto del documento'}
+              {stage === 'uploading' && 'Guardando los archivos de forma segura'}
+              {stage === 'reading'   && 'Extrayendo el texto de cada página'}
               {stage === 'analyzing' && 'DeepSeek está identificando los valores médicos'}
             </p>
           </div>
@@ -186,15 +299,16 @@ export default function Upload() {
         </div>
       )}
 
+      {/* ── PASO: review ── */}
       {step === 'review' && draft && (
         <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
           <h2 style={{ fontSize: 18, fontWeight: 700, color: '#0F172A', marginBottom: 4 }}>Revisá los datos extraídos</h2>
           <p style={{ fontSize: 14, color: '#64748B', marginBottom: 20 }}>Podés corregir cualquier campo antes de guardar.</p>
 
           <div style={fieldGroupStyle}>
-            <FieldRow label="Tipo de estudio" value={draft.study_type} onChange={v => setDraft({ ...draft, study_type: v })} />
-            <FieldRow label="Laboratorio / Centro" value={draft.lab_name} onChange={v => setDraft({ ...draft, lab_name: v })} />
-            <FieldRow label="Fecha" value={draft.study_date} onChange={v => setDraft({ ...draft, study_date: v })} type="date" />
+            <FieldRow label="Tipo de estudio"    value={draft.study_type}  onChange={v => setDraft({ ...draft, study_type: v })} />
+            <FieldRow label="Laboratorio / Centro" value={draft.lab_name}  onChange={v => setDraft({ ...draft, lab_name: v })} />
+            <FieldRow label="Fecha"               value={draft.study_date} onChange={v => setDraft({ ...draft, study_date: v })} type="date" />
           </div>
 
           {Object.keys(draft.extracted_fields).length > 0 && (
@@ -214,7 +328,14 @@ export default function Upload() {
             </div>
           )}
 
+          {draft.storagePaths.length > 1 && (
+            <p style={{ fontSize: 12, color: '#94A3B8', marginTop: 12 }}>
+              {draft.storagePaths.length} páginas procesadas
+            </p>
+          )}
+
           {saveError && <p style={{ color: '#EF4444', fontSize: 13, marginTop: 12 }}>{saveError}</p>}
+
           <button
             onClick={saveStudy}
             disabled={saving}
@@ -238,9 +359,9 @@ function FieldRow({ label, value, onChange, type = 'text' }: { label: string; va
 }
 
 const sourceCardStyle: React.CSSProperties = {
-  flex: 1, background: '#fff', borderRadius: 16, padding: '24px 16px',
-  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10,
-  border: '1.5px solid #E2E8F0', cursor: 'pointer', minHeight: 110,
+  flex: 1, background: '#fff', borderRadius: 16, padding: '20px 16px',
+  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
+  border: '1.5px solid #E2E8F0', cursor: 'pointer', minHeight: 90,
 };
 const fieldGroupStyle: React.CSSProperties = {
   background: '#fff', borderRadius: 14, overflow: 'hidden', border: '1px solid #E2E8F0',

@@ -6,7 +6,37 @@
   ],
   "skills_dir": ".claude/skills",
   "hooks": {
-    "post_test": ".claude/hooks/filter-test-output.sh"
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node .claude/hooks/filter-test-output.sh",
+            "if": "Bash(npx jest *)",
+            "timeout": 60
+          },
+          {
+            "type": "command",
+            "command": "node .claude/hooks/filter-test-output.sh",
+            "if": "Bash(npx vitest *)",
+            "timeout": 60
+          },
+          {
+            "type": "command",
+            "command": "node .claude/hooks/filter-test-output.sh",
+            "if": "Bash(pnpm test *)",
+            "timeout": 60
+          },
+          {
+            "type": "command",
+            "command": "node .claude/hooks/log-commit-to-checkpoint.js",
+            "if": "Bash(git commit *)",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
   },
   "permissions": {
     "allow": [
@@ -16,10 +46,18 @@
       "Bash(npx eslint *)",
       "Bash(npx jest *)",
       "Bash(npx vitest *)",
+      "Bash(pnpm *)",
       "Bash(supabase db reset --local)",
+      "Bash(supabase db push *)",
       "Bash(supabase start)",
       "Bash(supabase stop)",
       "Bash(supabase status)",
+      "Bash(supabase link *)",
+      "Bash(supabase login)",
+      "Bash(supabase projects *)",
+      "Bash(supabase functions *)",
+      "Bash(supabase secrets *)",
+      "Bash(supabase gen *)",
       "Bash(git status)",
       "Bash(git diff *)",
       "Bash(git log *)",
@@ -28,16 +66,18 @@
       "Bash(git add *)",
       "Bash(git commit *)",
       "Bash(git stash *)",
+      "Bash(git push *)",
+      "Bash(render *)",
       "Read(**)",
       "Write(apps/**)",
       "Write(packages/**)",
+      "Write(supabase/functions/**)",
       "Write(docs/**)",
       "Write(.claude/skills/**)",
       "Write(CLAUDE.md)",
       "Write(AGENTS.md)"
     ],
     "deny": [
-      "Bash(supabase db push --linked)",
       "Bash(railway *)",
       "Bash(eas submit *)",
       "Bash(git push --force *)",

@@ -55,14 +55,14 @@ export type DraftRealtimeRow = {
 };
 
 export async function enqueueExtract(
-  storage_path: string,
+  storage_paths: string[],
   mime_type: string,
   category: string,
 ): Promise<{ job_id: string }> {
   const res = await fetch(`${BASE}/extract`, {
     method: 'POST',
     headers: await authHeaders(),
-    body: JSON.stringify({ storage_path, mime_type, category }),
+    body: JSON.stringify({ storage_paths, mime_type, category }),
   });
   if (!res.ok) throw new Error(`extract enqueue error ${res.status}`);
   return res.json() as Promise<{ job_id: string }>;
