@@ -215,6 +215,46 @@ F5                                              QA + Deploy
 
 ---
 
+## Fase 6 — Landings de adquisición
+
+### Landing B2C — bresca.health (o subdominio)
+
+**Objetivo:** conversión de usuarios nuevos. Público: paciente LATAM que busca organizar su salud.
+
+**URL sugerida:** `bresca.health` o `app.bresca.health/landing`  
+**Archivo:** `Design System/ui_kits/b2c/index.html` — listo para deploy estático
+
+**Secciones:**
+- Hero: "Tu historial médico, siempre con vos" + CTA "Crear cuenta gratis"
+- Features: Vault, OCR con IA, QR para médico, Asistente, Familia, Privacidad
+- Cómo funciona: 3 pasos
+- Privacidad: pills de garantías
+- Teaser CRO: puerta de entrada a investigación anónima
+- CTA final + footer
+
+**Deploy:** HTML estático — Vercel, Netlify o S3. No requiere backend.
+
+---
+
+### Landing CRO — bresca.health/cro (o subdominio)
+
+**Objetivo:** conversión de investigadores y CROs. Público: pharma, laboratorios, equipos de investigación clínica.
+
+**URL sugerida:** `cro.bresca.health` o `bresca.health/research`  
+**Archivo:** `Design System/ui_kits/cro/index.html` — listo para deploy estático
+
+**Secciones:**
+- Hero dark: "Datos clínicos reales. Consentidos. Trazables." + dashboard mockup
+- Stats: +12.000 pacientes, +45.000 estudios, 100% consentimiento auditado, <48h entrega
+- Cómo funciona: Paciente consiente → matching anónimo → dataset en panel
+- Features: Matching + fit score, Anonimización certificada, Dashboard tiempo real, Trazabilidad
+- Compliance: consent_audit, RLS, k-anonimato, LGPD / Ley 25.326 / ICH-GCP
+- CTA: "Solicitar demo"
+
+**Deploy:** HTML estático — mismo setup que B2C.
+
+---
+
 ## Mejoras post-MVP documentadas
 
 Estas mejoras están fuera del alcance del MVP pero deben ser consideradas en la siguiente fase de producto.

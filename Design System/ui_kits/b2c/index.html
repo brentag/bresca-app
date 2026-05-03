@@ -1,115 +1,404 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Bresca — Health Data Autonomy</title>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Bresca — Tu historial médico, siempre con vos</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
-<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
-<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
 <style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Space Grotesk', sans-serif; background: #fff; color: #0F172A; -webkit-font-smoothing: antialiased; }
-  :root {
-    --green: #00C87A; --blue: #4B6EF5; --teal: #00B8D4;
-    --grad: linear-gradient(135deg,#00C87A 0%,#00B8D4 50%,#4B6EF5 100%);
-    --gray-50: #F8FAFC; --gray-100: #F1F5F9; --gray-200: #E2E8F0;
-    --gray-500: #64748B; --gray-800: #1E293B; --gray-900: #0F172A;
-  }
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:'Space Grotesk',sans-serif;background:#fff;color:#0F172A;-webkit-font-smoothing:antialiased}
+:root{
+  --green:#00C87A;--blue:#4B6EF5;--teal:#00B8D4;
+  --grad:linear-gradient(135deg,#00C87A 0%,#00B8D4 50%,#4B6EF5 100%);
+  --bg:#F7F9FC;--white:#fff;
+  --gray-50:#F8FAFC;--gray-100:#F1F5F9;--gray-200:#E2E8F0;
+  --gray-400:#94A3B8;--gray-500:#64748B;--gray-600:#475569;--gray-900:#0F172A;
+  --shadow-sm:0 1px 3px rgba(0,0,0,0.06),0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md:0 4px 16px rgba(0,0,0,0.08);
+  --shadow-lg:0 8px 32px rgba(0,0,0,0.12);
+}
+a{color:inherit;text-decoration:none}
+
+/* ── Layout ── */
+.container{max-width:1160px;margin:0 auto;padding:0 24px}
+
+/* ── Header ── */
+header{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(255,255,255,0.85);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid var(--gray-200)}
+.header-inner{display:flex;align-items:center;justify-content:space-between;padding:14px 24px;max-width:1160px;margin:0 auto}
+.logo{font-weight:700;font-size:20px;letter-spacing:-0.01em;background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+nav{display:flex;align-items:center;gap:28px}
+nav a{font-size:14px;font-weight:500;color:var(--gray-600);transition:color 150ms}
+nav a:hover{color:var(--gray-900)}
+.btn-primary{background:var(--grad);color:#fff;padding:10px 22px;border-radius:100px;font-size:14px;font-weight:600;border:none;cursor:pointer;transition:opacity 150ms,transform 150ms;white-space:nowrap}
+.btn-primary:hover{opacity:.9;transform:scale(1.02)}
+.btn-primary:active{transform:scale(0.98)}
+.btn-outline{background:transparent;color:var(--gray-900);padding:10px 22px;border-radius:100px;font-size:14px;font-weight:600;border:1.5px solid var(--gray-200);cursor:pointer;transition:border-color 150ms,transform 150ms}
+.btn-outline:hover{border-color:var(--gray-400);transform:scale(1.02)}
+.nav-mobile{display:none}
+
+/* ── Hero ── */
+.hero{padding:120px 24px 72px;background:linear-gradient(180deg,#fff 0%,var(--bg) 100%);text-align:center}
+.tagline-badge{display:inline-flex;align-items:center;gap:8px;background:linear-gradient(90deg,rgba(0,200,122,.1),rgba(75,110,245,.1));border:1px solid rgba(0,200,122,.25);border-radius:100px;padding:6px 16px;font-size:11px;font-weight:600;letter-spacing:.15em;text-transform:uppercase;color:var(--green);margin-bottom:28px}
+.tagline-dot{width:6px;height:6px;border-radius:50%;background:var(--grad)}
+.hero h1{font-size:clamp(40px,7vw,72px);font-weight:700;line-height:1.05;letter-spacing:-0.03em;margin-bottom:20px}
+.hero h1 span{background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hero-sub{font-size:18px;color:var(--gray-500);max-width:520px;margin:0 auto 36px;line-height:1.6}
+.hero-ctas{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-bottom:40px}
+.btn-primary-lg{background:var(--grad);color:#fff;padding:16px 32px;border-radius:100px;font-size:16px;font-weight:600;border:none;cursor:pointer;box-shadow:0 8px 24px rgba(0,200,122,.3);transition:opacity 150ms,transform 150ms}
+.btn-primary-lg:hover{opacity:.9;transform:scale(1.02)}
+.btn-link{background:none;border:none;font-size:16px;font-weight:500;color:var(--gray-600);cursor:pointer;display:flex;align-items:center;gap:6px;transition:color 150ms;padding:16px 0}
+.btn-link:hover{color:var(--gray-900)}
+.trust-row{display:flex;justify-content:center;gap:24px;flex-wrap:wrap}
+.trust-item{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--gray-500);font-weight:500}
+.trust-dot{width:5px;height:5px;border-radius:50%;background:var(--green)}
+
+/* ── App mockup ── */
+.mockup-wrap{margin-top:60px;display:flex;justify-content:center}
+.phone{width:240px;background:#fff;border-radius:36px;box-shadow:0 32px 80px rgba(0,0,0,0.15),0 0 0 1px rgba(0,0,0,.06);overflow:hidden;padding:0}
+.phone-bar{height:28px;background:#0F172A;border-radius:36px 36px 0 0;display:flex;align-items:center;justify-content:center}
+.phone-notch{width:80px;height:12px;background:#1a2236;border-radius:0 0 12px 12px}
+.phone-screen{background:var(--bg);padding:12px}
+.ph-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.ph-title{font-size:11px;font-weight:700;color:var(--gray-900)}
+.ph-badge{background:var(--grad);color:#fff;font-size:9px;font-weight:600;padding:2px 8px;border-radius:100px}
+.ph-card{background:#fff;border-radius:10px;padding:10px;margin-bottom:6px;box-shadow:var(--shadow-sm);display:flex;gap:8px;align-items:center}
+.ph-icon{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:14px}
+.ph-card-text{flex:1}
+.ph-card-name{font-size:10px;font-weight:600;color:var(--gray-900)}
+.ph-card-meta{font-size:9px;color:var(--gray-400)}
+.ph-card-chip{font-size:8px;font-weight:600;padding:2px 6px;border-radius:100px;color:#fff;float:right;margin-left:4px}
+
+/* ── Features ── */
+.section{padding:80px 24px}
+.section-label{font-size:11px;font-weight:600;letter-spacing:.15em;text-transform:uppercase;color:var(--green);margin-bottom:12px}
+.section-title{font-size:clamp(28px,4vw,42px);font-weight:700;letter-spacing:-0.02em;margin-bottom:16px;line-height:1.15}
+.section-sub{font-size:17px;color:var(--gray-500);max-width:540px;line-height:1.6;margin-bottom:52px}
+.features-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.feat-card{background:#fff;border-radius:16px;padding:28px;border:1px solid var(--gray-100);box-shadow:var(--shadow-sm);transition:transform 200ms,box-shadow 200ms}
+.feat-card:hover{transform:translateY(-3px);box-shadow:var(--shadow-md)}
+.feat-icon{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;margin-bottom:16px;font-size:22px}
+.feat-card h3{font-size:16px;font-weight:600;margin-bottom:8px;color:var(--gray-900)}
+.feat-card p{font-size:14px;color:var(--gray-500);line-height:1.6}
+
+/* ── How it works ── */
+.how-section{background:var(--bg);padding:80px 24px}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:32px;position:relative;margin-top:52px}
+.steps::before{content:'';position:absolute;top:28px;left:calc(16.6% + 24px);right:calc(16.6% + 24px);height:2px;background:linear-gradient(90deg,var(--green),var(--teal),var(--blue));opacity:.3}
+.step{text-align:center;position:relative}
+.step-num{width:56px;height:56px;border-radius:50%;background:var(--grad);color:#fff;font-size:20px;font-weight:700;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;box-shadow:0 8px 24px rgba(0,200,122,.25)}
+.step h3{font-size:17px;font-weight:600;margin-bottom:8px}
+.step p{font-size:14px;color:var(--gray-500);line-height:1.6}
+
+/* ── Privacy section ── */
+.privacy-section{background:linear-gradient(135deg,#F0FDF4,#EFF6FF);padding:80px 24px;text-align:center}
+.privacy-inner{max-width:640px;margin:0 auto}
+.privacy-icon{width:72px;height:72px;border-radius:50%;background:var(--grad);display:flex;align-items:center;justify-content:center;margin:0 auto 28px;font-size:32px}
+.privacy-section h2{font-size:clamp(24px,3.5vw,36px);font-weight:700;letter-spacing:-0.02em;margin-bottom:16px}
+.privacy-section p{font-size:17px;color:var(--gray-600);line-height:1.7;margin-bottom:32px}
+.privacy-pills{display:flex;justify-content:center;gap:12px;flex-wrap:wrap}
+.pill{background:#fff;border:1px solid var(--gray-200);border-radius:100px;padding:8px 18px;font-size:13px;font-weight:500;color:var(--gray-600);display:flex;align-items:center;gap:6px}
+.pill-dot{width:6px;height:6px;border-radius:50%}
+
+/* ── CRO teaser ── */
+.cro-teaser{background:linear-gradient(135deg,#0F172A 0%,#111827 100%);padding:72px 24px;text-align:center;position:relative;overflow:hidden}
+.cro-teaser::before{content:'';position:absolute;inset:0;background-image:radial-gradient(circle,rgba(255,255,255,0.04) 1px,transparent 1px);background-size:28px 28px}
+.cro-teaser-inner{position:relative;max-width:600px;margin:0 auto}
+.cro-chip{display:inline-block;background:rgba(0,200,122,.15);border:1px solid rgba(0,200,122,.3);border-radius:100px;padding:5px 14px;font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--green);margin-bottom:20px}
+.cro-teaser h2{font-size:clamp(24px,3.5vw,36px);font-weight:700;color:#fff;margin-bottom:16px;line-height:1.2}
+.cro-teaser p{font-size:16px;color:#94A3B8;line-height:1.7;margin-bottom:32px}
+.btn-ghost{background:transparent;border:1.5px solid rgba(255,255,255,.25);color:#fff;padding:12px 28px;border-radius:100px;font-size:15px;font-weight:600;cursor:pointer;transition:border-color 150ms,background 150ms}
+.btn-ghost:hover{border-color:rgba(255,255,255,.6);background:rgba(255,255,255,.06)}
+
+/* ── Final CTA ── */
+.final-cta{padding:100px 24px;text-align:center}
+.final-cta h2{font-size:clamp(28px,4.5vw,52px);font-weight:700;letter-spacing:-0.03em;margin-bottom:16px;line-height:1.1}
+.final-cta p{font-size:17px;color:var(--gray-500);margin-bottom:36px}
+.fine-print{font-size:13px;color:var(--gray-400);margin-top:16px}
+
+/* ── Footer ── */
+footer{background:var(--gray-50);border-top:1px solid var(--gray-200);padding:48px 24px 32px}
+.footer-inner{max-width:1160px;margin:0 auto}
+.footer-top{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:40px;margin-bottom:40px}
+.footer-brand{font-weight:700;font-size:18px;background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:10px}
+.footer-tagline{font-size:13px;color:var(--gray-400);letter-spacing:.1em;text-transform:uppercase;margin-bottom:14px}
+.footer-desc{font-size:13px;color:var(--gray-500);line-height:1.6}
+.footer-col h4{font-size:13px;font-weight:600;color:var(--gray-700);margin-bottom:12px;text-transform:uppercase;letter-spacing:.06em}
+.footer-col a{display:block;font-size:14px;color:var(--gray-500);margin-bottom:8px;transition:color 150ms}
+.footer-col a:hover{color:var(--gray-900)}
+.footer-bottom{border-top:1px solid var(--gray-200);padding-top:20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
+.footer-bottom p{font-size:13px;color:var(--gray-400)}
+
+/* ── Sticky mobile CTA ── */
+.sticky-cta{display:none;position:fixed;bottom:0;left:0;right:0;padding:12px 16px 24px;background:rgba(255,255,255,.95);backdrop-filter:blur(10px);border-top:1px solid var(--gray-200);z-index:90}
+
+/* ── Animations ── */
+.reveal{opacity:0;transform:translateY(20px);transition:opacity 500ms ease-out,transform 500ms ease-out}
+.reveal.visible{opacity:1;transform:translateY(0)}
+
+/* ── Responsive ── */
+@media(max-width:900px){
+  .features-grid{grid-template-columns:repeat(2,1fr)}
+  .steps{grid-template-columns:1fr;gap:28px}
+  .steps::before{display:none}
+  .footer-top{grid-template-columns:1fr 1fr}
+  nav>a{display:none}
+  .nav-mobile{display:flex}
+}
+@media(max-width:600px){
+  .features-grid{grid-template-columns:1fr}
+  .footer-top{grid-template-columns:1fr}
+  .footer-bottom{flex-direction:column;text-align:center}
+  .sticky-cta{display:block}
+  .hero-ctas{flex-direction:column;align-items:center}
+}
 </style>
 </head>
 <body>
-<div id="root"></div>
-<script type="text/babel" src="Header.jsx"></script>
-<script type="text/babel" src="Hero.jsx"></script>
-<script type="text/babel" src="Features.jsx"></script>
-<script type="text/babel" src="Footer.jsx"></script>
-<script type="text/babel">
-const { useState } = React;
 
-function App() {
-  const [screen, setScreen] = useState(() => localStorage.getItem('b2c-screen') || 'home');
-  const navigate = (s) => { localStorage.setItem('b2c-screen', s); setScreen(s); };
+<!-- HEADER -->
+<header>
+  <div class="header-inner">
+    <div class="logo">Bresca</div>
+    <nav>
+      <a href="#features">Funciones</a>
+      <a href="#como-funciona">Cómo funciona</a>
+      <a href="#privacidad">Privacidad</a>
+      <button class="btn-outline nav-mobile" style="display:none">Menú</button>
+    </nav>
+    <button class="btn-primary">Crear cuenta gratis</button>
+  </div>
+</header>
 
-  return (
-    <div>
-      <B2CHeader navigate={navigate} screen={screen} />
-      {screen === 'home' && <><B2CHero navigate={navigate} /><B2CFeatures /></>}
-      {screen === 'upload' && <UploadScreen navigate={navigate} />}
-      {screen === 'dashboard' && <DashboardScreen navigate={navigate} />}
-      <B2CFooter />
-    </div>
-  );
-}
+<!-- HERO -->
+<section class="hero">
+  <div class="tagline-badge">
+    <span class="tagline-dot"></span>
+    Health Data Autonomy
+  </div>
+  <h1>Tu historial médico,<br><span>siempre con vos.</span></h1>
+  <p class="hero-sub">Guardá todos tus estudios en un lugar seguro. Accedé desde donde estés. Compartí con tu médico en segundos.</p>
+  <div class="hero-ctas">
+    <button class="btn-primary-lg">Crear cuenta gratis</button>
+    <button class="btn-link">Ver cómo funciona <span>→</span></button>
+  </div>
+  <div class="trust-row">
+    <span class="trust-item"><span class="trust-dot"></span> Cifrado end-to-end</span>
+    <span class="trust-item"><span class="trust-dot"></span> Sin publicidad</span>
+    <span class="trust-item"><span class="trust-dot"></span> Para toda la familia</span>
+    <span class="trust-item"><span class="trust-dot"></span> Gratis para empezar</span>
+  </div>
 
-function UploadScreen({ navigate }) {
-  return (
-    <div style={{minHeight:'80vh',display:'flex',alignItems:'center',justifyContent:'center',background:'var(--gray-50)'}}>
-      <div style={{background:'#fff',borderRadius:16,padding:'48px 40px',boxShadow:'0 8px 32px rgba(0,0,0,0.10)',width:480,textAlign:'center'}}>
-        <div style={{width:64,height:64,borderRadius:16,background:'var(--grad)',margin:'0 auto 20px',display:'flex',alignItems:'center',justifyContent:'center'}}>
-          <svg width="28" height="28" fill="none" viewBox="0 0 24 24" stroke="#fff" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+  <!-- Phone mockup -->
+  <div class="mockup-wrap">
+    <div class="phone">
+      <div class="phone-bar"><div class="phone-notch"></div></div>
+      <div class="phone-screen">
+        <div class="ph-header">
+          <span class="ph-title">Mi Vault</span>
+          <span class="ph-badge">3 nuevos</span>
         </div>
-        <h2 style={{fontSize:24,fontWeight:700,marginBottom:8}}>Subir estudio médico</h2>
-        <p style={{color:'var(--gray-500)',fontSize:15,marginBottom:28,lineHeight:1.6}}>Formatos compatibles: DICOM, JPG, PDF, PNG. Máx. 500 MB por archivo.</p>
-        <div style={{border:'2px dashed var(--gray-200)',borderRadius:12,padding:'32px 20px',marginBottom:24,cursor:'pointer',transition:'border-color 200ms'}}
-          onMouseEnter={e=>e.currentTarget.style.borderColor='var(--green)'}
-          onMouseLeave={e=>e.currentTarget.style.borderColor='var(--gray-200)'}>
-          <p style={{color:'var(--gray-500)',fontSize:14}}>Arrastra tus archivos aquí o <span style={{color:'var(--green)',fontWeight:600,cursor:'pointer'}}>selecciona desde tu dispositivo</span></p>
-        </div>
-        <div style={{display:'flex',gap:12}}>
-          <button onClick={()=>navigate('dashboard')} style={{flex:1,background:'var(--grad)',color:'#fff',border:'none',borderRadius:100,padding:'12px 0',fontSize:15,fontWeight:600,fontFamily:'inherit',cursor:'pointer'}}>Subir archivo</button>
-          <button onClick={()=>navigate('home')} style={{flex:1,background:'var(--gray-100)',color:'var(--gray-800)',border:'none',borderRadius:100,padding:'12px 0',fontSize:15,fontWeight:600,fontFamily:'inherit',cursor:'pointer'}}>Cancelar</button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function DashboardScreen({ navigate }) {
-  const studies = [
-    {name:'Radiografía Tórax',date:'12 Ene 2024',type:'DICOM',size:'14 MB',color:'#00C87A'},
-    {name:'Ecografía Abdominal',date:'5 Nov 2023',type:'DICOM',size:'28 MB',color:'#00B8D4'},
-    {name:'Análisis de Sangre',date:'20 Oct 2023',type:'PDF',size:'2 MB',color:'#4B6EF5'},
-    {name:'Resonancia Columna',date:'3 Sep 2023',type:'DICOM',size:'180 MB',color:'#4B6EF5'},
-  ];
-  return (
-    <div style={{minHeight:'80vh',background:'var(--gray-50)',padding:'40px 0'}}>
-      <div style={{maxWidth:900,margin:'0 auto',padding:'0 24px'}}>
-        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:28}}>
-          <div>
-            <h2 style={{fontSize:26,fontWeight:700}}>Mis Estudios</h2>
-            <p style={{color:'var(--gray-500)',fontSize:14,marginTop:4}}>4 estudios guardados</p>
+        <div class="ph-card">
+          <div class="ph-icon" style="background:#EFF6FF">🩸</div>
+          <div class="ph-card-text">
+            <div class="ph-card-name">Hemograma completo</div>
+            <div class="ph-card-meta">Lab. Central · 14/04/2026</div>
           </div>
-          <button onClick={()=>navigate('upload')} style={{background:'var(--grad)',color:'#fff',border:'none',borderRadius:100,padding:'10px 24px',fontSize:14,fontWeight:600,fontFamily:'inherit',cursor:'pointer',display:'flex',alignItems:'center',gap:6}}>
-            <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4"/></svg>
-            Nuevo estudio
-          </button>
+          <span class="ph-card-chip" style="background:#00C87A">OK</span>
         </div>
-        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(200px,1fr))',gap:16}}>
-          {studies.map((s,i)=>(
-            <div key={i} style={{background:'#fff',borderRadius:12,padding:20,boxShadow:'0 2px 8px rgba(0,0,0,0.06)',cursor:'pointer',transition:'box-shadow 200ms,transform 200ms'}}
-              onMouseEnter={e=>{e.currentTarget.style.boxShadow='0 8px 24px rgba(0,0,0,0.12)';e.currentTarget.style.transform='translateY(-2px)'}}
-              onMouseLeave={e=>{e.currentTarget.style.boxShadow='0 2px 8px rgba(0,0,0,0.06)';e.currentTarget.style.transform='translateY(0)'}}>
-              <div style={{width:40,height:40,borderRadius:10,background:s.color,marginBottom:12,display:'flex',alignItems:'center',justifyContent:'center'}}>
-                <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="#fff" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-              </div>
-              <div style={{fontSize:14,fontWeight:600,marginBottom:4}}>{s.name}</div>
-              <div style={{fontSize:12,color:'var(--gray-500)',marginBottom:2}}>{s.date}</div>
-              <div style={{display:'flex',gap:6,marginTop:8}}>
-                <span style={{fontSize:11,fontWeight:600,padding:'2px 8px',borderRadius:100,background:'#F1F5F9',color:'var(--gray-800)'}}>{s.type}</span>
-                <span style={{fontSize:11,color:'var(--gray-500)',padding:'2px 8px'}}>{s.size}</span>
-              </div>
-            </div>
-          ))}
+        <div class="ph-card">
+          <div class="ph-icon" style="background:#F0FDF4">💊</div>
+          <div class="ph-card-text">
+            <div class="ph-card-name">Glucemia en ayunas</div>
+            <div class="ph-card-meta">Lab. Rivadavia · 02/03/2026</div>
+          </div>
+          <span class="ph-card-chip" style="background:#F59E0B">Rev.</span>
+        </div>
+        <div class="ph-card">
+          <div class="ph-icon" style="background:#FFF7ED">🫀</div>
+          <div class="ph-card-text">
+            <div class="ph-card-name">Ecocardiograma</div>
+            <div class="ph-card-meta">Clínica San Martín · 18/01/2026</div>
+          </div>
+          <span class="ph-card-chip" style="background:#4B6EF5">PDF</span>
         </div>
       </div>
     </div>
-  );
-}
+  </div>
+</section>
 
-const root = ReactDOM.createRoot(document.getElementById('root'));
-root.render(<App />);
+<!-- FEATURES -->
+<section class="section" id="features">
+  <div class="container">
+    <div class="section-label">Funciones</div>
+    <h2 class="section-title">Todo lo que necesitás<br>para tu salud, en un lugar.</h2>
+    <p class="section-sub">Diseñado para que no dependas de ningún sistema de salud, laboratorio o médico en particular.</p>
+    <div class="features-grid reveal">
+
+      <div class="feat-card">
+        <div class="feat-icon" style="background:#F0FDF4">🗂️</div>
+        <h3>Vault digital</h3>
+        <p>Todos tus estudios organizados automáticamente. Por tipo, categoría y fecha. Sin carpetas, sin escáneres.</p>
+      </div>
+
+      <div class="feat-card">
+        <div class="feat-icon" style="background:#EFF6FF">🤖</div>
+        <h3>OCR con IA</h3>
+        <p>Fotografiá o subí tu estudio y la IA extrae los valores automáticamente. Revisás y confirmás antes de guardar.</p>
+      </div>
+
+      <div class="feat-card">
+        <div class="feat-icon" style="background:#F0FDF4">📲</div>
+        <h3>QR para tu médico</h3>
+        <p>Generá un código QR temporal y mostráselo a tu médico. Ve lo que autorizás, sin que tenga que registrarse.</p>
+      </div>
+
+      <div class="feat-card">
+        <div class="feat-icon" style="background:#EFF6FF">💬</div>
+        <h3>Asistente IA</h3>
+        <p>Preguntale a tu asistente: "¿Cuál fue mi última glucemia?" o "¿Tomé algún antibiótico este año?" Responde con tus datos reales.</p>
+      </div>
+
+      <div class="feat-card">
+        <div class="feat-icon" style="background:#FFF7ED">👨‍👩‍👧</div>
+        <h3>Gestión familiar</h3>
+        <p>Administrá los estudios de toda tu familia desde una sola cuenta. Cada perfil es independiente y privado.</p>
+      </div>
+
+      <div class="feat-card" style="border-color:rgba(0,200,122,.2);background:linear-gradient(135deg,#F0FDF4,#fff)">
+        <div class="feat-icon" style="background:var(--grad)">🔒</div>
+        <h3 style="background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">Privacidad total</h3>
+        <p>Tus datos son tuyos. Nunca los vendemos. Nunca los compartimos sin tu permiso explícito. Siempre.</p>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="how-section" id="como-funciona">
+  <div class="container">
+    <div class="section-label">Cómo funciona</div>
+    <h2 class="section-title">Tres pasos, y listo.</h2>
+    <p class="section-sub">Sin complicaciones. Sin formularios interminables. Sin dependencia del sistema.</p>
+    <div class="steps reveal">
+      <div class="step">
+        <div class="step-num">1</div>
+        <h3>Subí o fotografiá</h3>
+        <p>Sacá fotos directamente desde la app o subí el PDF. Funciona con cualquier laboratorio o clínica.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <h3>La IA extrae los datos</h3>
+        <p>En segundos, tu asistente identifica tipo de estudio, fecha, laboratorio y todos los valores relevantes.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <h3>Accedé y compartí</h3>
+        <p>Tu historial siempre disponible, desde cualquier dispositivo. Compartí solo lo que querés, cuando querés.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PRIVACY -->
+<section class="privacy-section" id="privacidad">
+  <div class="privacy-inner reveal">
+    <div class="privacy-icon">🛡️</div>
+    <h2>Tus datos son tuyos.<br>Sin letra chica.</h2>
+    <p>No vendemos datos. No hacemos publicidad médica. No compartimos nada sin tu consentimiento explícito.<br>
+    Y si decidís participar en investigación médica de forma anónima — es opcional, siempre reversible, y vos controlás todo.</p>
+    <div class="privacy-pills">
+      <span class="pill"><span class="pill-dot" style="background:var(--green)"></span>Cifrado AES-256</span>
+      <span class="pill"><span class="pill-dot" style="background:var(--blue)"></span>Sin publicidad</span>
+      <span class="pill"><span class="pill-dot" style="background:var(--teal)"></span>Consentimiento granular</span>
+      <span class="pill"><span class="pill-dot" style="background:var(--green)"></span>Revocación en un tap</span>
+      <span class="pill"><span class="pill-dot" style="background:var(--blue)"></span>Datos nunca vendidos</span>
+    </div>
+  </div>
+</section>
+
+<!-- CRO TEASER -->
+<section class="cro-teaser">
+  <div class="cro-teaser-inner reveal">
+    <div class="cro-chip">Para investigadores</div>
+    <h2>Tus datos pueden avanzar la medicina.<br>Vos decidís cuándo.</h2>
+    <p>Si querés participar en investigación clínica de forma anónima, Bresca te conecta con estudios donde tus datos pueden ser útiles. Sin intermediarios. Sin perder la privacidad.</p>
+    <button class="btn-ghost">Conocer más sobre investigación →</button>
+  </div>
+</section>
+
+<!-- FINAL CTA -->
+<section class="final-cta">
+  <div class="container reveal">
+    <h2>Empezá hoy.<br><span style="background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">Es gratis.</span></h2>
+    <p>Tu historial médico organizado, siempre con vos, desde el primer día.</p>
+    <button class="btn-primary-lg">Crear cuenta gratis</button>
+    <p class="fine-print">Gratis · Sin tarjeta de crédito · Sin compromiso</p>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-top">
+      <div>
+        <div class="footer-brand">Bresca</div>
+        <div class="footer-tagline">Health Data Autonomy</div>
+        <div class="footer-desc">La plataforma de portabilidad de datos de salud para LATAM. Tus estudios, tus datos, tu decisión.</div>
+      </div>
+      <div class="footer-col">
+        <h4>Producto</h4>
+        <a href="#">Cómo funciona</a>
+        <a href="#">Seguridad</a>
+        <a href="#">Gestión familiar</a>
+        <a href="#">Para médicos</a>
+      </div>
+      <div class="footer-col">
+        <h4>Empresa</h4>
+        <a href="#">Sobre Bresca</a>
+        <a href="#">Para CROs</a>
+        <a href="#">Blog</a>
+        <a href="#">Contacto</a>
+      </div>
+      <div class="footer-col">
+        <h4>Legal</h4>
+        <a href="#">Privacidad</a>
+        <a href="#">Términos de uso</a>
+        <a href="#">Consentimiento</a>
+        <a href="#">Compliance</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>© 2026 Bresca. Todos los derechos reservados.</p>
+      <p>Hecho con cuidado en LATAM</p>
+    </div>
+  </div>
+</footer>
+
+<!-- Sticky mobile CTA -->
+<div class="sticky-cta">
+  <button class="btn-primary-lg" style="width:100%;padding:14px">Crear cuenta gratis</button>
+</div>
+
+<script>
+// Scroll reveal
+const observer = new IntersectionObserver(
+  (entries) => entries.forEach(e => { if(e.isIntersecting) e.target.classList.add('visible') }),
+  { threshold: 0.1 }
+);
+document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+// Hide sticky CTA on desktop
+function checkViewport() {
+  const sticky = document.querySelector('.sticky-cta');
+  if (window.innerWidth > 600) sticky.style.display = 'none';
+  else sticky.style.display = 'block';
+}
+checkViewport();
+window.addEventListener('resize', checkViewport);
 </script>
+
 </body>
 </html>
