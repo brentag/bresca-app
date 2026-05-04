@@ -3,9 +3,9 @@
 
 | Campo | Valor |
 |---|---|
-| **Versión** | 1.0 |
+| **Versión** | 1.1 |
 | **Dueño** | Engineering Lead |
-| **Fecha** | Abril 2026 |
+| **Fecha** | Mayo 2026 |
 | **Audiencia** | Dev + Oncall |
 | **Relacionado con** | System Design v1.0, Post-Mortem template |
 
@@ -15,9 +15,9 @@
 
 | Entorno | URLs | Uso |
 |---|---|---|
-| **Local** | `localhost:3000` (api) `localhost:5173` (web-cro) | Desarrollo diario. Datos seed locales. Supabase local vía Docker. |
-| **Staging** | `staging-api.bresca.health` / `staging.bresca.health` | QA antes de releases. Datos sintéticos. Mirror de producción. |
-| **Production** | `api.bresca.health` / `bresca.health` | Usuarios reales. Cambios **solo vía CI/CD**. Nunca deploy manual. |
+| **Local** | `localhost:3000` (api) · `localhost:5173` (web-patient) · `localhost:5174` (web-cro) | Desarrollo diario. Datos seed locales. Supabase local vía Docker. |
+| **Staging** | — | No configurado aún en MVP. |
+| **Production** | `https://bresca-api.onrender.com` (api) · `https://bresca-app-api.vercel.app` (web-patient) | Usuarios reales. Cambios **solo vía push a `main`**. |
 
 ---
 
@@ -28,62 +28,63 @@
 - Node.js 20 LTS
 - Docker Desktop (para Supabase local)
 - `npm install -g supabase` (Supabase CLI)
-- `npm install -g eas-cli` (para builds móviles)
+- pnpm (`npm install -g pnpm`)
 
 ### Pasos
 
 ```bash
 # 1. Clonar
-git clone https://github.com/bresca/bresca-app && cd bresca-app
+git clone https://github.com/brentag/bresca-app && cd bresca-app
 
 # 2. Instalar dependencias (todos los workspaces)
-npm install
+pnpm install
 
 # 3. Variables de entorno
-cp .env.example .env.local
+cp apps/api/.env.example apps/api/.env
 # Completar: SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY,
-#            GOOGLE_DOCAI_KEY, ANTHROPIC_API_KEY, QR_TOKEN_SECRET
+#            DEEPSEEK_API_KEY, QR_TOKEN_SECRET
 
 # 4. Levantar Supabase local
 supabase start
 supabase db reset    # aplica migraciones + seed data
 
-# 5. Levantar API + web-cro (turbo corre ambos en paralelo)
-npm run dev
+# 5. Levantar API + web-patient + web-cro (turbo corre todos en paralelo)
+pnpm dev
 
-# 6. Mobile (terminal separada)
-cd apps/mobile && npx expo start
+# Mobile (pendiente — no iniciado aún)
+# cd apps/mobile && npx expo start
 ```
 
 ### Verificar que todo funciona
 
 ```bash
 curl http://localhost:3000/health
-# → {"status":"ok","db":"connected","storage":"connected"}
+# → {"status":"ok","ts":"..."}
 ```
 
 ---
 
 ## 3. Deploy a producción
 
-> ⚠️ **Nunca deploy manual a producción.** Todo cambio pasa por PR → CI/CD → staging → production.
-
 ### Proceso de release
 
 ```
-1. Crear PR contra `main`
-   → CI corre: lint, type-check, tests, build de todas las apps
+1. Push a `main` (o merge de PR)
 
-2. Si CI verde + code review aprobado → merge a `main`
+2. Render.com auto-deploya `apps/api` desde `main`
+   → Verificar en Render Dashboard → bresca-api → Deploys
+   → URL: https://bresca-api.onrender.com/health debe devolver 200
 
-3. Railway auto-deploya `apps/api` desde `main`
-   → Verificar en Railway Dashboard que el deploy terminó sin errores
-
-4. Vercel auto-deploya `apps/web-cro` desde `main`
+3. Vercel auto-deploya `apps/web-patient` desde `main`
    → Preview URL disponible inmediatamente. Production en ~2 min.
+   → URL: https://bresca-app-api.vercel.app
+
+4. Correr QA post-deploy:
+   node scripts/post-deploy-qa.mjs
+   → 12/14 tests deben pasar (2 SKIP por configuración pendiente es aceptable)
 
 5. Mobile (cuando corresponda)
-   → npm run build:production (EAS Build)
+   → pnpm build:production (EAS Build)
    → Distribución a TestFlight (iOS) y Play Internal Testing (Android)
 ```
 
@@ -92,42 +93,35 @@ curl http://localhost:3000/health
 > ⚠️ Las migraciones se aplican **ANTES** del deploy del código que las usa. Nunca al revés.
 
 ```bash
-# 1. Generar migración desde el diff del schema
-supabase db diff --use-migra --schema public
+# 1. Escribir el SQL en supabase/migrations/YYYYMMDDHHMMSS_descripcion.sql
 
-# 2. Revisar el SQL generado manualmente (siempre)
+# 2. Aplicar via MCP Supabase o CLI:
+supabase db push --linked --project-ref mkacuagcvwxoduhdthwg
 
-# 3. Crear archivo de migración
-supabase migration new nombre_descripcion_breve
-# → crea supabase/migrations/YYYYMMDDHHMMSS_nombre.sql
+# 3. Verificar con:
+supabase migration list --linked --project-ref mkacuagcvwxoduhdthwg
 
-# 4. Pegar SQL revisado en el archivo
-
-# 5. Aplicar en staging primero
-supabase db push --linked --project-ref <staging-ref>
-
-# 6. Verificar que staging funciona correctamente
-
-# 7. Aplicar en producción
-supabase db push --linked --project-ref <prod-ref>
+# 4. Re-generar tipos TS:
+supabase gen types typescript --project-ref mkacuagcvwxoduhdthwg \
+  > packages/shared/src/database.types.ts
 ```
 
 ---
 
 ## 4. Procedimientos de incidente
 
-### INC-001: API down (Railway)
+### INC-001: API down (Render.com)
 
-**Síntomas:** `/health` no responde, 503 en la app, alertas de UptimeRobot.
+**Síntomas:** `https://bresca-api.onrender.com/health` no responde, 503 en la app.
 
 ```
-1. Abrir Railway Dashboard → proyecto bresca-api → Deployments
-2. Revisar logs del último deploy
+1. Abrir Render Dashboard → bresca-api → Deploys
+2. Revisar logs del último deploy (Render Dashboard → Logs)
 3. Si el deploy nuevo causó el problema:
-   Railway → Deployments → [último deploy exitoso] → Rollback
-4. Si es problema de infraestructura Railway:
-   Verificar https://status.railway.app
-5. Notificar en canal #incidents: "API down desde HH:MM UTC. Investigando."
+   Render → Deploys → [último deploy exitoso] → Rollback
+4. Si es problema de infraestructura Render:
+   Verificar https://status.render.com
+5. Notificar: "API down desde HH:MM UTC. Investigando."
 6. Una vez resuelto: "API restaurada a las HH:MM UTC. Root cause: [X]."
 7. Si duró > 30 min: crear Post-Mortem.
 ```
@@ -150,18 +144,20 @@ supabase db push --linked --project-ref <prod-ref>
 
 ### INC-003: OCR fallando en masa (> 20% error rate)
 
-**Síntomas:** uploads no se confirman, logs con errores Document AI, usuarios reportan que OCR "no extrae nada".
+**Síntomas:** `study_drafts.status` queda en `error`, usuarios ven cards rojas en el Vault, Edge Function con errores en logs.
 
 ```
-1. Google Cloud Console → Document AI → Metrics → Error rate (últimos 30 min)
-2. Si es error de quota:
-   → Google Cloud Console → APIs → Document AI → Quotas → Request increase
-   → O activar fallback inmediato:
-      Railway → bresca-api → Variables → OCR_PROVIDER=textract → Save → Restart
-3. Si es degradación del servicio de Google:
-   → https://status.cloud.google.com
-   → Activar fallback a Textract mientras tanto
-4. Documentar en Post-Mortem si duró > 30 min o afectó > 50 uploads.
+1. Supabase Dashboard → Edge Functions → process-study-draft → Logs
+   → Identificar tipo de error (DeepSeek timeout, Storage error, parsing error)
+2. Si es error de quota o rate limit DeepSeek:
+   → DeepSeek Console → Usage → verificar límites
+   → Ajustar DEEPSEEK_API_KEY en Supabase Dashboard → Secrets → Restart
+3. Si es error de Storage (archivos no accesibles):
+   → Supabase Dashboard → Storage → verificar bucket "studies"
+   → Verificar RLS policies del bucket
+4. Si el Edge Function tiene un bug de código:
+   → Supabase Dashboard → Edge Functions → Redeploy desde supabase/functions/
+5. Documentar en Post-Mortem si duró > 30 min o afectó > 50 uploads.
 ```
 
 ### INC-004: Copilot no responde o responde con errores
@@ -169,16 +165,15 @@ supabase db push --linked --project-ref <prod-ref>
 **Síntomas:** chat del Copilot no envía respuesta, errores 429 o 500 en `/copilot/chat`.
 
 ```
-1. Revisar Railway logs para bresca-api → filtrar por "copilot"
-2. Si es error 429 (rate limit Anthropic):
-   → Anthropic Console → Usage → verificar si superamos límite
-   → Aumentar límite o reducir MAX_TOKENS temporalmente
+1. Render Dashboard → bresca-api → Logs → filtrar por "copilot"
+2. Si es error 429 (rate limit DeepSeek):
+   → DeepSeek Console → Usage → verificar si superamos límite
+   → Reducir MAX_TOKENS temporalmente o esperar reset
 3. Si es error de API key expirada/revocada:
-   → Generar nueva key en Anthropic Console
-   → Actualizar ANTHROPIC_API_KEY en Railway → Restart
-4. Si es error en el chunking/retrieval:
-   → Revisar tabla study_embeddings: SELECT count(*) WHERE profile_id = <afectado>
-   → Si está vacía: re-generar embeddings vía Edge Function manual
+   → Generar nueva key en DeepSeek Console
+   → Actualizar DEEPSEEK_API_KEY en Render → Environment → Restart
+4. Si es error en el contexto del vault:
+   → Verificar que extracted_fields no sea null para los estudios del usuario
 ```
 
 ### INC-005: Brecha de seguridad sospechosa
@@ -191,9 +186,9 @@ supabase db push --linked --project-ref <prod-ref>
 TIEMPO MÁXIMO PARA CONTENCIÓN: 1 hora
 
 1. [T+0] Revocar credenciales comprometidas INMEDIATAMENTE:
-   - Railway → bresca-api → Variables → SUPABASE_SERVICE_ROLE_KEY → borrar → Save
+   - Render Dashboard → bresca-api → Environment → SUPABASE_SERVICE_ROLE_KEY → eliminar → Save → Restart
    - Supabase Dashboard → Settings → API → Revocar service role key
-   - Revocar ANTHROPIC_API_KEY y GOOGLE_DOCAI_KEY en sus respectivas consolas
+   - Revocar DEEPSEEK_API_KEY en DeepSeek Console
 
 2. [T+0] Notificar al DPO (Data Protection Officer) y al asesor legal
 
@@ -218,38 +213,46 @@ TIEMPO MÁXIMO PARA CONTENCIÓN: 1 hora
 
 | Tarea | Frecuencia | Procedimiento |
 |---|---|---|
-| Rotación de API keys (DOCAI + Anthropic) | Mensual | Google Cloud Console + Anthropic Console → actualizar en Railway env vars → Restart → Verificar `/health` |
+| Rotación de DEEPSEEK_API_KEY | Mensual | DeepSeek Console → nueva key → actualizar en Render env vars + Supabase Secrets → Restart → Verificar `/health` |
 | Verificar crecimiento de storage | Semanal | Supabase Dashboard → Storage → verificar que crecimiento es lineal, no exponencial |
 | Revisar slow queries | Semanal | Supabase Dashboard → Logs → Slow queries. Si hay query > 500ms sin índice: crear ticket. |
-| Verificar QR tokens expirados (pg_cron) | Automático diario | `SELECT count(*) FROM qr_tokens WHERE expires_at < now()` — debe ser 0 después del job |
-| Verificar backup | Mensual | Supabase Pro hace backups diarios. Una vez al mes: restore test en staging. |
-| Revisar costos IA | Semanal | Anthropic Console + Google Cloud Console. Alerta si > baseline × 1.3. |
-| Actualizar dependencias | Quincenal | `npm outdated` → actualizar en branch → tests → PR |
+| Verificar study_drafts TTL (pg_cron) | Automático diario | `SELECT count(*) FROM study_drafts WHERE created_at < now() - interval '24h'` — debe ser 0 después del job |
+| Verificar QR tokens expirados (pg_cron) | Automático diario | `SELECT count(*) FROM qr_tokens WHERE expires_at < now() AND revoked_at IS NULL` — debe ser 0 |
+| Actualizar dependencias | Quincenal | `pnpm outdated` → actualizar en branch → tests → PR |
+| QA post-deploy | Cada deploy | `node scripts/post-deploy-qa.mjs` — 12/14 mínimo aceptable |
 
 ---
 
 ## 6. Comandos de utilidad frecuentes
 
 ```bash
-# Ver logs de la API en Railway
-railway logs --tail --service bresca-api
+# Verificar estado de la API en producción
+curl https://bresca-api.onrender.com/health
 
-# Conectarse a la DB de producción (solo lectura)
-supabase db remote --project-ref <prod-ref>
+# Ver logs de la Edge Function OCR
+supabase functions logs process-study-draft --project-ref mkacuagcvwxoduhdthwg
 
-# Verificar estado de todos los servicios
-curl https://api.bresca.health/health | jq
-
-# Listar migraciones aplicadas
-supabase migration list --linked --project-ref <prod-ref>
+# Listar migraciones aplicadas a producción
+supabase migration list --linked --project-ref mkacuagcvwxoduhdthwg
 
 # Re-generar tipos TypeScript desde el schema de DB
-supabase gen types typescript --project-ref <prod-ref> > packages/shared/src/database.types.ts
+supabase gen types typescript --project-ref mkacuagcvwxoduhdthwg \
+  > packages/shared/src/database.types.ts
 
-# Ver uso de tokens del Copilot (último día)
-# En Anthropic Console → Usage → Filter by date
+# Correr QA post-deploy manual
+node scripts/post-deploy-qa.mjs
+
+# Correr QA sin crear GitHub issues
+node scripts/post-deploy-qa.mjs --no-issues
+
+# Ver study_drafts con error en producción (últimas 24h)
+# En Supabase Dashboard → SQL Editor:
+# SELECT id, profile_id, error_log, created_at
+# FROM study_drafts
+# WHERE status = 'error' AND created_at > now() - interval '24h'
+# ORDER BY created_at DESC;
 ```
 
 ---
 
-*Relacionado: System Design v1.0 | Post-Mortem template | Tech Spec v1.0*
+*Relacionado: System Design v1.0 | Post-Mortem template | Tech Spec v1.1*

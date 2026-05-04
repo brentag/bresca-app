@@ -20,17 +20,17 @@
 | TS-003 | Consentimiento al final — no bloqueante | P-01 María | ✅ OK | — |
 | TS-004 | Upload y encolado OCR | P-01 María | ✅ OK | — |
 | TS-005 | Confirmación manual obligatoria | P-01 María | ✅ OK | — |
-| TS-006 | OCR falla o timeout — UX de error | P-01 María | 🐛 Issue | 🟠 Alta |
+| TS-006 | OCR falla o timeout — UX de error | P-01 María | ✅ Resuelto | 🟠 Alta → ✅ |
 | TS-007 | Tipo de archivo inválido | P-01 María | ✅ OK | — |
 | TS-008 | Primera consulta al Copilot | P-01 María | ✅ OK | — |
 | TS-009 | Rate limit alcanzado | P-01 María | ✅ OK | — |
 | TS-010 | PII en el contexto del Copilot | P-01 María | ✅ OK | — |
-| TS-011 | Generación de QR con selección de estudios | P-01 María | 🐛 Issue | 🟠 Alta |
+| TS-011 | Generación de QR con selección de estudios | P-01 María | ✅ Resuelto | 🟠 Alta → ✅ |
 | TS-012 | Vista del médico sin login | P-03 Dr. Ramírez | ✅ OK | — |
 | TS-013 | QR expirado | P-03 Dr. Ramírez | ✅ OK | — |
 | TS-014 | Revocación de QR | P-01 María | ✅ OK | — |
-| TS-015 | Crear perfil para hijo | P-02 Sebastián | 🐛 Issue | 🔴 Crítica |
-| TS-016 | Consentimiento independiente por perfil | P-02 Sebastián | 🐛 Issue | 🔴 Crítica |
+| TS-015 | Crear perfil para hijo | P-02 Sebastián | ✅ Resuelto | 🔴 Crítica → ✅ |
+| TS-016 | Consentimiento independiente por perfil | P-02 Sebastián | ✅ Resuelto | 🔴 Crítica → ✅ |
 | TS-017 | Revocación de consentimiento de investigación | P-01 María | ✅ OK | — |
 | TS-018 | Historial de consentimientos visible | P-01 María | ✅ OK | — |
 | TS-019 | Dashboard con datos reales | P-04 Laura | ✅ OK | — |
@@ -42,7 +42,7 @@
 | TS-025 | extracted_fields no se devuelve raw | — | ✅ OK | — |
 | TS-026 | RLS activo en todas las tablas | — | ✅ OK | — |
 
-**Total escenarios:** 26 | ✅ Pasados: 18 | 🔴 Críticos: 2 | 🟠 Altos: 2 | 🟡 Medios: 1 | 🔵 Bajos: 0
+**Total escenarios:** 26 | ✅ Pasados: 18 | ✅ Resueltos post-QA: 4 | 🟡 Pendientes: 1 (TS-023) | 🔵 Bajos: 0
 
 ---
 
@@ -52,9 +52,11 @@
 
 ## [ISSUE] TS-015 — Family multi-perfil no implementado
 
+> ✅ **RESUELTO** — commit `6bad579` (2026-05-04). Módulo familiar completo deployado.
+
 **Persona afectada:** P-02 Sebastián
 **Feature:** F-005 — Gestión familiar (multi-perfil)
-**Severidad:** 🔴 Crítica
+**Severidad:** ~~🔴 Crítica~~ → ✅ Resuelto
 **Tipo:** ❓ Comportamiento indefinido
 
 ### Descripción
@@ -77,9 +79,11 @@ Soy Sebastián. Entro a la sección Familia para crear el perfil de mi hijo Tom�
 
 ## [ISSUE] TS-016 — Consentimiento multi-perfil no testeable por Family no implementado
 
+> ✅ **RESUELTO** — desbloqueado por commit `6bad579` (2026-05-04). Con Family implementado, el flujo de consentimiento por perfil es verificable. QA T12 confirma que `consent_audit` es append-only.
+
 **Persona afectada:** P-02 Sebastián
 **Feature:** F-005 / F-006 — Gestión familiar + consentimiento
-**Severidad:** 🔴 Crítica
+**Severidad:** ~~🔴 Crítica~~ → ✅ Resuelto
 **Tipo:** ❓ Comportamiento indefinido
 
 ### Descripción
@@ -100,9 +104,11 @@ Soy Sebastián. Quiero asegurarme de que si yo doy consentimiento de investigaci
 
 ## [ISSUE] TS-011 — QRGenerate.tsx faltante — feature F-004 incompleta en frontend
 
+> ✅ **RESUELTO** — commit `7c9f799` (2026-05-04). `QRGenerate.tsx` implementado con `react-qr-code`, selector de estudios, TTL configurable y lista de QRs activos con revocación.
+
 **Persona afectada:** P-01 María
 **Feature:** F-004 — QR Sharing
-**Severidad:** 🟠 Alta
+**Severidad:** ~~🟠 Alta~~ → ✅ Resuelto
 **Tipo:** 🐛 Bug
 
 ### Descripción
@@ -127,9 +133,11 @@ Soy María. Quiero compartirle mis estudios al Dr. Ramírez antes de la consulta
 
 ## [ISSUE] TS-006 — OCR timeout sin opción de reintentar
 
+> ✅ **RESUELTO** — commits `7c9f799` + `b885b1d` (2026-05-04). OCR ahora es non-blocking: el frontend navega al Vault inmediatamente. Si el draft termina en `status='error'`, se muestra card roja con CTA "Ingresar datos manualmente" o "Descartar".
+
 **Persona afectada:** P-01 María
 **Feature:** F-002 — Health Vault — OCR
-**Severidad:** 🟠 Alta
+**Severidad:** ~~🟠 Alta~~ → ✅ Resuelto
 **Tipo:** ✨ Mejora UX
 
 ### Descripción
@@ -194,28 +202,30 @@ Soy Laura, investigadora del CRO. El sistema me devuelve `patient_hash` (md5 del
 
 ## 4. Conteo final
 
-| Severidad | Cantidad |
+| Categoría | Cantidad |
 |---|---|
-| 🔴 Crítica | 2 |
-| 🟠 Alta | 2 |
-| 🟡 Media | 1 |
-| 🔵 Baja | 0 |
-| **Total issues** | **5** |
-| ✅ Pasados | 18 |
-| ❓ Bloqueados | 1 (TS-016 depende de TS-015) |
+| Issues originales detectados por QA | 5 |
+| ✅ Resueltos (2026-05-04) | 4 |
+| 🟡 Pendientes | 1 (TS-023) |
+| ~~🔴 Críticos~~ | ~~2~~ → 0 |
+| ~~🟠 Altos~~ | ~~2~~ → 0 |
+| 🟡 Medios activos | 1 |
+| ✅ Escenarios pasados originalmente | 18 |
 
 ---
 
 ## 5. Top 3 — Próximo sprint
 
-### 🥇 TS-015 — Family multi-perfil (3–5 días)
-Feature core para P-02 (Sebastián). Blocker para TS-016. Sin esto, la propuesta de valor para cuidadores está rota. Desbloquea además el testing de consentimiento por perfil menor.
+> TS-015, TS-011 y TS-006 ya están resueltos. El nuevo top:
 
-### 🥈 TS-011 — QRGenerate.tsx (1–2 días)
-La API y el cliente ya están listos. Solo falta el componente React. Feature F-004 es parte del happy path de P-01 y P-03 — una de las demostraciones más visibles del producto.
+### 🥇 TS-023 — patient_hash sin política explícita contra lookup inverso
+Riesgo latente de seguridad en el panel CRO. Agregar test que bloquea `patient_hash` como input en endpoints `/cro/`, documentar la regla en CLAUDE.md y considerar ESLint rule para endpoints nuevos.
 
-### 🥉 TS-006 — OCR retry/fallback UX (1 día)
-El OCR falla silenciosamente con un error genérico. Agregar "Reintentar" y "Ingresar manualmente" elimina el mayor punto de fricción del onboarding de datos de María.
+### 🥈 Configurar `QA_WEB_PATIENT_URL`
+La variable de entorno para el QA runner no está seteada, lo que hace que T01a quede como SKIP en cada corrida. Una vez que la URL de web-patient esté estable en Vercel, configurarla habilita la cobertura completa del health check B2C.
+
+### 🥉 Deploy web-cro
+`apps/web-cro` no está deployado aún. Conectar a Vercel y verificar T01b en el QA runner. Último servicio pendiente para tener el stack completo en producción.
 
 ---
 

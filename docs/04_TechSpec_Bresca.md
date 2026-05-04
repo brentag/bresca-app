@@ -15,16 +15,17 @@
 
 | Capa | Tecnología | Versión | Justificación |
 |---|---|---|---|
-| Mobile B2C | React Native + Expo | SDK 52 | Cross-platform. Diseño nativo en Claude Projects = input directo para Claude Code. |
+| Web B2C (paciente) | React + Vite + TypeScript | React 18 / Vite 5 | SPA. Deploy en Vercel. App mobile pendiente. |
 | Web B2B (CRO) | React + Vite + TypeScript | React 18 / Vite 5 | SPA liviana. Panel CRO no requiere SSR. |
 | Backend API | Node.js + Express | Node 20 LTS | Familiar para el equipo. Sin overhead de framework. |
-| Base de datos | PostgreSQL 15 vía Supabase | 15.x | RLS nativo, vistas SQL, `pg_cron` para QR expiry. |
+| Base de datos | PostgreSQL 15 vía Supabase | 15.x | RLS nativo, vistas SQL, `pg_cron` para TTL drafts y QR expiry. |
 | Auth + Storage | Supabase Auth + Storage | Latest | Anon sign-in, RLS policies, buckets por perfil. |
-| OCR | Google Document AI | v1 API | Mayor precisión en documentos médicos LATAM. Fallback: AWS Textract. |
-| AI Copilot | Claude API (Anthropic) | claude-sonnet-4-5 | Context window adecuado. Balance costo/performance. |
-| Push Notifications | expo-notifications + FCM/APNs | Expo SDK 52 | Canal cross-platform sin servidor propio. |
-| Deploy API | Railway | Latest | Monorepo-friendly. Variables de entorno seguras. Autoscaling. |
-| Deploy Web CRO | Vercel | Latest | Preview deployments por PR. Edge network. |
+| OCR | DeepSeek Vision + pdf-parse + Tesseract.js | — | Edge Function Supabase. Async via trigger `pg_net`. |
+| AI Copilot | DeepSeek (`deepseek-chat`) | API OpenAI-compatible | Balance costo/performance para MVP. |
+| Push Notifications | expo-notifications + FCM/APNs | Expo SDK 52 | Pendiente — mobile no iniciado. |
+| Deploy API | Render.com | Latest | Auto-deploy desde `main`. Variables de entorno seguras. |
+| Deploy Web B2C | Vercel | Latest | `https://bresca-app-api.vercel.app` — en producción. |
+| Deploy Web CRO | Vercel | Latest | Preview deployments por PR. Pendiente de deploy. |
 
 ---
 
@@ -33,22 +34,26 @@
 ```
 bresca/
 ├── apps/
-│   ├── mobile/          # React Native (Expo) — App paciente B2C
-│   ├── web-cro/         # React + Vite — Panel investigador B2B
+│   ├── web-patient/     # React + Vite — App paciente B2C (en producción)
+│   ├── web-cro/         # React + Vite — Panel investigador B2B (pendiente deploy)
 │   └── api/             # Node.js + Express — Backend REST
+│                        # (apps/mobile — React Native, pendiente de iniciar)
 ├── packages/
 │   └── shared/          # Supabase singleton, tipos TS compartidos, utils
 ├── supabase/
 │   ├── migrations/      # SQL versionado — NUNCA editar migración existente
 │   ├── seed/            # Datos de desarrollo local
-│   └── functions/       # Edge Functions (embeddings, notificaciones async)
+│   └── functions/
+│       └── process-study-draft/   # Edge Function OCR async
+├── scripts/
+│   └── post-deploy-qa.mjs         # QA runner post-deploy
 ├── .claude/
 │   ├── CLAUDE.md        # Contexto base para Claude Code (< 200 líneas)
 │   ├── skills/          # Skills on-demand (supabase-rls, ocr-pipeline, etc.)
 │   ├── settings.json    # Configuración de Claude Code
 │   └── hooks/           # PreToolUse hooks (filtro de test output)
 ├── turbo.json           # Turborepo — builds paralelos
-└── package.json         # Workspaces root
+└── package.json         # Workspaces root (pnpm)
 ```
 
 ---
@@ -58,60 +63,67 @@ bresca/
 ### 3.1 Tablas principales
 
 ```sql
--- Usuarios (cuenta, no perfil)
-CREATE TABLE users (
-  id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
-  anon_id      UUID UNIQUE NOT NULL DEFAULT gen_random_uuid(),
-  email        TEXT UNIQUE,             -- nullable, trust-first
-  display_name TEXT NOT NULL
-);
+-- Nota: Bresca usa auth.users de Supabase directamente — no hay tabla users propia.
+-- user_id en profiles referencia auth.users(id).
 
--- Perfiles (pueden ser múltiples por usuario)
+-- Perfiles (propios + familiares, múltiples por usuario)
 CREATE TABLE profiles (
-  id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id      UUID REFERENCES users(id) NOT NULL,
-  name         TEXT NOT NULL,
-  birth_year   INT,
-  is_self      BOOLEAN NOT NULL DEFAULT true,
-  relationship TEXT                     -- 'hijo', 'padre', 'cónyuge', etc.
+  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id       UUID REFERENCES auth.users(id),       -- NULLABLE para perfiles familiares
+  owner_user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,  -- dueño del perfil familiar
+  display_name  TEXT NOT NULL,
+  birth_year    INT,
+  conditions    TEXT[] DEFAULT '{}',
+  relationship  TEXT,                                  -- 'Hijo/a', 'Padre/Madre', etc.
+  created_at    TIMESTAMPTZ DEFAULT now(),
+  -- Invariante: perfil propio tiene user_id, perfil familiar tiene owner_user_id
+  CONSTRAINT profiles_has_owner CHECK (user_id IS NOT NULL OR owner_user_id IS NOT NULL)
 );
+-- Perfil propio:    user_id = auth.uid(), owner_user_id = NULL
+-- Perfil familiar:  user_id = NULL,       owner_user_id = auth.uid()
 
 -- Estudios médicos
 CREATE TABLE studies (
   id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   profile_id       UUID REFERENCES profiles(id) NOT NULL,
-  file_path        TEXT NOT NULL,       -- Supabase Storage path
   study_type       TEXT NOT NULL,       -- 'laboratorio', 'imagen', 'receta'
-  study_date       DATE,
   category         TEXT,                -- 'hemograma', 'glucemia', 'rx_torax'
-  extracted_fields JSONB,               -- campos extraídos por OCR
+  study_date       DATE,
+  lab_name         TEXT,
+  extracted_fields JSONB,               -- campos extraídos por OCR (filtrados por allowlist)
   confirmed        BOOLEAN NOT NULL DEFAULT false,
-  created_at       TIMESTAMPTZ NOT NULL DEFAULT now()
+  storage_path     TEXT,               -- primera página (legacy, compatibilidad)
+  storage_paths    TEXT[],             -- todas las páginas (multi-foto)
+  created_at       TIMESTAMPTZ DEFAULT now()
 );
 
--- Embeddings para retrieval del Copilot
-CREATE TABLE study_embeddings (
-  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  study_id        UUID REFERENCES studies(id) UNIQUE NOT NULL,
-  embedding       VECTOR(1536),         -- pgvector
-  normalized_text TEXT NOT NULL,
-  created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+-- Borradores de estudios — pipeline OCR async (TTL 24h via pg_cron)
+CREATE TABLE study_drafts (
+  id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  profile_id       UUID REFERENCES profiles(id) NOT NULL,
+  category         TEXT NOT NULL,
+  status           TEXT CHECK(status IN ('pending','processing','done','error')) DEFAULT 'pending',
+  storage_paths    TEXT[],
+  extracted_fields JSONB,
+  study_type       TEXT,
+  lab_name         TEXT,
+  study_date       DATE,
+  error_log        TEXT,
+  created_at       TIMESTAMPTZ DEFAULT now()
 );
+-- Al INSERT: trigger pg_net dispara Edge Function process-study-draft
+-- TTL: pg_cron limpia drafts con created_at > 24h
 
 -- Auditoría de consentimiento (append-only — NUNCA UPDATE/DELETE)
 CREATE TABLE consent_audit (
-  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  profile_id  UUID REFERENCES profiles(id) NOT NULL,
-  layer       TEXT CHECK(layer IN ('product', 'research', 'therapeutic_area')) NOT NULL,
-  area_code   TEXT,                     -- nullable, solo para capa 3
-  granted     BOOLEAN NOT NULL,
-  granted_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
-  revoked_at  TIMESTAMPTZ,
-  tos_version TEXT NOT NULL,
-  ip_address  INET,
-  user_agent  TEXT
+  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  profile_id UUID REFERENCES profiles(id) NOT NULL,
+  layer      TEXT NOT NULL CHECK (layer IN ('research', 'therapeutic_area', 'specific_study')),
+  granted    BOOLEAN NOT NULL,
+  granted_at TIMESTAMPTZ DEFAULT now()
 );
+-- Trigger en DB bloquea UPDATE y DELETE — enforce append-only a nivel base de datos
+-- RLS: solo INSERT y SELECT para el owner del perfil
 
 -- Tokens QR para compartir con médico
 CREATE TABLE qr_tokens (
@@ -120,7 +132,7 @@ CREATE TABLE qr_tokens (
   token       TEXT UNIQUE NOT NULL,     -- HMAC firmado
   study_ids   UUID[] NOT NULL,          -- estudios incluidos
   expires_at  TIMESTAMPTZ NOT NULL,
-  created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  created_at  TIMESTAMPTZ DEFAULT now(),
   revoked_at  TIMESTAMPTZ
 );
 
@@ -130,7 +142,7 @@ CREATE TABLE cro_users (
   email        TEXT UNIQUE NOT NULL,
   org_name     TEXT NOT NULL,
   role         TEXT CHECK(role IN ('admin', 'researcher')) NOT NULL,
-  created_at   TIMESTAMPTZ NOT NULL DEFAULT now()
+  created_at   TIMESTAMPTZ DEFAULT now()
 );
 
 -- Estudios clínicos (del lado CRO)
@@ -140,7 +152,7 @@ CREATE TABLE cro_studies (
   title      TEXT NOT NULL,
   criteria   JSONB NOT NULL,            -- criterios de inclusión/exclusión normalizados
   status     TEXT CHECK(status IN ('draft', 'active', 'closed')) NOT NULL DEFAULT 'draft',
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  created_at TIMESTAMPTZ DEFAULT now()
 );
 ```
 
@@ -176,41 +188,64 @@ HAVING count(DISTINCT p.id) >= 5;  -- k-anonimato mínimo
 > ⚠️ **Regla de oro:** ninguna tabla de usuarios o perfiles puede ser leída por un rol diferente al dueño del perfil, al rol `cro_reader` (solo vistas anónimas), o al `service_role` del backend.
 
 ```sql
--- profiles: solo el dueño
+-- profiles: dueño propio (user_id) O dueño del familiar (owner_user_id)
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "profiles_owner" ON profiles
   FOR ALL USING (
-    user_id = auth.uid()
+    auth.uid() = user_id OR auth.uid() = owner_user_id
+  )
+  WITH CHECK (
+    auth.uid() = user_id OR auth.uid() = owner_user_id
   );
 
--- studies: solo el perfil dueño (via user)
+-- studies: perfiles propios Y familiares del usuario autenticado
 ALTER TABLE studies ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "studies_owner" ON studies
   FOR ALL USING (
     profile_id IN (
-      SELECT id FROM profiles WHERE user_id = auth.uid()
+      SELECT id FROM profiles
+      WHERE user_id = auth.uid() OR owner_user_id = auth.uid()
     )
   );
 
--- qr_tokens: el rol anon puede leer tokens válidos (para vista del médico)
+-- study_drafts: mismo patrón que studies
+ALTER TABLE study_drafts ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "study_drafts_owner" ON study_drafts
+  FOR ALL USING (
+    profile_id IN (
+      SELECT id FROM profiles
+      WHERE user_id = auth.uid() OR owner_user_id = auth.uid()
+    )
+  );
+
+-- qr_tokens: el owner gestiona; rol anon lee tokens válidos (vista del médico)
 ALTER TABLE qr_tokens ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "qr_owner" ON qr_tokens
+  FOR ALL USING (
+    profile_id IN (
+      SELECT id FROM profiles
+      WHERE user_id = auth.uid() OR owner_user_id = auth.uid()
+    )
+  );
 CREATE POLICY "qr_public_read" ON qr_tokens
-  FOR SELECT USING (
+  FOR SELECT TO anon USING (
     expires_at > now() AND revoked_at IS NULL
   );
 
--- consent_audit: solo insertar y leer los propios
+-- consent_audit: solo insertar y leer los propios (incluyendo perfiles familiares)
 ALTER TABLE consent_audit ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "consent_owner_insert" ON consent_audit
   FOR INSERT WITH CHECK (
     profile_id IN (
-      SELECT id FROM profiles WHERE user_id = auth.uid()
+      SELECT id FROM profiles
+      WHERE user_id = auth.uid() OR owner_user_id = auth.uid()
     )
   );
 CREATE POLICY "consent_owner_select" ON consent_audit
   FOR SELECT USING (
     profile_id IN (
-      SELECT id FROM profiles WHERE user_id = auth.uid()
+      SELECT id FROM profiles
+      WHERE user_id = auth.uid() OR owner_user_id = auth.uid()
     )
   );
 ```
@@ -221,14 +256,16 @@ CREATE POLICY "consent_owner_select" ON consent_audit
 
 | Paso | Componente | Detalle |
 |---|---|---|
-| 1 | `apps/mobile` | Usuario toma foto o selecciona archivo. `expo-image-picker`. |
-| 2 | `apps/api POST /upload` | Recibe `multipart/form-data`. Valida tipo (pdf, jpg, png) y tamaño (max 10MB). |
-| 3 | Supabase Storage | Sube a `studies/{profile_id}/{uuid}.{ext}`. RLS: solo el perfil dueño puede leer. |
-| 4 | Google Document AI | API call con el archivo. Extrae: fecha, tipo, categoría, valores. |
-| 5 | `apps/api` | Estructura los campos en `study_draft` (tabla temporal, TTL 24h). |
-| 6 | `apps/mobile` | Pantalla de confirmación con datos extraídos editables por el usuario. |
-| 7 | `apps/api POST /confirm` | Usuario confirma. Mueve `study_draft` → `studies` con `confirmed=true`. |
-| 8 | Supabase Edge Function | Genera embedding del estudio normalizado de forma async. Guarda en `study_embeddings`. |
+| 1 | `apps/web-patient` Upload | Usuario selecciona archivo(s) — jpg, png o pdf. Soporte multi-página. |
+| 2 | `apps/api POST /extract` | Recibe `multipart/form-data`. Valida tipo y tamaño. Sube a Supabase Storage. |
+| 3 | Supabase Storage | Guarda en `studies/{profile_id}/{uuid}.{ext}`. RLS: solo el perfil dueño puede leer. |
+| 4 | `apps/api` | Hace INSERT en `study_drafts` con `status='pending'` y `storage_paths`. **Responde 202 inmediatamente.** |
+| 5 | Frontend | Navega al Vault sin esperar el OCR. Muestra card del draft en estado "procesando". |
+| 6 | Trigger `pg_net` | Al INSERT en `study_drafts`, dispara Edge Function `process-study-draft` de forma async. |
+| 7 | Edge Function `process-study-draft` | Descarga archivo desde Storage. OCR: DeepSeek Vision (imágenes) o pdf-parse (PDFs). Escribe `extracted_fields` + `status='done'` (o `status='error'`). |
+| 8 | Supabase Realtime | Frontend recibe el cambio de estado del draft y actualiza la card en el Vault. |
+| 9 | Usuario confirma | Revisa los datos extraídos en la pantalla de detalle. Si acepta: `POST /extract/confirm` → `study_draft` → `studies` con `confirmed=true`. |
+| — | Error handling | Si `status='error'`: card roja en Vault con CTA "Ingresar datos manualmente" o "Descartar". |
 
 ---
 
@@ -236,13 +273,11 @@ CREATE POLICY "consent_owner_select" ON consent_audit
 
 | Variable | Usado en | Descripción | Rotación |
 |---|---|---|---|
-| `SUPABASE_URL` | API + Mobile | URL del proyecto Supabase | — |
-| `SUPABASE_ANON_KEY` | Mobile (client) | Key pública. Solo operaciones con RLS activo. | — |
+| `SUPABASE_URL` | API + Web | URL del proyecto Supabase | — |
+| `SUPABASE_ANON_KEY` | Web (client) | Key pública. Solo operaciones con RLS activo. | — |
 | `SUPABASE_SERVICE_ROLE_KEY` | API (server only) | **NUNCA exponer al cliente.** Para operaciones admin. | Anual |
-| `GOOGLE_DOCAI_KEY` | API | API key para Document AI. | Mensual |
-| `ANTHROPIC_API_KEY` | API | Para llamadas al Copilot. Rate limiting por usuario. | Mensual |
+| `DEEPSEEK_API_KEY` | API + Edge Function | API key para DeepSeek (OCR Vision + Copilot). | Mensual |
 | `QR_TOKEN_SECRET` | API | HMAC secret para firma de tokens QR. | Semestral |
-| `OCR_PROVIDER` | API | `docai` (default) o `textract` (fallback). | — |
 
 ---
 
@@ -303,21 +338,22 @@ supabase/migrations/
 ```bash
 # 1. Clonar y dependencias
 git clone https://github.com/bresca/bresca-app && cd bresca-app
-npm install
+pnpm install
 
 # 2. Variables de entorno
 cp .env.example .env.local
-# Completar: SUPABASE_URL, SUPABASE_ANON_KEY, GOOGLE_DOCAI_KEY, ANTHROPIC_API_KEY
+# Completar: SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY,
+#            DEEPSEEK_API_KEY, QR_TOKEN_SECRET
 
 # 3. Levantar Supabase local
 supabase start
 supabase db reset  # aplica migraciones + seed
 
-# 4. Levantar API + web-cro
-npm run dev  # turbo: api + web-cro en paralelo
+# 4. Levantar API + web-patient + web-cro
+pnpm dev  # turbo: todos en paralelo
 
-# 5. Mobile (en otra terminal)
-cd apps/mobile && npx expo start
+# 5. Mobile (pendiente — no iniciado aún)
+# cd apps/mobile && npx expo start
 ```
 
 ---
