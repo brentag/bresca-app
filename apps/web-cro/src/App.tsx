@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import Layout from './components/Layout';
 import Login from './pages/Login';
+import LandingCRO from './pages/LandingCRO';
 import Dashboard from './pages/Dashboard';
 import Patients from './pages/Patients';
 import Studies from './pages/Studies';
@@ -20,6 +21,7 @@ const PAGES: Record<Tab, React.ComponentType> = {
 export default function App() {
   const [session, setSession] = useState<Session | null | undefined>(undefined);
   const [tab, setTab] = useState<Tab>('dashboard');
+  const [showLanding, setShowLanding] = useState(true);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSession(data.session));
@@ -29,13 +31,16 @@ export default function App() {
 
   if (session === undefined) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F7F9FC' }}>
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0A0A0A' }}>
         <div style={{ width: 32, height: 32, borderRadius: '50%', border: '3px solid #00C87A', borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite' }} />
       </div>
     );
   }
 
-  if (!session) return <Login />;
+  if (!session) {
+    if (showLanding) return <LandingCRO onRequestDemo={() => setShowLanding(false)} />;
+    return <Login />;
+  }
 
   const Page = PAGES[tab];
 

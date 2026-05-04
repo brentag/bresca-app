@@ -1,37 +1,41 @@
-#!/usr/bin/env bash
-# filter-test-output.sh
-# Hook de post-test: filtra el output de Jest/Vitest para Claude Code.
-# Suprime líneas de ruido (timestamps, coverage verbose, node_modules stack traces)
-# y resalta FAIL / PASS de forma limpia.
+#!/usr/bin/env node
+// PostToolUse hook: resumen limpio de Jest/Vitest para Claude Code.
+// Recibe el resultado del tool como JSON por stdin (campo tool_response.output).
+// Emite additionalContext con el resumen filtrado.
+const chunks = [];
+process.stdin.on('data', c => chunks.push(c));
+process.stdin.on('end', () => {
+  let data;
+  try { data = JSON.parse(Buffer.concat(chunks).toString()); }
+  catch { return; }
 
-set -euo pipefail
+  const resp = data.tool_response || {};
+  const output = resp.output || resp.stdout || '';
+  if (!output) return;
 
-INPUT=$(cat)
+  const lines = output.split('\n');
+  const filtered = lines
+    .filter(l => !l.startsWith('node_modules'))
+    .filter(l => !/^\s*at /.test(l))
+    .filter(l => !l.startsWith('Coverage directory'))
+    .filter(l => !l.startsWith('istanbul'))
+    .filter(l => !l.includes('Transform:'))
+    .filter(l => !l.startsWith('Ran all test suites'))
+    .map(l => l.replace(/\x1B\[[0-9;]*[mK]/g, ''));
 
-# --- Filtros de supresión ---
-FILTERED=$(echo "$INPUT" \
-  | grep -v "^node_modules" \
-  | grep -v "^\s*at " \
-  | grep -v "^Coverage directory" \
-  | grep -v "^istanbul" \
-  | grep -v "Transform:" \
-  | grep -v "^Ran all test suites" \
-  | sed 's/\x1B\[[0-9;]*[mK]//g')   # strip ANSI color codes
+  const fails     = filtered.filter(l => l.startsWith('FAIL ')).length;
+  const passes    = filtered.filter(l => l.startsWith('PASS ')).length;
+  const errors    = filtered.filter(l => /● |FAILED|Error:/.test(l));
+  const failLines = filtered.filter(l => l.startsWith('FAIL '));
 
-# --- Resumen compacto ---
-FAILS=$(echo "$FILTERED" | grep -c "^FAIL " || true)
-PASSES=$(echo "$FILTERED" | grep -c "^PASS " || true)
-ERRORS=$(echo "$FILTERED" | grep -E "● |FAILED|Error:" || true)
+  const parts = ['=== TEST SUMMARY ===', `PASS: ${passes}  |  FAIL: ${fails}`];
+  if (errors.length)    parts.push('', '=== FAILURES ===', ...errors);
+  if (failLines.length) parts.push('', ...failLines);
 
-echo "=== TEST SUMMARY ==="
-echo "PASS: $PASSES  |  FAIL: $FAILS"
-echo ""
-
-if [ -n "$ERRORS" ]; then
-  echo "=== FAILURES ==="
-  echo "$ERRORS"
-  echo ""
-fi
-
-# Líneas FAIL con nombre del archivo
-echo "$FILTERED" | grep "^FAIL " || true
+  process.stdout.write(JSON.stringify({
+    hookSpecificOutput: {
+      hookEventName: 'PostToolUse',
+      additionalContext: parts.join('\n')
+    }
+  }) + '\n');
+});

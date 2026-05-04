@@ -40,7 +40,7 @@ CREATE POLICY "studies_owner" ON studies
     )
   );
 
-DROP POLICY "drafts_owner" ON study_drafts;
+DROP POLICY "drafts_owner_select" ON study_drafts;
 CREATE POLICY "drafts_owner" ON study_drafts
   FOR ALL
   USING (

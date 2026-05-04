@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { SessionProvider, useSession } from './lib/session';
 import ProtectedRoute from './components/ProtectedRoute';
 import { FullPageSpinner } from './components/Spinner';
+import Landing from './pages/Landing';
 import Welcome from './pages/auth/Welcome';
 import Email from './pages/auth/Email';
 import Verify from './pages/auth/Verify';
@@ -24,7 +25,7 @@ import ConsentCenter from './pages/app/ConsentCenter';
 function RootRedirect() {
   const { session, loading } = useSession();
   if (loading) return <FullPageSpinner />;
-  return session ? <Navigate to="/app/home" replace /> : <Navigate to="/welcome" replace />;
+  return session ? <Navigate to="/app/home" replace /> : <Landing />;
 }
 
 export default function App() {
