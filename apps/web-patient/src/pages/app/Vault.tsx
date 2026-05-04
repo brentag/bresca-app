@@ -14,6 +14,7 @@ type PendingDraft = { id: string; status: DraftStatus; study_type: string | null
 
 const DONE: DraftStatus[] = ['done', 'completed'];
 const IN_PROGRESS: DraftStatus[] = ['pending', 'processing'];
+const FAILED: DraftStatus[] = ['error', 'failed'];
 
 export default function Vault() {
   const nav = useNavigate();
@@ -64,7 +65,7 @@ export default function Vault() {
       .from('study_drafts')
       .select('id,status,study_type,category')
       .eq('profile_id', profile.id)
-      .in('status', [...IN_PROGRESS, ...DONE])
+      .in('status', [...IN_PROGRESS, ...DONE, ...FAILED])
       .then(({ data }) => {
         if (!isMounted.current) return;
         let drafts = (data ?? []) as PendingDraft[];
@@ -180,7 +181,40 @@ function PendingDraftCard({
   onReview: () => void;
   onDismiss: () => void;
 }) {
-  const isDone = DONE.includes(draft.status);
+  const isDone   = DONE.includes(draft.status);
+  const isFailed = FAILED.includes(draft.status);
+
+  if (isFailed) {
+    return (
+      <div style={{ background: '#FEF2F2', border: '1.5px solid #FECACA', borderRadius: 14, padding: '14px 16px', display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+        <div style={{ width: 36, height: 36, borderRadius: '50%', background: '#FEE2E2', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 18 }}>
+          ✕
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <p style={{ fontSize: 14, fontWeight: 600, color: '#DC2626', marginBottom: 2 }}>
+            No pudimos analizar el documento
+          </p>
+          <p style={{ fontSize: 12, color: '#EF4444', marginBottom: 10 }}>
+            El análisis con IA falló. Podés ingresar los datos a mano o descartar.
+          </p>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button
+              onClick={onReview}
+              style={{ background: '#DC2626', color: '#fff', border: 'none', borderRadius: 10, padding: '8px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}
+            >
+              Ingresar datos →
+            </button>
+            <button
+              onClick={onDismiss}
+              style={{ background: 'none', border: '1px solid #FECACA', borderRadius: 10, color: '#EF4444', fontSize: 13, cursor: 'pointer', padding: '8px 12px' }}
+            >
+              Descartar
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{
@@ -192,7 +226,6 @@ function PendingDraftCard({
       alignItems: 'center',
       gap: 12,
     }}>
-      {/* Ícono / spinner */}
       {isDone ? (
         <div style={{ width: 36, height: 36, borderRadius: '50%', background: '#00C87A', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 16 }}>
           ✓
@@ -201,7 +234,6 @@ function PendingDraftCard({
         <div style={{ width: 36, height: 36, borderRadius: '50%', border: '3px solid #00C87A', borderTopColor: 'transparent', animation: 'spin 0.9s linear infinite', flexShrink: 0 }} />
       )}
 
-      {/* Texto */}
       <div style={{ flex: 1, minWidth: 0 }}>
         <p style={{ fontSize: 14, fontWeight: 600, color: '#0F172A', marginBottom: 2 }}>
           {isDone ? '¡Análisis listo!' : 'Analizando estudio…'}
@@ -213,7 +245,6 @@ function PendingDraftCard({
         </p>
       </div>
 
-      {/* Acción */}
       {isDone ? (
         <button
           onClick={onReview}
