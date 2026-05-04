@@ -48,9 +48,9 @@ const C = {
   supabaseAnon: process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || '',
   supabaseSR:   process.env.SUPABASE_SERVICE_ROLE_KEY || '',
   anthropicKey: process.env.ANTHROPIC_API_KEY || '',
-  webPatient:   process.env.QA_WEB_PATIENT_URL || 'https://app.bresca.ar',
-  webCro:       process.env.QA_WEB_CRO_URL     || 'https://cro.bresca.ar',
-  api:          process.env.QA_API_URL          || 'https://api.bresca.ar',
+  webPatient:   process.env.QA_WEB_PATIENT_URL || process.env.VITE_APP_URL || '',
+  webCro:       process.env.QA_WEB_CRO_URL     || '',
+  api:          process.env.QA_API_URL          || 'https://api-bresca.railway.app',
   noIssues:     process.argv.includes('--no-issues'),
   dryRun:       process.argv.includes('--dry-run'),
 };
@@ -168,10 +168,14 @@ const TESTS = [
   // ── T01: Health HTTP ─────────────────────────────────────────────────────
   {
     id: 'T01a', name: 'HTTP: web-patient responde 200', sev: 'CRITICAL',
+    skipIf: () => !C.webPatient,
+    skipReason: 'QA_WEB_PATIENT_URL no configurada (agregar al .env)',
     fn: () => httpOk(C.webPatient, 'web-patient'),
   },
   {
     id: 'T01b', name: 'HTTP: web-cro responde 200', sev: 'HIGH',
+    skipIf: () => !C.webCro,
+    skipReason: 'QA_WEB_CRO_URL no configurada (portal CRO pendiente de deploy)',
     fn: () => httpOk(C.webCro, 'web-cro'),
   },
   {
@@ -299,19 +303,19 @@ const TESTS = [
     id: 'T11', name: 'QR: API genera token válido', sev: 'HIGH',
     needs: ['T06'],
     fn: async () => {
-      const r = await fetch(`${C.api}/api/qr`, {
+      const r = await fetch(`${C.api}/qr/generate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${S.token}`,
         },
-        body: JSON.stringify({ profile_id: S.profileId, study_ids: [S.studyId] }),
+        body: JSON.stringify({ study_ids: [S.studyId], ttl_hours: 24 }),
         signal: AbortSignal.timeout(8000),
       });
-      if (r.status === 404) { throw Object.assign(new Error('Endpoint /api/qr no encontrado (deploy pendiente?)'), { detail: { status: 404 } }); }
-      assert(r.ok, `POST /api/qr: HTTP ${r.status}`, { status: r.status, body: await r.text() });
+      if (r.status === 404) { throw Object.assign(new Error('Endpoint /qr/generate no encontrado — ¿Render hizo redeploy?'), { detail: { status: 404 } }); }
+      assert(r.ok, `POST /qr/generate: HTTP ${r.status}`, { status: r.status, body: await r.text() });
       const body = await r.json();
-      assert(body.token || body.qr_url, 'Respuesta sin token QR', body);
+      assert(body.token, 'Respuesta sin token QR', body);
     },
   },
 
@@ -322,12 +326,19 @@ const TESTS = [
     fn: async () => {
       const row = await sbPost('consent_audit', {
         profile_id: S.profileId,
-        layer:      'basic',
+        layer:      'research',
         granted:    true,
       }, S.token);
       assert(row?.id, 'No se pudo insertar en consent_audit', row);
-      const patch = await sbPatch('consent_audit', { granted: false }, `id=eq.${row.id}`, S.token);
-      assert(!patch.ok, 'consent_audit permitió UPDATE — viola constraint append-only', patch);
+      // RLS no tiene política UPDATE → PostgREST devuelve 200 con 0 filas; el trigger
+      // de excepción no llega a ejecutarse. Verificamos que el dato no cambió.
+      await sbPatch('consent_audit', { granted: false }, `id=eq.${row.id}`, S.token);
+      const verify = await sbGet('consent_audit', `id=eq.${row.id}`, S.token);
+      assert(
+        verify.length === 1 && verify[0].granted === true,
+        'consent_audit permitió modificar granted=true → false (append-only violado)',
+        { after: verify[0] },
+      );
     },
   },
 ];
@@ -337,10 +348,15 @@ const TESTS = [
 async function run() {
   const failed = new Set();
   for (const t of TESTS) {
-    const skip = (t.needs || []).filter(id => failed.has(id));
-    if (skip.length) {
-      results.push({ ...t, status: 'SKIP', ms: 0, reason: `Requiere ${skip.join(', ')}` });
+    const blockedBy = (t.needs || []).filter(id => failed.has(id));
+    if (blockedBy.length) {
+      results.push({ ...t, status: 'SKIP', ms: 0, reason: `Requiere ${blockedBy.join(', ')}` });
       console.log(`  ⏭️  ${t.id} ${t.name} (skip)`);
+      continue;
+    }
+    if (t.skipIf && t.skipIf()) {
+      results.push({ ...t, status: 'SKIP', ms: 0, reason: t.skipReason || 'condición de skip' });
+      console.log(`  ⏭️  ${t.id} ${t.name} (skip: ${t.skipReason || ''})`);
       continue;
     }
     const start = Date.now();
