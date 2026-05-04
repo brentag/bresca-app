@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Camera, Image, ArrowLeft, ScanLine, Plus, X, FileText } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useProfile } from '../../lib/useProfile';
 import { useSession } from '../../lib/session';
 import { CATEGORIES } from '../../lib/vault';
-import { enqueueExtract, waitForDraft } from '../../lib/api';
+import { enqueueExtract } from '../../lib/api';
 import { CategoryChip } from '../../components/CategoryChip';
 import { Spinner } from '../../components/Spinner';
 import type { Database } from '@bresca/shared';
@@ -18,8 +18,9 @@ type Draft = {
   study_date: string;
   extracted_fields: Record<string, string>;
   storagePaths: string[];
+  draftId?: string;
 };
-type ProcessingStage = 'uploading' | 'reading' | 'analyzing';
+type ProcessingStage = 'uploading' | 'reading';
 type SelectedFile = { id: string; file: File; preview: string };
 
 const MIME_MAP: Record<string, string> = {
@@ -28,12 +29,12 @@ const MIME_MAP: Record<string, string> = {
 
 const STAGE_LABEL: Record<ProcessingStage, string> = {
   uploading: 'Subiendo archivos…',
-  reading:   'Leyendo el documento…',
-  analyzing: 'Analizando con IA…',
+  reading:   'Preparando el análisis…',
 };
 
 export default function Upload() {
   const nav = useNavigate();
+  const location = useLocation();
   const { user } = useSession();
   const { profile } = useProfile();
   const [step, setStep]               = useState<Step>('source');
@@ -44,6 +45,34 @@ export default function Upload() {
   const [saving, setSaving]           = useState(false);
   const [saveError, setSaveError]     = useState('');
   const [extractError, setExtractError] = useState('');
+
+  // Modo review: viene desde Vault cuando el OCR terminó
+  useEffect(() => {
+    const state = location.state as { mode?: string; draftId?: string } | null;
+    if (state?.mode !== 'review' || !state.draftId) return;
+    supabase
+      .from('study_drafts')
+      .select('id,category,study_type,lab_name,study_date,extracted_fields,storage_paths')
+      .eq('id', state.draftId)
+      .single()
+      .then(({ data }) => {
+        if (!data) return;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const d = data as any;
+        const today = new Date().toISOString().slice(0, 10);
+        setCategory(d.category ?? 'hematología');
+        setDraft({
+          draftId:          d.id,
+          category:         d.category ?? 'hematología',
+          study_type:       d.study_type ?? 'Estudio clínico',
+          lab_name:         d.lab_name ?? '',
+          study_date:       d.study_date ?? today,
+          extracted_fields: (d.extracted_fields ?? {}) as Record<string, string>,
+          storagePaths:     (d.storage_paths as string[]) ?? [],
+        });
+        setStep('review');
+      });
+  }, []);
 
   function addFiles(e: React.ChangeEvent<HTMLInputElement>) {
     const incoming = Array.from(e.target.files ?? []);
@@ -89,20 +118,8 @@ export default function Upload() {
       const primaryMime  = uploads[0].mime;
       const { job_id }   = await enqueueExtract(storagePaths, primaryMime, category);
 
-      setStage('analyzing');
-      const result = await waitForDraft(job_id, 90_000);
-      if (result.status === 'failed') throw new Error(result.error_log ?? 'processing_failed');
-
-      const today = new Date().toISOString().slice(0, 10);
-      setDraft({
-        category,
-        study_type:       result.study_type ?? 'Estudio clínico',
-        lab_name:         result.lab_name ?? '',
-        study_date:       result.study_date ?? today,
-        extracted_fields: (result.extracted_fields ?? {}) as Record<string, string>,
-        storagePaths,
-      });
-      setStep('review');
+      // No esperamos el OCR — navegamos al Vault con el draft pendiente
+      nav('/app/vault', { replace: true, state: { pendingDraftId: job_id } });
     } catch (err) {
       console.error('Processing error:', err);
       setExtractError('No pudimos procesar el archivo. Revisá que sea un PDF o imagen legible e intentá de nuevo.');
@@ -126,6 +143,9 @@ export default function Upload() {
     });
     setSaving(false);
     if (error) { setSaveError('No pudimos guardar el estudio. Intentá de nuevo.'); return; }
+    if (draft.draftId) {
+      await supabase.from('study_drafts').delete().eq('id', draft.draftId);
+    }
     nav('/app/vault', { replace: true });
   }
 
@@ -291,8 +311,7 @@ export default function Upload() {
             <p style={{ fontSize: 17, fontWeight: 700, color: '#0F172A', marginBottom: 6 }}>{STAGE_LABEL[stage]}</p>
             <p style={{ fontSize: 14, color: '#64748B' }}>
               {stage === 'uploading' && 'Guardando los archivos de forma segura'}
-              {stage === 'reading'   && 'Extrayendo el texto de cada página'}
-              {stage === 'analyzing' && 'DeepSeek está identificando los valores médicos'}
+              {stage === 'reading'   && 'El análisis con IA empezará enseguida en segundo plano'}
             </p>
           </div>
           <Spinner size="sm" />
