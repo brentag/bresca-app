@@ -50,7 +50,7 @@ const C = {
   anthropicKey: process.env.ANTHROPIC_API_KEY || '',
   webPatient:   process.env.QA_WEB_PATIENT_URL || process.env.VITE_APP_URL || '',
   webCro:       process.env.QA_WEB_CRO_URL     || '',
-  api:          process.env.QA_API_URL          || 'https://api-bresca.railway.app',
+  api:          process.env.QA_API_URL          || 'https://bresca-api.onrender.com',
   noIssues:     process.argv.includes('--no-issues'),
   dryRun:       process.argv.includes('--dry-run'),
 };
@@ -312,9 +312,11 @@ const TESTS = [
         body: JSON.stringify({ study_ids: [S.studyId], ttl_hours: 24 }),
         signal: AbortSignal.timeout(8000),
       });
-      if (r.status === 404) { throw Object.assign(new Error('Endpoint /qr/generate no encontrado — ¿Render hizo redeploy?'), { detail: { status: 404 } }); }
-      assert(r.ok, `POST /qr/generate: HTTP ${r.status}`, { status: r.status, body: await r.text() });
-      const body = await r.json();
+      const bodyText = await r.text();
+      if (r.status === 404) { throw Object.assign(new Error('Endpoint /qr/generate no encontrado'), { detail: { status: 404 } }); }
+      assert(r.ok, `POST /qr/generate: HTTP ${r.status}`, { status: r.status, body: bodyText });
+      let body;
+      try { body = JSON.parse(bodyText); } catch { body = {}; }
       assert(body.token, 'Respuesta sin token QR', body);
     },
   },
