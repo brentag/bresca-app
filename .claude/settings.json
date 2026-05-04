@@ -33,6 +33,12 @@
             "command": "node .claude/hooks/log-commit-to-checkpoint.js",
             "if": "Bash(git commit *)",
             "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "node .claude/hooks/remind-qa-after-push.js",
+            "if": "Bash(git push origin main*)",
+            "timeout": 5
           }
         ]
       }
@@ -75,7 +81,12 @@
       "Write(docs/**)",
       "Write(.claude/skills/**)",
       "Write(CLAUDE.md)",
-      "Write(AGENTS.md)"
+      "Write(AGENTS.md)",
+      "Write(scripts/**)",
+      "Write(docs/qa-reports/**)",
+      "Bash(node scripts/*)",
+      "Bash(gh issue create *)",
+      "Bash(gh auth status)"
     ],
     "deny": [
       "Bash(railway *)",
