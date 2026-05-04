@@ -82,4 +82,6 @@ El router `apps/api/src/extract/router.ts` ya implementa el patrón async (enque
 
 ## Log de publicaciones (auto-generado)
 
+| `096e2aa` | 18:37 | feat(upload): soporte multi-página + hook de changelog + mejoras futuras OCR documentadas |
+| `28d1c3d` | 19:59 | feat(landing): B2C y CRO landings standalone + documentadas en plan MVP |
 <!-- Los commits posteriores se agregan aquí automáticamente -->
