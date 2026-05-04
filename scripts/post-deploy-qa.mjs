@@ -365,12 +365,102 @@ async function cleanup() {
   }
 }
 
+// ── Contexto del deploy (git + skill files) ───────────────────────────────────
+
+function buildDeployContext() {
+  const ctx = {};
+
+  // Qué se deployó
+  try { ctx.commits = execSync('git log --oneline -7', { cwd: ROOT }).toString().trim(); } catch { ctx.commits = 'unavailable'; }
+  try { ctx.lastCommitFull = execSync('git log -1 --format="%B"', { cwd: ROOT }).toString().trim(); } catch {}
+  try { ctx.changedFiles = execSync('git diff HEAD~1 --name-only', { cwd: ROOT }).toString().trim(); } catch {}
+  try { ctx.diffStat = execSync('git diff HEAD~1 --stat', { cwd: ROOT }).toString().trim().slice(0, 800); } catch {}
+
+  // Contexto de la app (skill files — truncados para economía)
+  const SKILLS = [
+    ['.claude/skills/bresca-architecture.md', 2500],
+    ['.claude/skills/supabase-rls.md',        1200],
+    ['.claude/skills/ocr-pipeline.md',         800],
+  ];
+  ctx.appContext = '';
+  for (const [file, limit] of SKILLS) {
+    try {
+      const content = readFileSync(resolve(ROOT, file), 'utf8').slice(0, limit);
+      ctx.appContext += `\n\n### ${file.split('/').pop().replace('.md','')}\n${content}`;
+    } catch { /* skill no existe */ }
+  }
+
+  // Resultados de los tests (para que Haiku sepa qué se probó)
+  ctx.testResults = results.map(r => {
+    const s = r.status === 'PASS' ? '✅' : r.status === 'FAIL' ? '❌' : '⏭️';
+    return `${s} ${r.id} ${r.name}${r.error ? ` → ${r.error}` : ''}`;
+  }).join('\n');
+
+  return ctx;
+}
+
 // ── Análisis con Claude Haiku ─────────────────────────────────────────────────
 
-async function analyzeWithHaiku(failures) {
-  if (!failures.length || !C.anthropicKey) return null;
+async function analyzeWithHaiku() {
+  if (!C.anthropicKey) return null;
 
-  const summary = failures.map(f => `${f.id} [${f.sev}] ${f.name}: ${f.error}`).join('\n');
+  const deploy = buildDeployContext();
+  const failures = results.filter(r => r.status === 'FAIL');
+
+  const prompt = `Sos el QA agent de Bresca, plataforma de salud en Argentina (B2C + B2B).
+
+## Arquitectura y reglas de negocio de la app
+${deploy.appContext || '(skill files no disponibles)'}
+
+---
+
+## Qué se deployó en este push
+
+**Commits recientes:**
+${deploy.commits}
+
+**Último commit (mensaje completo):**
+${deploy.lastCommitFull || '(no disponible)'}
+
+**Archivos modificados:**
+${deploy.changedFiles || '(no disponible)'}
+
+**Resumen de cambios:**
+${deploy.diffStat || '(no disponible)'}
+
+---
+
+## Resultados de los tests automáticos (12 tests)
+
+${deploy.testResults}
+
+---
+
+## Tu tarea
+
+Analizá el deploy con contexto real de la app. Respondé en español rioplatense con JSON exacto:
+
+{
+  "resumen": "2-3 oraciones: qué se deployó, si los tests lo cubren, estado general",
+  "cobertura": "¿qué aspectos del deploy quedan SIN cubrir por los tests automáticos? Sé específico.",
+  "checks_manuales": [
+    "acción concreta que un humano debería verificar en la UI o API (específica al deploy, no genérica)"
+  ],
+  "issues": [
+    {
+      "id": "T06",
+      "titulo": "título del GitHub issue < 70 chars",
+      "severidad": "critical | high | medium",
+      "cuerpo": "markdown: qué rompió, por qué es un problema para el usuario, cómo reproducir, contexto del commit relacionado"
+    }
+  ]
+}
+
+Reglas:
+- "issues" solo para tests que FALLARON (${failures.length} falla(s))
+- "checks_manuales" es para todos los deploys, fallen o no — señalá lo que el test automático no puede ver
+- Si no fallaron tests, "resumen" igual debe decir qué funcionalidad se deployó y confirmar cobertura
+- Solo JSON, sin texto extra antes o después`;
 
   const r = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -381,32 +471,10 @@ async function analyzeWithHaiku(failures) {
     },
     body: JSON.stringify({
       model: 'claude-haiku-4-5-20251001',
-      max_tokens: 1024,
-      messages: [{
-        role: 'user',
-        content: `Sos el QA agent de Bresca, app de salud en Argentina.
-Analizá estas fallas de deploy y respondé en español rioplatense con JSON exacto:
-
-FALLAS:
-${summary}
-
-JSON esperado:
-{
-  "resumen": "1-2 oraciones sobre el estado del deploy",
-  "issues": [
-    {
-      "id": "T06",
-      "titulo": "título del issue < 70 chars",
-      "severidad": "critical | high | medium",
-      "cuerpo": "markdown con contexto técnico, pasos para reproducir e impacto en el usuario"
-    }
-  ]
-}
-
-Solo JSON, sin texto extra.`,
-      }],
+      max_tokens: 1500,
+      messages: [{ role: 'user', content: prompt }],
     }),
-    signal: AbortSignal.timeout(20000),
+    signal: AbortSignal.timeout(30000),
   });
 
   if (!r.ok) return null;
@@ -415,7 +483,7 @@ Solo JSON, sin texto extra.`,
     const text = data.content[0].text.trim();
     return JSON.parse(text.startsWith('```') ? text.replace(/```json?\n?|\n?```/g, '') : text);
   } catch {
-    return { resumen: data.content[0].text, issues: [] };
+    return { resumen: data.content[0].text, issues: [], checks_manuales: [] };
   }
 }
 
@@ -447,6 +515,30 @@ function buildReport(analysis) {
 ${f.detail ? `\`\`\`json\n${JSON.stringify(f.detail, null, 2)}\n\`\`\`` : ''}
 `).join('\n');
 
+  // Contexto del deploy para el reporte
+  let deploySection = '';
+  try {
+    const commits = execSync('git log --oneline -5', { cwd: ROOT }).toString().trim();
+    const changed = execSync('git diff HEAD~1 --name-only', { cwd: ROOT }).toString().trim();
+    deploySection = `
+## Deploy
+
+\`\`\`
+${commits}
+\`\`\`
+
+**Archivos modificados:** ${changed.split('\n').join(', ') || 'ninguno'}
+`;
+  } catch {}
+
+  const checksSection = analysis?.checks_manuales?.length
+    ? `## Verificaciones manuales recomendadas\n\n${analysis.checks_manuales.map(c => `- ${c}`).join('\n')}\n`
+    : '';
+
+  const coverageSection = analysis?.cobertura
+    ? `## Cobertura\n\n${analysis.cobertura}\n`
+    : '';
+
   return `# QA Report — ${stamp}
 
 **Commit:** \`${sha}\`
@@ -456,8 +548,17 @@ ${f.detail ? `\`\`\`json\n${JSON.stringify(f.detail, null, 2)}\n\`\`\`` : ''}
 
 ---
 
-${analysis?.resumen ? `## Análisis\n\n${analysis.resumen}\n\n---\n` : ''}
-## Resumen
+${deploySection}
+
+${analysis?.resumen ? `## Análisis del deploy\n\n${analysis.resumen}\n` : ''}
+
+${coverageSection}
+
+${checksSection}
+
+---
+
+## Resultados
 
 | ID | Test | Estado | Severidad | Tiempo |
 |----|------|--------|-----------|--------|
@@ -528,10 +629,10 @@ async function main() {
 
   const failures = results.filter(r => r.status === 'FAIL');
 
-  if (failures.length && C.anthropicKey) {
-    console.log('\n🤖 Analizando con Haiku...');
+  if (C.anthropicKey) {
+    console.log('\n🤖 Analizando deploy con Haiku...');
   }
-  const analysis = await analyzeWithHaiku(failures);
+  const analysis = await analyzeWithHaiku();
 
   const md   = buildReport(analysis);
   const path = saveReport(md);
