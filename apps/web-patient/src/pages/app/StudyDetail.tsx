@@ -14,9 +14,9 @@ function useStudyFiles(study: Study | null) {
   useEffect(() => {
     if (!study) return;
     // Obtener paths: priorizar storage_paths (multi), fallback a storage_path
-    const paths: string[] = ((study as unknown as { storage_paths?: string[] }).storage_paths?.length
-      ? (study as unknown as { storage_paths: string[] }).storage_paths
-      : study.storage_path ? [study.storage_path] : []);
+    const paths: string[] = study.storage_paths?.length
+      ? study.storage_paths
+      : study.storage_path ? [study.storage_path] : [];
     if (!paths.length) return;
 
     supabase.storage.from('studies').createSignedUrls(paths, 3600).then(({ data }) => {

@@ -12,31 +12,6 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
       consent_audit: {
@@ -87,8 +62,10 @@ export type Database = {
           created_at: string
           display_name: string
           id: string
+          owner_user_id: string | null
+          relationship: string | null
           updated_at: string
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           birth_year?: number | null
@@ -96,8 +73,10 @@ export type Database = {
           created_at?: string
           display_name: string
           id?: string
+          owner_user_id?: string | null
+          relationship?: string | null
           updated_at?: string
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           birth_year?: number | null
@@ -105,8 +84,10 @@ export type Database = {
           created_at?: string
           display_name?: string
           id?: string
+          owner_user_id?: string | null
+          relationship?: string | null
           updated_at?: string
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -158,6 +139,7 @@ export type Database = {
           lab_name: string | null
           profile_id: string
           storage_path: string | null
+          storage_paths: string[]
           study_date: string
           study_type: string
         }
@@ -170,6 +152,7 @@ export type Database = {
           lab_name?: string | null
           profile_id: string
           storage_path?: string | null
+          storage_paths?: string[]
           study_date: string
           study_type: string
         }
@@ -182,6 +165,7 @@ export type Database = {
           lab_name?: string | null
           profile_id?: string
           storage_path?: string | null
+          storage_paths?: string[]
           study_date?: string
           study_type?: string
         }
@@ -211,6 +195,7 @@ export type Database = {
           started_at: string | null
           status: string
           storage_path: string | null
+          storage_paths: string[] | null
           study_date: string | null
           study_type: string | null
         }
@@ -229,6 +214,7 @@ export type Database = {
           started_at?: string | null
           status?: string
           storage_path?: string | null
+          storage_paths?: string[] | null
           study_date?: string | null
           study_type?: string | null
         }
@@ -247,6 +233,7 @@ export type Database = {
           started_at?: string | null
           status?: string
           storage_path?: string | null
+          storage_paths?: string[] | null
           study_date?: string | null
           study_type?: string | null
         }
@@ -403,9 +390,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {},
   },

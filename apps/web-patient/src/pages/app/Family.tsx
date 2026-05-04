@@ -49,7 +49,7 @@ export default function Family() {
       .select('id,display_name,birth_year,relationship,owner_user_id')
       .or(`user_id.eq.${user.id},owner_user_id.eq.${user.id}`)
       .order('created_at', { ascending: true });
-    setProfiles((data ?? []) as unknown as Profile[]);
+    setProfiles((data ?? []) as Profile[]);
     setLoading(false);
   }
 
@@ -223,7 +223,7 @@ function AddFamilyModal({ userId, onClose, onAdded }: {
       relationship,
       birth_year:    birthYear ? parseInt(birthYear, 10) : null,
       conditions:    [],
-    } as never);
+    });
 
     setSaving(false);
     if (err) { setError('No pudimos guardar el perfil. Intentá de nuevo.'); return; }

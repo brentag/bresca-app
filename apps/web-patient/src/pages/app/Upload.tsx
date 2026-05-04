@@ -141,7 +141,7 @@ export default function Upload() {
       confirmed:        true,
       storage_path:     draft.storagePaths[0] ?? null,
       storage_paths:    draft.storagePaths,
-    } as never);
+    });
     setSaving(false);
     if (error) { setSaveError('No pudimos guardar el estudio. Intentá de nuevo.'); return; }
     if (draft.draftId) {
