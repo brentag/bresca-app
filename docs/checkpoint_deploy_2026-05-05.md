@@ -42,19 +42,20 @@ Una vez deployado, actualizar `QA_WEB_PATIENT_URL`-equivalente para web-cro en e
 
 ## Tareas pendientes
 
-### 🔧 En progreso
-| Item | Prioridad | Detalle |
-|---|---|---|
-| Deploy web-cro | 🟠 Alta | Build OK. Falta crear proyecto en Vercel Dashboard (requiere auth browser). |
+### ✅ Completado en esta sesión
+| Item | Prioridad | Commit | Detalle |
+|---|---|---|---|
+| Deploy web-cro | 🟠 Alta | `c435fd3` | Live en `https://bresca-cro.vercel.app` |
+| Responsive — LandingCRO | 🟡 Media | `cc96a2d` | Hamburger menu en <900px, overlay full-screen con nav + CTAs |
+| Responsive — Login + Layout | 🟡 Media | `cc96a2d` | Login: `maxWidth:400` + padding responsive. Layout: bottom tab bar en <768px |
+| TS-023 patient_hash | 🟡 Media | `cc96a2d` | Middleware `rejectPatientHash` en todos los endpoints `/cro/` → 400 si presente |
 
 ### 📋 Backlog técnico
 | Item | Prioridad | Detalle |
 |---|---|---|
-| **Responsive desktop — Landing CRO** | 🟡 Media | `LandingCRO.tsx` tiene breakpoints a 900px y 600px. Necesita revisión y rearme del layout desktop: navigation bar con links colapsados, grid de stats, sección hero en pantallas 1440px+. |
-| **Responsive desktop — Acceso app** | 🟡 Media | `Login.tsx`: tarjeta 400px fija funciona en desktop pero necesita mejoras para pantallas grandes. `Layout.tsx`: sidebar 220px fija no colapsa en tablet/mobile — agregar menú hamburguesa o sidebar collapsible. |
-| **Bundle size web-cro** | 🟢 Baja | Chunk único de 773kB (gzip 225kB) por recharts. Considerar `React.lazy` + `dynamic import()` para las páginas con gráficos. |
-| **TS-023 patient_hash policy** | 🟡 Media | Test que verifica que `patient_hash` no es aceptado como input en endpoints `/cro/`. Riesgo latente. |
-| **QA T01b web-cro** | 🟠 Alta | Una vez que web-cro tenga URL de Vercel, habilitar en el QA runner. |
+| **QA T01b web-cro** | 🟠 Alta | Habilitar health check de web-cro en el QA runner (`https://bresca-cro.vercel.app`). |
+| **Bundle size web-cro** | 🟢 Baja | Chunk único de 773kB (gzip 225kB) por recharts. `React.lazy` + `dynamic import()` para páginas con gráficos. |
+| **agent-browser** | 🟢 Baja | SKILL.md presente. Pendiente `npm i -g agent-browser && agent-browser install` para testeo browser automatizado. |
 
 ---
 
@@ -72,3 +73,6 @@ Una vez deployado, actualizar `QA_WEB_PATIENT_URL`-equivalente para web-cro en e
 | Hash | Hora | Descripción |
 |---|---|---|
 | `663fd26` | 07:49 | chore(deploy): web-cro build verificado + checkpoint 05-05 con pendientes responsive |
+
+| `c435fd3` | 08:20 | feat(deploy): web-cro en producción — https://bresca-cro.vercel.app |
+| `cc96a2d` | 10:05 | feat(web-cro): responsive mobile + bloqueo patient_hash (TS-023) |

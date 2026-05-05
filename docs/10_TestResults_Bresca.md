@@ -37,12 +37,12 @@
 | TS-020 | Dashboard con zero data | P-04 Laura | ✅ OK | — |
 | TS-021 | Matching por criterios básicos | P-04 Laura | ✅ OK | — |
 | TS-022 | Cohorte menor a 5 — k-anonimato | P-04 Laura | ✅ OK | — |
-| TS-023 | Verificar que patient_hash no es reversible | P-04 Laura | ❓ Riesgo | 🟡 Media |
+| TS-023 | Verificar que patient_hash no es reversible | P-04 Laura | ✅ Resuelto | 🟡 Media → ✅ |
 | TS-024 | service_role_key solo en el backend | — | ✅ OK | — |
 | TS-025 | extracted_fields no se devuelve raw | — | ✅ OK | — |
 | TS-026 | RLS activo en todas las tablas | — | ✅ OK | — |
 
-**Total escenarios:** 26 | ✅ Pasados: 18 | ✅ Resueltos post-QA: 4 | 🟡 Pendientes: 1 (TS-023) | 🔵 Bajos: 0
+**Total escenarios:** 26 | ✅ Pasados: 18 | ✅ Resueltos post-QA: 5 | 🟡 Pendientes: 0 | 🔵 Bajos: 0
 
 ---
 
@@ -161,24 +161,21 @@ Soy María. Subí mi análisis de sangre. Esperé un rato y la app me mostró un
 
 ## [ISSUE] TS-023 — patient_hash sin política explícita contra lookup inverso
 
+> ✅ **RESUELTO** — commit `cc96a2d` (2026-05-05). Middleware `rejectPatientHash` aplicado a todos los endpoints `/cro/`. Devuelve 400 si `patient_hash` aparece en query string o body.
+
 **Persona afectada:** P-04 Laura
 **Feature:** F-008 — Matching anónimo
-**Severidad:** 🟡 Media
+**Severidad:** ~~🟡 Media~~ → ✅ Resuelto
 **Tipo:** ❓ Comportamiento indefinido
 
 ### Descripción
 Soy Laura, investigadora del CRO. El sistema me devuelve `patient_hash` (md5 del profile_id) en los resultados de matching. El hash es no-reversible y eso está bien. Pero no encuentro ninguna regla explícita que impida que un futuro endpoint acepte ese hash como parámetro y devuelva datos del paciente. Es un riesgo que podría materializarse cuando se agreguen nuevas features.
 
-### Evidencia en el código
-`apps/api/src/cro/router.ts` — ningún endpoint actual acepta `patient_hash` como input. Sin embargo, no existe ningún test automatizado ni regla de linting que prevenga que se agregue en el futuro. El riesgo es latente, no activo.
-
-### Criterio de aceptación
-- [ ] Agregar test: `POST /cro/match` con `patient_hash` como filtro debe retornar 400
-- [ ] Documentar en CLAUDE.md que ningún endpoint puede aceptar `patient_hash` como parámetro de entrada
-- [ ] Considerar ESLint rule o review checklist para endpoints nuevos en `/cro/`
+### Resolución
+`apps/api/src/cro/router.ts` — función `rejectPatientHash` aplicada como middleware a `/stats`, `/patients`, `/distribution` y `/match`. El bloqueo es en caliente (runtime) y cubre query params y body. Cualquier endpoint nuevo en `/cro/` debe agregar este middleware explícitamente.
 
 ### Labels sugeridos
-`security` `enhancement` `backlog`
+`security` `enhancement` ~~`backlog`~~ → ✅
 
 ---
 
@@ -206,10 +203,11 @@ Soy Laura, investigadora del CRO. El sistema me devuelve `patient_hash` (md5 del
 |---|---|
 | Issues originales detectados por QA | 5 |
 | ✅ Resueltos (2026-05-04) | 4 |
-| 🟡 Pendientes | 1 (TS-023) |
+| ✅ Resueltos (2026-05-05) | 1 (TS-023) |
+| 🟡 Pendientes | 0 |
 | ~~🔴 Críticos~~ | ~~2~~ → 0 |
 | ~~🟠 Altos~~ | ~~2~~ → 0 |
-| 🟡 Medios activos | 1 |
+| ~~🟡 Medios~~ | ~~1~~ → 0 |
 | ✅ Escenarios pasados originalmente | 18 |
 
 ---
@@ -218,14 +216,14 @@ Soy Laura, investigadora del CRO. El sistema me devuelve `patient_hash` (md5 del
 
 > TS-015, TS-011 y TS-006 ya están resueltos. El nuevo top:
 
-### 🥇 TS-023 — patient_hash sin política explícita contra lookup inverso
-Riesgo latente de seguridad en el panel CRO. Agregar test que bloquea `patient_hash` como input en endpoints `/cro/`, documentar la regla en CLAUDE.md y considerar ESLint rule para endpoints nuevos.
+### 🥇 Habilitar QA T01b — web-cro
+`web-cro` está live en `https://bresca-cro.vercel.app`. Activar T01b en el QA runner para cubrir el health check del panel B2B.
 
-### 🥈 Configurar `QA_WEB_PATIENT_URL`
-La variable de entorno para el QA runner no está seteada, lo que hace que T01a quede como SKIP en cada corrida. Una vez que la URL de web-patient esté estable en Vercel, configurarla habilita la cobertura completa del health check B2C.
+### 🥈 Bundle size web-cro
+Chunk único de 773kB (gzip 225kB) por recharts. Considerar `React.lazy` + `dynamic import()` para las páginas con gráficos.
 
-### 🥉 Deploy web-cro
-`apps/web-cro` no está deployado aún. Conectar a Vercel y verificar T01b en el QA runner. Último servicio pendiente para tener el stack completo en producción.
+### 🥉 Instalar agent-browser
+Skill de browser automation disponible en `.agents/skills/agent-browser/`. Pendiente instalación del binario para poder testear los flujos en browser sin intervención manual.
 
 ---
 
