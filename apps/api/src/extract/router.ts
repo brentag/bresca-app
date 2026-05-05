@@ -9,6 +9,7 @@ const ExtractSchema = z.object({
   storage_paths: z.array(z.string().min(1)).min(1).max(20),
   mime_type: z.enum(['image/jpeg', 'image/png', 'image/webp', 'application/pdf']),
   category: z.string().min(1),
+  profile_id: z.string().uuid().optional(), // perfil familiar — omitir para perfil propio
 });
 
 // POST /extract — encola el job de OCR, responde 202 {job_id} en <100ms
@@ -27,21 +28,41 @@ router.post('/', requireAuth, async (req, res) => {
     return;
   }
 
-  const { data: profile, error: profErr } = await supabase
-    .from('profiles')
-    .select('id')
-    .eq('user_id', userId)
-    .single();
+  let targetProfileId: string;
 
-  if (profErr || !profile) {
-    res.status(404).json({ error: 'profile_not_found' });
-    return;
+  if (parse.data.profile_id) {
+    // Perfil familiar: verificar que el usuario sea el owner
+    const { data: familyProfile } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('id', parse.data.profile_id)
+      .eq('owner_user_id', userId)
+      .maybeSingle();
+
+    if (!familyProfile) {
+      res.status(403).json({ error: 'profile_access_denied' });
+      return;
+    }
+    targetProfileId = familyProfile.id;
+  } else {
+    // Perfil propio
+    const { data: profile, error: profErr } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('user_id', userId)
+      .single();
+
+    if (profErr || !profile) {
+      res.status(404).json({ error: 'profile_not_found' });
+      return;
+    }
+    targetProfileId = profile.id;
   }
 
   const { data: draft, error: insErr } = await supabase
     .from('study_drafts')
     .insert({
-      profile_id:    profile.id,
+      profile_id:    targetProfileId,
       storage_path:  parse.data.storage_paths[0],   // primary (trigger + backward compat)
       storage_paths: parse.data.storage_paths,
       mime_type:     parse.data.mime_type,

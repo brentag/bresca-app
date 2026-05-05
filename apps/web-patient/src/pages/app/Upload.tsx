@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { Camera, Image, ArrowLeft, ScanLine, Plus, X, FileText } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useProfile } from '../../lib/useProfile';
@@ -12,6 +12,7 @@ import type { Database } from '@bresca/shared';
 
 type Step = 'source' | 'processing' | 'review';
 type Draft = {
+  profileId: string;
   category: string;
   study_type: string;
   lab_name: string;
@@ -35,8 +36,11 @@ const STAGE_LABEL: Record<ProcessingStage, string> = {
 export default function Upload() {
   const nav = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const { user } = useSession();
   const { profile } = useProfile();
+  // ?p= indica un perfil familiar como destino del estudio
+  const familyProfileId = searchParams.get('p') ?? undefined;
   const [step, setStep]               = useState<Step>('source');
   const [stage, setStage]             = useState<ProcessingStage>('uploading');
   const [files, setFiles]             = useState<SelectedFile[]>([]);
@@ -52,7 +56,7 @@ export default function Upload() {
     if (state?.mode !== 'review' || !state.draftId) return;
     supabase
       .from('study_drafts')
-      .select('id,category,study_type,lab_name,study_date,extracted_fields,storage_paths')
+      .select('id,profile_id,category,study_type,lab_name,study_date,extracted_fields,storage_paths')
       .eq('id', state.draftId)
       .single()
       .then(({ data }) => {
@@ -62,6 +66,7 @@ export default function Upload() {
         const today = new Date().toISOString().slice(0, 10);
         setCategory(d.category ?? 'hematología');
         setDraft({
+          profileId:        d.profile_id,
           draftId:          d.id,
           category:         d.category ?? 'hematología',
           study_type:       d.study_type ?? 'Estudio clínico',
@@ -93,7 +98,8 @@ export default function Upload() {
   }
 
   async function processFiles() {
-    if (!files.length || !profile) return;
+    const targetProfileId = familyProfileId ?? profile?.id;
+    if (!files.length || !targetProfileId) return;
     setExtractError('');
     setStep('processing');
     setStage('uploading');
@@ -108,7 +114,7 @@ export default function Upload() {
           const { error } = await supabase.storage
             .from('studies')
             .upload(path, file, { contentType: mime });
-          if (error) throw error;
+          if (error) throw new Error(`storage_upload_failed: ${error.message}`);
           return { path, mime };
         }),
       );
@@ -116,23 +122,27 @@ export default function Upload() {
       setStage('reading');
       const storagePaths = uploads.map(u => u.path);
       const primaryMime  = uploads[0].mime;
-      const { job_id }   = await enqueueExtract(storagePaths, primaryMime, category);
+      const { job_id }   = await enqueueExtract(storagePaths, primaryMime, category, familyProfileId);
 
       // No esperamos el OCR — navegamos al Vault con el draft pendiente
-      nav('/app/vault', { replace: true, state: { pendingDraftId: job_id } });
+      const vaultPath = familyProfileId ? `/app/vault?p=${familyProfileId}` : '/app/vault';
+      nav(vaultPath, { replace: true, state: { pendingDraftId: job_id } });
     } catch (err) {
       console.error('Processing error:', err);
-      setExtractError('No pudimos procesar el archivo. Revisá que sea un PDF o imagen legible e intentá de nuevo.');
+      const msg = err instanceof Error && err.message.startsWith('extract enqueue')
+        ? 'El servidor tardó en responder. Esperá unos segundos e intentá de nuevo.'
+        : 'No pudimos procesar el archivo. Revisá que sea un PDF o imagen y volvé a intentar.';
+      setExtractError(msg);
       setStep('source');
     }
   }
 
   async function saveStudy() {
-    if (!draft || !profile) return;
+    if (!draft) return;
     setSaving(true);
     setSaveError('');
     const { error } = await supabase.from('studies').insert({
-      profile_id:       profile.id,
+      profile_id:       draft.profileId,
       study_type:       draft.study_type,
       category:         draft.category,
       study_date:       draft.study_date,
@@ -147,7 +157,8 @@ export default function Upload() {
     if (draft.draftId) {
       await supabase.from('study_drafts').delete().eq('id', draft.draftId);
     }
-    nav('/app/vault', { replace: true });
+    const vaultPath = familyProfileId ? `/app/vault?p=${familyProfileId}` : '/app/vault';
+    nav(vaultPath, { replace: true });
   }
 
   const pageLabel = files.length === 1 ? '1 página' : `${files.length} páginas`;

@@ -58,11 +58,14 @@ export async function enqueueExtract(
   storage_paths: string[],
   mime_type: string,
   category: string,
+  profile_id?: string,
 ): Promise<{ job_id: string }> {
+  const body: Record<string, unknown> = { storage_paths, mime_type, category };
+  if (profile_id) body.profile_id = profile_id;
   const res = await fetch(`${BASE}/extract`, {
     method: 'POST',
     headers: await authHeaders(),
-    body: JSON.stringify({ storage_paths, mime_type, category }),
+    body: JSON.stringify(body),
   });
   if (!res.ok) throw new Error(`extract enqueue error ${res.status}`);
   return res.json() as Promise<{ job_id: string }>;

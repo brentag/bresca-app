@@ -54,22 +54,20 @@ export default function Vault() {
     q.then(({ data }) => { if (isMounted.current) { setStudies(data ?? []); setLoading(false); } });
   }, [activeProfileId, filter]);
 
-  // Carga drafts pendientes + se suscribe a actualizaciones
+  // Carga drafts pendientes + se suscribe a actualizaciones (perfil propio o familiar)
   useEffect(() => {
-    if (!profile) return;
+    if (!activeProfileId) return;
 
-    // Draft recién encolado desde Upload (viene en navigation state)
     const navState = location.state as { pendingDraftId?: string } | null;
 
     supabase
       .from('study_drafts')
       .select('id,status,study_type,category')
-      .eq('profile_id', profile.id)
+      .eq('profile_id', activeProfileId)
       .in('status', [...IN_PROGRESS, ...DONE, ...FAILED])
       .then(({ data }) => {
         if (!isMounted.current) return;
         let drafts = (data ?? []) as PendingDraft[];
-        // Si hay un draft recién encolado que aún no apareció en la query, añadirlo optimistamente
         if (navState?.pendingDraftId && !drafts.find(d => d.id === navState.pendingDraftId)) {
           drafts = [{ id: navState.pendingDraftId, status: 'pending', study_type: null, category: null }, ...drafts];
         }
@@ -77,10 +75,10 @@ export default function Vault() {
       });
 
     const channel = supabase
-      .channel(`vault-drafts-${profile.id}`)
+      .channel(`vault-drafts-${activeProfileId}`)
       .on(
         'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'study_drafts', filter: `profile_id=eq.${profile.id}` },
+        { event: 'UPDATE', schema: 'public', table: 'study_drafts', filter: `profile_id=eq.${activeProfileId}` },
         (payload) => {
           const updated = payload.new as PendingDraft;
           setPendingDrafts(prev => {
@@ -93,7 +91,7 @@ export default function Vault() {
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [profile?.id]);
+  }, [activeProfileId]);
 
   function reviewDraft(draftId: string) {
     setPendingDrafts(prev => prev.filter(d => d.id !== draftId));
@@ -125,14 +123,12 @@ export default function Vault() {
           <h1 style={{ fontSize: 24, fontWeight: 700, color: '#0F172A' }}>Mi Vault</h1>
         )}
 
-        {!familyProfileId && (
-          <button
-            onClick={() => nav('/app/vault/upload')}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#00C87A', color: '#fff', border: 'none', borderRadius: 10, padding: '8px 14px', fontSize: 14, fontWeight: 600, cursor: 'pointer', minHeight: 44 }}
-          >
-            <Plus size={16} strokeWidth={2.5} /> Subir
-          </button>
-        )}
+        <button
+          onClick={() => nav(familyProfileId ? `/app/vault/upload?p=${familyProfileId}` : '/app/vault/upload')}
+          style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#00C87A', color: '#fff', border: 'none', borderRadius: 10, padding: '8px 14px', fontSize: 14, fontWeight: 600, cursor: 'pointer', minHeight: 44 }}
+        >
+          <Plus size={16} strokeWidth={2.5} /> Subir
+        </button>
       </div>
 
       {/* Category chips */}
@@ -142,8 +138,8 @@ export default function Vault() {
         ))}
       </div>
 
-      {/* Drafts pendientes (solo en vault propio) */}
-      {!familyProfileId && pendingDrafts.length > 0 && (
+      {/* Drafts pendientes */}
+      {pendingDrafts.length > 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: '0 20px 4px' }}>
           {pendingDrafts.map(d => (
             <PendingDraftCard
@@ -160,10 +156,10 @@ export default function Vault() {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '0 20px 32px' }}>
         {profileLoading || loading
           ? Array.from({ length: 4 }).map((_, i) => <StudyCardSkeleton key={i} />)
-          : studies.length === 0 && (familyProfileId || pendingDrafts.length === 0)
+          : studies.length === 0 && pendingDrafts.length === 0
             ? <EmptyState
                 message={familyProfileId ? `${familyName ?? 'Este perfil'} no tiene estudios todavía.` : undefined}
-                onUpload={familyProfileId ? undefined : () => nav('/app/vault/upload')}
+                onUpload={() => nav(familyProfileId ? `/app/vault/upload?p=${familyProfileId}` : '/app/vault/upload')}
               />
             : studies.map(s => <StudyCard key={s.id} study={s} onClick={() => nav(`/app/vault/${s.id}`)} />)
         }
