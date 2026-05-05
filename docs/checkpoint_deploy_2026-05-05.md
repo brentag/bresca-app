@@ -1,5 +1,5 @@
 # Checkpoint — 2026-05-05
-**Estado general:** ✅ web-patient + API en producción. web-cro: build OK, deploy Vercel pendiente de creación manual del proyecto.
+**Estado general:** ✅ Todos los servicios en producción — web-patient + API + web-cro LIVE.
 
 ---
 
@@ -10,7 +10,7 @@
 | DB + Auth + Storage | Supabase | `mkacuagcvwxoduhdthwg` | ✅ LIVE |
 | Web B2C (paciente) | Vercel | `https://bresca-app-api.vercel.app` | ✅ LIVE |
 | API Backend | Render.com | `https://bresca-api.onrender.com` | ✅ LIVE |
-| Web B2B (CRO) | Vercel | — | 🔧 BUILD OK — crear proyecto en Vercel |
+| Web B2B (CRO) | Vercel | `https://bresca-cro.vercel.app` | ✅ LIVE |
 
 ---
 
@@ -64,3 +64,11 @@ Una vez deployado, actualizar `QA_WEB_PATIENT_URL`-equivalente para web-cro en e
 |---|---|---|
 | Fix rewrite SPA | `apps/web-cro/vercel.json` | Reemplazar `/(.*) → /index.html` por el patrón que excluye assets — mismo que web-patient. |
 | Deshabilitar claude-mem hooks | `~/.claude/settings.json` | Worker falló al iniciar; hooks bloqueaban todas las herramientas. Reactivar cuando el plugin esté estable. |
+
+---
+
+## Log de publicaciones (auto-generado)
+
+| Hash | Hora | Descripción |
+|---|---|---|
+| `663fd26` | 07:49 | chore(deploy): web-cro build verificado + checkpoint 05-05 con pendientes responsive |
