@@ -4,7 +4,7 @@ import { Plus } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useProfile } from '../../lib/useProfile';
 import { CATEGORIES, type CategoryFilter } from '../../lib/vault';
-import { StudyCard, StudyCardSkeleton } from '../../components/StudyCard';
+import { StudyCard, StudyCardSkeleton, DraftStudyCard } from '../../components/StudyCard';
 import { CategoryChip } from '../../components/CategoryChip';
 import type { Database } from '@bresca/shared';
 
@@ -138,21 +138,7 @@ export default function Vault() {
         ))}
       </div>
 
-      {/* Drafts pendientes */}
-      {pendingDrafts.length > 0 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: '0 20px 4px' }}>
-          {pendingDrafts.map(d => (
-            <PendingDraftCard
-              key={d.id}
-              draft={d}
-              onReview={() => reviewDraft(d.id)}
-              onDismiss={() => dismissDraft(d.id)}
-            />
-          ))}
-        </div>
-      )}
-
-      {/* List */}
+      {/* Lista unificada: drafts en proceso al tope, luego estudios confirmados */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '0 20px 32px' }}>
         {profileLoading || loading
           ? Array.from({ length: 4 }).map((_, i) => <StudyCardSkeleton key={i} />)
@@ -161,104 +147,25 @@ export default function Vault() {
                 message={familyProfileId ? `${familyName ?? 'Este perfil'} no tiene estudios todavía.` : undefined}
                 onUpload={() => nav(familyProfileId ? `/app/vault/upload?p=${familyProfileId}` : '/app/vault/upload')}
               />
-            : studies.map(s => <StudyCard key={s.id} study={s} onClick={() => nav(`/app/vault/${s.id}`)} />)
+            : <>
+                {pendingDrafts.map(d => (
+                  <DraftStudyCard
+                    key={d.id}
+                    draft={d}
+                    onReview={() => reviewDraft(d.id)}
+                    onDismiss={() => dismissDraft(d.id)}
+                  />
+                ))}
+                {studies.map(s => (
+                  <StudyCard key={s.id} study={s} onClick={() => nav(`/app/vault/${s.id}`)} />
+                ))}
+              </>
         }
       </div>
     </div>
   );
 }
 
-function PendingDraftCard({
-  draft,
-  onReview,
-  onDismiss,
-}: {
-  draft: PendingDraft;
-  onReview: () => void;
-  onDismiss: () => void;
-}) {
-  const isDone   = DONE.includes(draft.status);
-  const isFailed = FAILED.includes(draft.status);
-
-  if (isFailed) {
-    return (
-      <div style={{ background: '#FEF2F2', border: '1.5px solid #FECACA', borderRadius: 14, padding: '14px 16px', display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-        <div style={{ width: 36, height: 36, borderRadius: '50%', background: '#FEE2E2', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 18 }}>
-          ✕
-        </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <p style={{ fontSize: 14, fontWeight: 600, color: '#DC2626', marginBottom: 2 }}>
-            No pudimos analizar el documento
-          </p>
-          <p style={{ fontSize: 12, color: '#EF4444', marginBottom: 10 }}>
-            El análisis con IA falló. Podés ingresar los datos a mano o descartar.
-          </p>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button
-              onClick={onReview}
-              style={{ background: '#DC2626', color: '#fff', border: 'none', borderRadius: 10, padding: '8px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}
-            >
-              Ingresar datos →
-            </button>
-            <button
-              onClick={onDismiss}
-              style={{ background: 'none', border: '1px solid #FECACA', borderRadius: 10, color: '#EF4444', fontSize: 13, cursor: 'pointer', padding: '8px 12px' }}
-            >
-              Descartar
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div style={{
-      background: isDone ? '#F0FDF4' : '#F8FAFC',
-      border: `1.5px solid ${isDone ? '#86EFAC' : '#E2E8F0'}`,
-      borderRadius: 14,
-      padding: '14px 16px',
-      display: 'flex',
-      alignItems: 'center',
-      gap: 12,
-    }}>
-      {isDone ? (
-        <div style={{ width: 36, height: 36, borderRadius: '50%', background: '#00C87A', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 16 }}>
-          ✓
-        </div>
-      ) : (
-        <div style={{ width: 36, height: 36, borderRadius: '50%', border: '3px solid #00C87A', borderTopColor: 'transparent', animation: 'spin 0.9s linear infinite', flexShrink: 0 }} />
-      )}
-
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <p style={{ fontSize: 14, fontWeight: 600, color: '#0F172A', marginBottom: 2 }}>
-          {isDone ? '¡Análisis listo!' : 'Analizando estudio…'}
-        </p>
-        <p style={{ fontSize: 12, color: '#64748B' }}>
-          {isDone
-            ? 'Revisá los datos extraídos antes de guardar'
-            : 'La IA está procesando el documento en segundo plano'}
-        </p>
-      </div>
-
-      {isDone ? (
-        <button
-          onClick={onReview}
-          style={{ background: '#00C87A', color: '#fff', border: 'none', borderRadius: 10, padding: '8px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 }}
-        >
-          Revisá →
-        </button>
-      ) : (
-        <button
-          onClick={onDismiss}
-          style={{ background: 'none', border: 'none', color: '#94A3B8', fontSize: 12, cursor: 'pointer', padding: '4px 8px', flexShrink: 0 }}
-        >
-          Cancelar
-        </button>
-      )}
-    </div>
-  );
-}
 
 function EmptyState({ message, onUpload }: { message?: string; onUpload?: () => void }) {
   return (

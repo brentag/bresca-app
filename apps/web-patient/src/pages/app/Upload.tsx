@@ -10,7 +10,7 @@ import { CategoryChip } from '../../components/CategoryChip';
 import { Spinner } from '../../components/Spinner';
 import type { Database } from '@bresca/shared';
 
-type Step = 'source' | 'processing' | 'review';
+type Step = 'source' | 'review';
 type Draft = {
   profileId: string;
   category: string;
@@ -21,16 +21,10 @@ type Draft = {
   storagePaths: string[];
   draftId?: string;
 };
-type ProcessingStage = 'uploading' | 'reading';
 type SelectedFile = { id: string; file: File; preview: string };
 
 const MIME_MAP: Record<string, string> = {
   jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp', pdf: 'application/pdf',
-};
-
-const STAGE_LABEL: Record<ProcessingStage, string> = {
-  uploading: 'Subiendo archivos…',
-  reading:   'Preparando el análisis…',
 };
 
 export default function Upload() {
@@ -42,7 +36,7 @@ export default function Upload() {
   // ?p= indica un perfil familiar como destino del estudio
   const familyProfileId = searchParams.get('p') ?? undefined;
   const [step, setStep]               = useState<Step>('source');
-  const [stage, setStage]             = useState<ProcessingStage>('uploading');
+  const [uploading, setUploading]     = useState(false);
   const [files, setFiles]             = useState<SelectedFile[]>([]);
   const [draft, setDraft]             = useState<Draft | null>(null);
   const [category, setCategory]       = useState('hematología');
@@ -101,11 +95,9 @@ export default function Upload() {
     const targetProfileId = familyProfileId ?? profile?.id;
     if (!files.length || !targetProfileId) return;
     setExtractError('');
-    setStep('processing');
-    setStage('uploading');
+    setUploading(true);
 
     try {
-      // Subir todos los archivos en paralelo
       const uploads = await Promise.all(
         files.map(async ({ file }) => {
           const ext  = file.name.split('.').pop()?.toLowerCase() ?? 'jpg';
@@ -119,7 +111,6 @@ export default function Upload() {
         }),
       );
 
-      setStage('reading');
       const storagePaths = uploads.map(u => u.path);
       const primaryMime  = uploads[0].mime;
       const { job_id }   = await enqueueExtract(storagePaths, primaryMime, category, familyProfileId);
@@ -133,7 +124,7 @@ export default function Upload() {
         ? 'El servidor tardó en responder. Esperá unos segundos e intentá de nuevo.'
         : 'No pudimos procesar el archivo. Revisá que sea un PDF o imagen y volvé a intentar.';
       setExtractError(msg);
-      setStep('source');
+      setUploading(false);
     }
   }
 
@@ -301,32 +292,15 @@ export default function Upload() {
           {files.length > 0 && (
             <button
               onClick={processFiles}
-              style={{ width: '100%', padding: '16px', borderRadius: 14, border: 'none', background: '#00C87A', color: '#fff', fontSize: 16, fontWeight: 600, cursor: 'pointer', minHeight: 52, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+              disabled={uploading}
+              style={{ width: '100%', padding: '16px', borderRadius: 14, border: 'none', background: uploading ? '#94A3B8' : '#00C87A', color: '#fff', fontSize: 16, fontWeight: 600, cursor: uploading ? 'not-allowed' : 'pointer', minHeight: 52, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
             >
-              <ScanLine size={18} color="#fff" />
-              Procesar {pageLabel}
+              {uploading
+                ? <><Spinner /> Subiendo…</>
+                : <><ScanLine size={18} color="#fff" /> Subir {pageLabel}</>
+              }
             </button>
           )}
-        </div>
-      )}
-
-      {/* ── PASO: processing ── */}
-      {step === 'processing' && (
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 20, padding: 32 }}>
-          <div style={{ position: 'relative', width: 80, height: 80 }}>
-            <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', background: 'linear-gradient(135deg,#00C87A22,#4B6EF522)', animation: 'pulse 2s infinite' }} />
-            <div style={{ position: 'absolute', inset: 8, borderRadius: '50%', background: 'linear-gradient(135deg,#00C87A,#4B6EF5)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <ScanLine size={28} color="#fff" />
-            </div>
-          </div>
-          <div style={{ textAlign: 'center' }}>
-            <p style={{ fontSize: 17, fontWeight: 700, color: '#0F172A', marginBottom: 6 }}>{STAGE_LABEL[stage]}</p>
-            <p style={{ fontSize: 14, color: '#64748B' }}>
-              {stage === 'uploading' && 'Guardando los archivos de forma segura'}
-              {stage === 'reading'   && 'El análisis con IA empezará enseguida en segundo plano'}
-            </p>
-          </div>
-          <Spinner size="sm" />
         </div>
       )}
 
