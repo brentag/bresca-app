@@ -1,9 +1,19 @@
-import { Router } from 'express';
+import { Router, type Request, type Response, type NextFunction } from 'express';
 import { z } from 'zod';
 import { requireAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
 
 const router = Router();
+
+// TS-023: patient_hash must never be accepted as an input parameter in any /cro/ endpoint.
+// This prevents potential de-anonymization attacks where a caller could filter by a known hash.
+function rejectPatientHash(req: Request, res: Response, next: NextFunction) {
+  if ('patient_hash' in req.query || (req.body && 'patient_hash' in req.body)) {
+    res.status(400).json({ error: 'patient_hash is not a valid input parameter' });
+    return;
+  }
+  next();
+}
 
 // CRO access check — email must be in CRO_ALLOWED_EMAILS env var
 async function requireCro(req: Parameters<typeof requireAuth>[0], res: Parameters<typeof requireAuth>[1], next: Parameters<typeof requireAuth>[2]) {
@@ -25,7 +35,7 @@ async function requireCro(req: Parameters<typeof requireAuth>[0], res: Parameter
 }
 
 // GET /cro/stats
-router.get('/stats', requireCro, async (_req, res) => {
+router.get('/stats', requireCro, rejectPatientHash, async (_req, res) => {
   const [patientsRes, studiesRes, consentRes] = await Promise.all([
     supabase.from('cro_anonymous_patients').select('patient_hash', { count: 'exact', head: true }),
     supabase.from('studies').select('category', { count: 'exact' }).eq('confirmed', true),
@@ -46,7 +56,7 @@ router.get('/stats', requireCro, async (_req, res) => {
 });
 
 // GET /cro/patients?page=0&limit=50
-router.get('/patients', requireCro, async (req, res) => {
+router.get('/patients', requireCro, rejectPatientHash, async (req, res) => {
   const page = Math.max(0, Number(req.query['page']) || 0);
   const limit = Math.min(100, Number(req.query['limit']) || 50);
 
@@ -59,7 +69,7 @@ router.get('/patients', requireCro, async (req, res) => {
 });
 
 // GET /cro/distribution
-router.get('/distribution', requireCro, async (_req, res) => {
+router.get('/distribution', requireCro, rejectPatientHash, async (_req, res) => {
   const { data } = await supabase
     .from('studies')
     .select('category, study_type')
@@ -90,7 +100,7 @@ const MatchSchema = z.object({
   conditions: z.array(z.string()).optional(),
 });
 
-router.post('/match', requireCro, async (req, res) => {
+router.post('/match', requireCro, rejectPatientHash, async (req, res) => {
   const parse = MatchSchema.safeParse(req.body);
   if (!parse.success) { res.status(400).json({ error: 'Invalid body' }); return; }
 

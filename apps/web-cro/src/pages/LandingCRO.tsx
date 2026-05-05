@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useState, useEffect } from 'react';
 
 const CSS = `
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -105,6 +105,14 @@ a{color:inherit;text-decoration:none}
 .cro-lp .footer-bottom p{font-size:13px;color:var(--cro-dim)}
 .cro-lp .reveal{opacity:0;transform:translateY(20px);transition:opacity 550ms ease-out,transform 550ms ease-out}
 .cro-lp .reveal.visible{opacity:1;transform:translateY(0)}
+.cro-lp .hamburger{display:none;background:none;border:1.5px solid var(--cro-border-strong);border-radius:8px;padding:7px 11px;cursor:pointer;color:#F1F5F9;font-size:18px;line-height:1;align-items:center;justify-content:center}
+.cro-lp .mobile-overlay{position:fixed;inset:0;z-index:300;background:rgba(10,10,10,.97);padding:20px 24px;display:flex;flex-direction:column;overflow-y:auto}
+.cro-lp .mob-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:48px}
+.cro-lp .mob-close{background:none;border:none;color:#F1F5F9;font-size:26px;cursor:pointer;line-height:1;padding:4px}
+.cro-lp .mobile-overlay .mob-nav{display:flex;flex-direction:column}
+.cro-lp .mobile-overlay .mob-nav a{font-size:26px;font-weight:600;color:#F1F5F9;padding:18px 0;border-bottom:1px solid var(--cro-border);transition:color 150ms}
+.cro-lp .mobile-overlay .mob-nav a:hover{color:var(--cro-green)}
+.cro-lp .mob-cta{margin-top:40px;display:flex;flex-direction:column;gap:12px}
 @media(max-width:900px){
   .cro-lp .stats-inner{grid-template-columns:repeat(2,1fr)}
   .cro-lp .flow-grid{grid-template-columns:1fr;gap:16px}
@@ -112,12 +120,15 @@ a{color:inherit;text-decoration:none}
   .cro-lp .feat-grid{grid-template-columns:1fr}
   .cro-lp .compliance-inner{grid-template-columns:1fr}
   .cro-lp .footer-top{grid-template-columns:1fr 1fr}
-  .cro-lp nav a{display:none}
+  .cro-lp nav{display:none}
+  .cro-lp .header-btns{display:none!important}
+  .cro-lp .hamburger{display:flex}
 }
 @media(max-width:600px){
   .cro-lp .footer-top{grid-template-columns:1fr}
   .cro-lp .hero-ctas{flex-direction:column;align-items:center}
   .cro-lp .footer-bottom{flex-direction:column;text-align:center}
+  .cro-lp .hero{padding:100px 16px 60px}
 }
 `;
 
@@ -126,6 +137,8 @@ interface Props {
 }
 
 export default function LandingCRO({ onRequestDemo }: Props) {
+  const [menuOpen, setMenuOpen] = useState(false);
+
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); }),
@@ -135,11 +148,35 @@ export default function LandingCRO({ onRequestDemo }: Props) {
     return () => observer.disconnect();
   }, []);
 
+  const scrollTo = (id: string) => {
+    setMenuOpen(false);
+    setTimeout(() => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' }), 50);
+  };
+
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
 
       <div className="cro-lp">
+        {/* Mobile overlay menu */}
+        {menuOpen && (
+          <div className="mobile-overlay">
+            <div className="mob-head">
+              <span className="logo">Bresca</span>
+              <button className="mob-close" onClick={() => setMenuOpen(false)}>✕</button>
+            </div>
+            <nav className="mob-nav">
+              <a href="#como-funciona" onClick={() => scrollTo('como-funciona')}>Plataforma</a>
+              <a href="#features" onClick={() => scrollTo('features')}>Funciones</a>
+              <a href="#compliance" onClick={() => scrollTo('compliance')}>Compliance</a>
+            </nav>
+            <div className="mob-cta">
+              <button className="btn-demo-lg" onClick={() => { setMenuOpen(false); onRequestDemo(); }}>Solicitar demo</button>
+              <button className="btn-ghost-lg" onClick={() => scrollTo('compliance')}>Ver documentación técnica</button>
+            </div>
+          </div>
+        )}
+
         <header>
           <div className="header-inner">
             <div>
@@ -151,12 +188,13 @@ export default function LandingCRO({ onRequestDemo }: Props) {
               <a href="#features">Funciones</a>
               <a href="#compliance">Compliance</a>
             </nav>
-            <div style={{ display: 'flex', gap: 10 }}>
+            <div className="header-btns" style={{ display: 'flex', gap: 10 }}>
               <button className="btn-ghost" onClick={() => document.getElementById('compliance')?.scrollIntoView({ behavior: 'smooth' })}>
                 Documentación
               </button>
               <button className="btn-demo" onClick={onRequestDemo}>Solicitar demo</button>
             </div>
+            <button className="hamburger" onClick={() => setMenuOpen(true)} aria-label="Abrir menú">☰</button>
           </div>
         </header>
 

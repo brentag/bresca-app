@@ -88,8 +88,8 @@ export default function Login() {
 }
 
 const s: Record<string, React.CSSProperties> = {
-  bg: { minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F7F9FC' },
-  card: { background: '#fff', borderRadius: 20, padding: '40px 48px', width: 400, boxShadow: '0 4px 24px rgba(0,0,0,.08)' },
+  bg: { minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F7F9FC', padding: '20px' },
+  card: { background: '#fff', borderRadius: 20, padding: 'clamp(24px, 8vw, 40px) clamp(20px, 8vw, 48px)', width: '100%', maxWidth: 400, boxShadow: '0 4px 24px rgba(0,0,0,.08)' },
   logo: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 32 },
   logoMark: { width: 32, height: 32, borderRadius: 9, background: '#00C87A' },
   logoText: { fontSize: 20, fontWeight: 700, color: '#0F172A' },
