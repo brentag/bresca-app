@@ -28,6 +28,33 @@ const MIME_MAP: Record<string, string> = {
   pdf: 'application/pdf', dcm: 'application/dicom',
 };
 
+function uploadFileXHR(
+  file: File,
+  path: string,
+  mime: string,
+  token: string,
+  supabaseUrl: string,
+  onProgress: (pct: number) => void,
+): Promise<void> {
+  const url = `${supabaseUrl}/storage/v1/object/studies/${path}`;
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', url);
+    xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+    xhr.setRequestHeader('Content-Type', mime);
+    xhr.setRequestHeader('x-upsert', 'false');
+    xhr.upload.addEventListener('progress', (e) => {
+      if (e.lengthComputable) onProgress((e.loaded / e.total) * 100);
+    });
+    xhr.addEventListener('load', () => {
+      if (xhr.status >= 200 && xhr.status < 300) resolve();
+      else reject(new Error(`storage_upload_failed: ${xhr.status}`));
+    });
+    xhr.addEventListener('error', () => reject(new Error('storage_upload_failed: network')));
+    xhr.send(file);
+  });
+}
+
 export default function Upload() {
   const nav = useNavigate();
   const location = useLocation();
@@ -45,6 +72,7 @@ export default function Upload() {
   const [saving, setSaving]           = useState(false);
   const [saveError, setSaveError]     = useState('');
   const [extractError, setExtractError] = useState('');
+  const [uploadPct, setUploadPct]     = useState<number | null>(null);
 
   useEffect(() => {
     if (!familyProfileId) return;
@@ -108,21 +136,32 @@ export default function Upload() {
     if (!files.length || !targetProfileId) return;
     setExtractError('');
     setUploading(true);
+    setUploadPct(0);
 
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token       = session?.access_token ?? '';
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
+      const totalBytes  = files.reduce((acc, f) => acc + f.file.size, 0) || 1;
+      const fileProgress = files.map(() => 0);
+
       const uploads = await Promise.all(
-        files.map(async ({ file }) => {
+        files.map(async ({ file }, idx) => {
           const ext  = file.name.split('.').pop()?.toLowerCase() ?? 'jpg';
           const mime = MIME_MAP[ext] ?? 'image/jpeg';
           const path = `${user!.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-          const { error } = await supabase.storage
-            .from('studies')
-            .upload(path, file, { contentType: mime });
-          if (error) throw new Error(`storage_upload_failed: ${error.message}`);
+
+          await uploadFileXHR(file, path, mime, token, supabaseUrl, (pct) => {
+            fileProgress[idx] = pct;
+            const loaded = fileProgress.reduce((acc, p, i) => acc + (p / 100) * files[i].file.size, 0);
+            setUploadPct(Math.min(99, Math.round((loaded / totalBytes) * 100)));
+          });
+
           return { path, mime };
         }),
       );
 
+      setUploadPct(100);
       const storagePaths = uploads.map(u => u.path);
       const primaryMime  = uploads[0].mime;
       const { job_id }   = await enqueueExtract(storagePaths, primaryMime, category, familyProfileId);
@@ -146,6 +185,7 @@ export default function Upload() {
       }
       setExtractError(msg);
       setUploading(false);
+      setUploadPct(null);
     }
   }
 
@@ -332,6 +372,23 @@ export default function Upload() {
               Si el estudio tiene varias páginas, agregá todas las fotos antes de procesar. Bresca las analiza juntas.
             </p>
           </div>
+
+          {/* Progress bar — visible solo durante la subida al Storage */}
+          {uploading && uploadPct !== null && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: 13, color: '#475569', fontWeight: 500 }}>
+                  {uploadPct < 100 ? 'Subiendo el archivo…' : 'Enviando a la IA…'}
+                </span>
+                <span style={{ fontSize: 13, color: '#00C87A', fontWeight: 700 }}>
+                  {uploadPct < 100 ? `${uploadPct}%` : '✓'}
+                </span>
+              </div>
+              <div style={{ height: 4, background: '#E2E8F0', borderRadius: 99, overflow: 'hidden' }}>
+                <div style={{ height: '100%', width: `${uploadPct}%`, background: 'linear-gradient(90deg, #00C87A, #4B6EF5)', borderRadius: 99, transition: 'width 0.15s ease-out' }} />
+              </div>
+            </div>
+          )}
 
           {/* Botón procesar */}
           {files.length > 0 && (

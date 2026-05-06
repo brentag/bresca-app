@@ -2,6 +2,8 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { extractText } from 'npm:unpdf@0.12.1';
 import OpenAI from 'npm:openai@4.77.0';
 
+declare const EdgeRuntime: { waitUntil(p: Promise<unknown>): void };
+
 const SUPABASE_URL      = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_ROLE_KEY  = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const WEBHOOK_SECRET    = Deno.env.get('EDGE_WEBHOOK_SECRET')!;
@@ -69,6 +71,14 @@ Deno.serve(async (req) => {
     return new Response('already-claimed', { status: 200 });
   }
 
+  // Retornar 202 inmediatamente — pg_net no espera el OCR y no hace timeout.
+  // EdgeRuntime.waitUntil extiende el tiempo de vida de la función hasta que
+  // la promesa se resuelve, aunque el response ya fue enviado.
+  EdgeRuntime.waitUntil(processAndSave(draft));
+  return new Response(null, { status: 202 });
+});
+
+async function processAndSave(draft: DraftRow): Promise<void> {
   try {
     const result = await process(draft);
     await supabase
@@ -83,8 +93,6 @@ Deno.serve(async (req) => {
         completed_at:     new Date().toISOString(),
       })
       .eq('id', draft.id);
-
-    return new Response('ok', { status: 200 });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error('[process-study-draft] failed', draft.id, msg);
@@ -96,10 +104,8 @@ Deno.serve(async (req) => {
         completed_at: new Date().toISOString(),
       })
       .eq('id', draft.id);
-
-    return new Response('failed', { status: 200 });
   }
-});
+}
 
 async function process(draft: DraftRow): Promise<Structured> {
   const today = new Date().toISOString().slice(0, 10);
