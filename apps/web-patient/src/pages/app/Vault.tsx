@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { lazy, Suspense, useEffect, useState, useRef } from 'react';
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { Plus } from 'lucide-react';
 import { generateQR } from '../../lib/api';
@@ -8,6 +8,8 @@ import { CATEGORIES, type CategoryFilter } from '../../lib/vault';
 import { StudyCard, StudyCardSkeleton, DraftStudyCard } from '../../components/StudyCard';
 import { CategoryChip } from '../../components/CategoryChip';
 import type { Database } from '@bresca/shared';
+
+const DicomViewer = lazy(() => import('../../components/DicomViewer').then(m => ({ default: m.DicomViewer })));
 
 type Study = Database['public']['Tables']['studies']['Row'];
 type DraftStatus = 'pending' | 'processing' | 'done' | 'completed' | 'error' | 'failed';
@@ -27,6 +29,7 @@ export default function Vault() {
   const [filter, setFilter] = useState<CategoryFilter>('all');
   const [pendingDrafts, setPendingDrafts] = useState<PendingDraft[]>([]);
   const [familyName, setFamilyName] = useState<string | null>(null);
+  const [dicomStudy, setDicomStudy] = useState<Study | null>(null);
   const isMounted = useRef(true);
 
   // profileId activo: el de la URL (?p=) o el del usuario
@@ -176,11 +179,20 @@ export default function Vault() {
                     onClick={() => nav(`/app/vault/${s.id}`)}
                     onQR={() => handleQR(s.id)}
                     onWhatsApp={() => handleWhatsApp(s.id)}
+                    onDicomView={() => setDicomStudy(s)}
                   />
                 ))}
               </>
         }
       </div>
+      {dicomStudy && (
+        <Suspense fallback={null}>
+          <DicomViewer
+            storagePaths={(dicomStudy.storage_paths as string[]) ?? [dicomStudy.storage_path ?? '']}
+            onClose={() => setDicomStudy(null)}
+          />
+        </Suspense>
+      )}
     </div>
   );
 }

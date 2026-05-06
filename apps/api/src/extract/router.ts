@@ -7,7 +7,7 @@ const router = Router();
 
 const ExtractSchema = z.object({
   storage_paths: z.array(z.string().min(1)).min(1).max(20),
-  mime_type: z.enum(['image/jpeg', 'image/png', 'image/webp', 'application/pdf']),
+  mime_type: z.enum(['image/jpeg', 'image/png', 'image/webp', 'application/pdf', 'application/dicom']),
   category: z.string().min(1),
   profile_id: z.string().uuid().optional(), // perfil familiar — omitir para perfil propio
 });

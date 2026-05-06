@@ -1,21 +1,28 @@
-import { QrCode, Share2 } from 'lucide-react';
+import { QrCode, Share2, ScanEye } from 'lucide-react';
 import { categoryColor, formatStudyDate } from '../lib/vault';
 import type { Database } from '@bresca/shared';
 
 type Study = Database['public']['Tables']['studies']['Row'];
+
+function isDicomStudy(study: Study): boolean {
+  return (study.storage_paths as string[] | null)?.some(p => p.toLowerCase().endsWith('.dcm')) ?? false;
+}
 
 export function StudyCard({
   study,
   onClick,
   onQR,
   onWhatsApp,
+  onDicomView,
 }: {
   study: Study;
   onClick: () => void;
   onQR: () => void;
   onWhatsApp: () => void;
+  onDicomView?: () => void;
 }) {
-  const color = categoryColor(study.category);
+  const color  = categoryColor(study.category);
+  const isDicom = isDicomStudy(study);
   return (
     <div style={{ background: '#fff', border: '1px solid #E2E8F0', borderRadius: 14, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
       {/* Fila principal — navega al detalle */}
@@ -36,9 +43,17 @@ export function StudyCard({
         </div>
       </button>
 
-      {/* Fila compartir — solo para estudios confirmados */}
+      {/* Fila inferior — solo para estudios confirmados */}
       {study.confirmed && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px 10px 18px', borderTop: '1px solid #F1F5F9' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px 10px 18px', borderTop: '1px solid #F1F5F9', flexWrap: 'wrap' }}>
+          {isDicom && onDicomView && (
+            <button
+              onClick={onDicomView}
+              style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '5px 12px', borderRadius: 8, border: 'none', background: '#EFF6FF', color: '#3B82F6', fontSize: 12, fontWeight: 600, cursor: 'pointer', minHeight: 32 }}
+            >
+              <ScanEye size={13} /> Ver imagen
+            </button>
+          )}
           <span style={{ fontSize: 12, color: '#94A3B8', fontWeight: 500, marginRight: 2 }}>Compartir:</span>
           <button
             onClick={onQR}

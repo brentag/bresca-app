@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
-import { Camera, Image, ArrowLeft, ScanLine, Plus, X, FileText } from 'lucide-react';
+import { Camera, Image, ArrowLeft, ScanLine, Plus, X, FileText, Activity } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useProfile } from '../../lib/useProfile';
 import { useSession } from '../../lib/session';
@@ -24,7 +24,8 @@ type Draft = {
 type SelectedFile = { id: string; file: File; preview: string };
 
 const MIME_MAP: Record<string, string> = {
-  jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp', pdf: 'application/pdf',
+  jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp',
+  pdf: 'application/pdf', dcm: 'application/dicom',
 };
 
 export default function Upload() {
@@ -225,6 +226,16 @@ export default function Upload() {
                   style={{ display: 'none' }}
                 />
               </label>
+              <label style={sourceCardStyle}>
+                <Activity size={28} color="#3B82F6" />
+                <span style={{ fontSize: 13, fontWeight: 600, color: '#0F172A' }}>DICOM</span>
+                <input
+                  type="file"
+                  accept=".dcm,application/dicom"
+                  onChange={addFiles}
+                  style={{ display: 'none' }}
+                />
+              </label>
             </div>
           </div>
 
@@ -251,6 +262,11 @@ export default function Upload() {
                         alt={`Página ${i + 1}`}
                         style={{ width: 72, height: 72, objectFit: 'cover', borderRadius: 10, border: '1.5px solid #E2E8F0' }}
                       />
+                    ) : f.file.name.toLowerCase().endsWith('.dcm') ? (
+                      <div style={{ width: 72, height: 72, borderRadius: 10, background: '#EFF6FF', border: '1.5px solid #BFDBFE', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+                        <Activity size={22} color="#3B82F6" />
+                        <span style={{ fontSize: 9, color: '#3B82F6', fontWeight: 600, textAlign: 'center' }}>DICOM</span>
+                      </div>
                     ) : (
                       <div style={{ width: 72, height: 72, borderRadius: 10, background: '#F1F5F9', border: '1.5px solid #E2E8F0', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
                         <FileText size={22} color="#94A3B8" />
@@ -279,7 +295,7 @@ export default function Upload() {
                   <span style={{ fontSize: 10, color: '#94A3B8' }}>Agregar</span>
                   <input
                     type="file"
-                    accept="image/jpeg,image/png,image/webp,application/pdf"
+                    accept="image/jpeg,image/png,image/webp,application/pdf,.dcm,application/dicom"
                     multiple
                     onChange={addFiles}
                     style={{ display: 'none' }}

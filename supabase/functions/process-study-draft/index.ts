@@ -142,6 +142,11 @@ async function processSinglePath(
     return { ...structured, raw_text: rawText };
   }
 
+  if (mime === 'application/dicom') {
+    const structured = await processDicom(buffer, today);
+    return { ...structured, raw_text: '' };
+  }
+
   // Imagen: DeepSeek Vision
   const base64  = encodeBase64(buffer);
   const dataUrl = `data:${mime};base64,${base64}`;
@@ -233,7 +238,68 @@ function mimeFromPath(path: string): string {
   if (ext === 'pdf')  return 'application/pdf';
   if (ext === 'png')  return 'image/png';
   if (ext === 'webp') return 'image/webp';
+  if (ext === 'dcm')  return 'application/dicom';
   return 'image/jpeg';
+}
+
+const MODALITY_NAMES: Record<string, string> = {
+  CR: 'Radiografía', CT: 'Tomografía Computada', MR: 'Resonancia Magnética',
+  US: 'Ecografía', MG: 'Mamografía', DX: 'Radiografía Digital',
+  PT: 'PET Scan', NM: 'Medicina Nuclear', XA: 'Angiografía',
+  RF: 'Fluoroscopía', OT: 'Otro',
+};
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function processDicom(buffer: Uint8Array, today: string): Promise<Omit<Structured, 'raw_text'>> {
+  // Validate DICM magic at byte offset 128
+  const magic = String.fromCharCode(buffer[128], buffer[129], buffer[130], buffer[131]);
+  if (magic !== 'DICM') throw new Error('invalid DICOM: missing DICM preamble');
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { default: dicomParser } = await import('npm:dicom-parser@1.8.21') as any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const dataSet: any = dicomParser.parseDicom(buffer);
+
+  const getStr = (tag: string): string | undefined => {
+    try { return dataSet.string(tag)?.trim() || undefined; } catch { return undefined; }
+  };
+  const getUint16 = (tag: string): number | undefined => {
+    try { return dataSet.uint16(tag); } catch { return undefined; }
+  };
+
+  const modalityRaw  = getStr('x00080060');
+  const bodyPartRaw  = getStr('x00180015');
+  const dateRaw      = getStr('x00080020');
+  const studyDesc    = getStr('x0008103e') ?? getStr('x00081030');
+  const rows         = getUint16('x00280010');
+  const cols         = getUint16('x00280011');
+
+  const studyDate     = parseDicomDate(dateRaw) ?? today;
+  const modalityName  = MODALITY_NAMES[modalityRaw ?? ''] ?? modalityRaw ?? 'Imagen médica';
+  const bodyPartLabel = bodyPartRaw ? capitalizeFirst(bodyPartRaw.toLowerCase()) : null;
+  const study_type    = [modalityName, bodyPartLabel].filter(Boolean).join(' · ');
+
+  const extracted_fields: Record<string, string> = {};
+  if (modalityRaw)  extracted_fields['Modalidad']       = modalityRaw;
+  if (bodyPartLabel) extracted_fields['Parte del cuerpo'] = bodyPartLabel;
+  if (studyDesc)    extracted_fields['Descripción']     = studyDesc;
+  if (rows && cols) extracted_fields['Resolución']      = `${cols} × ${rows} px`;
+
+  return {
+    study_type: study_type || 'Imagen DICOM',
+    lab_name:   null,
+    study_date: studyDate,
+    extracted_fields,
+  };
+}
+
+function parseDicomDate(raw?: string): string | undefined {
+  if (!raw || raw.length !== 8) return undefined;
+  return `${raw.slice(0, 4)}-${raw.slice(4, 6)}-${raw.slice(6, 8)}`;
+}
+
+function capitalizeFirst(s: string): string {
+  return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
 function encodeBase64(buf: Uint8Array): string {
