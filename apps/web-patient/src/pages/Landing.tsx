@@ -157,7 +157,7 @@ export default function Landing() {
 
       <header>
         <div className="header-inner">
-          <div className="logo">Bresca</div>
+          <img src="/logo-horizontal-bicolor.png" alt="Bresca" style={{ height: 36, width: 'auto' }} />
           <nav>
             <a href="#features">Funciones</a>
             <a href="#como-funciona">Cómo funciona</a>
@@ -338,7 +338,7 @@ export default function Landing() {
           <div className="footer-inner">
             <div className="footer-top">
               <div>
-                <div className="footer-brand">Bresca</div>
+                <img src="/logo-horizontal-bicolor.png" alt="Bresca" style={{ height: 28, width: 'auto', marginBottom: 10 }} />
                 <div className="footer-tagline">Health Data Autonomy</div>
                 <div className="footer-desc">La plataforma de portabilidad de datos de salud para LATAM. Tus estudios, tus datos, tu decisión.</div>
               </div>
