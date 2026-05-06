@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { generateQR } from '../../lib/api';
 import { Upload, MessageCircle, QrCode, FolderOpen, FlaskConical, ChevronRight, Bell } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useProfile } from '../../lib/useProfile';
@@ -200,7 +201,19 @@ export default function Home() {
             : recent.length === 0
               ? <EmptyState onUpload={() => nav('/app/vault/upload')} />
               : recent.map(s => (
-                  <StudyCard key={s.id} study={s} onClick={() => nav(`/app/vault/${s.id}`)} />
+                  <StudyCard
+                    key={s.id}
+                    study={s}
+                    onClick={() => nav(`/app/vault/${s.id}`)}
+                    onQR={() => nav('/app/vault/qr', { state: { study_ids: [s.id] } })}
+                    onWhatsApp={async () => {
+                      try {
+                        const { token } = await generateQR([s.id], 24);
+                        const url = `${window.location.origin}/qr/${token}`;
+                        window.open(`https://wa.me/?text=${encodeURIComponent(`Te comparto mis estudios médicos 🏥\n${url}`)}`, '_blank', 'noopener');
+                      } catch { /* silencioso */ }
+                    }}
+                  />
                 ))
           }
         </div>

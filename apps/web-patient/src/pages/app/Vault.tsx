@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { Plus } from 'lucide-react';
+import { generateQR } from '../../lib/api';
 import { supabase } from '../../lib/supabase';
 import { useProfile } from '../../lib/useProfile';
 import { CATEGORIES, type CategoryFilter } from '../../lib/vault';
@@ -93,6 +94,18 @@ export default function Vault() {
     return () => { supabase.removeChannel(channel); };
   }, [activeProfileId]);
 
+  function handleQR(studyId: string) {
+    nav('/app/vault/qr', { state: { study_ids: [studyId] } });
+  }
+
+  async function handleWhatsApp(studyId: string) {
+    try {
+      const { token } = await generateQR([studyId], 24);
+      const url = `${window.location.origin}/qr/${token}`;
+      window.open(`https://wa.me/?text=${encodeURIComponent(`Te comparto mis estudios médicos 🏥\n${url}`)}`, '_blank', 'noopener');
+    } catch { /* fallo silencioso — el usuario puede usar el botón QR como alternativa */ }
+  }
+
   function reviewDraft(draftId: string) {
     setPendingDrafts(prev => prev.filter(d => d.id !== draftId));
     nav('/app/vault/upload', { state: { mode: 'review', draftId } });
@@ -157,7 +170,13 @@ export default function Vault() {
                   />
                 ))}
                 {studies.map(s => (
-                  <StudyCard key={s.id} study={s} onClick={() => nav(`/app/vault/${s.id}`)} />
+                  <StudyCard
+                    key={s.id}
+                    study={s}
+                    onClick={() => nav(`/app/vault/${s.id}`)}
+                    onQR={() => handleQR(s.id)}
+                    onWhatsApp={() => handleWhatsApp(s.id)}
+                  />
                 ))}
               </>
         }

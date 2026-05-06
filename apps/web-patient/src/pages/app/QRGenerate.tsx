@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import QRCode from 'react-qr-code';
 import { ArrowLeft, Copy, Check, Trash2, Share2 } from 'lucide-react';
 import { generateQR, revokeQR } from '../../lib/api';
@@ -21,9 +21,11 @@ const TTL_OPTIONS = [
 
 export default function QRGenerate() {
   const nav = useNavigate();
+  const location = useLocation();
   const { profile } = useProfile();
   const [studies, setStudies] = useState<Study[]>([]);
-  const [selected, setSelected] = useState<string[]>([]);
+  const preSelected = (location.state as { study_ids?: string[] } | null)?.study_ids ?? [];
+  const [selected, setSelected] = useState<string[]>(preSelected);
   const [ttl, setTtl] = useState(24);
   const [loading, setLoading] = useState(false);
   const [token, setToken] = useState('');
