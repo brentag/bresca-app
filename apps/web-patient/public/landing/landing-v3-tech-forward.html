@@ -1,0 +1,2287 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bresca — Tus datos médicos, bajo tu control</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollToPlugin.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --black:    #050505;
+    --surface:  #0D0D0D;
+    --card:     #111111;
+    --border:   rgba(255,255,255,0.07);
+    --green:    #00C87A;
+    --green-dim: rgba(0,200,122,0.12);
+    --blue:     #4B6EF5;
+    --blue-dim: rgba(75,110,245,0.12);
+    --white:    #FFFFFF;
+    --muted:    rgba(255,255,255,0.45);
+    --font-display: 'Space Grotesk', sans-serif;
+    --font-mono:    'JetBrains Mono', monospace;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: var(--font-display);
+    background: var(--black);
+    color: var(--white);
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ─── GRAIN OVERLAY ─── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    pointer-events: none;
+    opacity: 0.025;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+  }
+
+  /* ─── NAV ─── */
+  .nav-wrapper {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 90;
+    display: flex;
+    justify-content: center;
+    padding: 20px 24px 0;
+    pointer-events: none;
+  }
+
+  nav {
+    pointer-events: all;
+    display: flex;
+    align-items: center;
+    gap: 0;
+    background: rgba(13,13,13,0.75);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid var(--border);
+    border-radius: 9999px;
+    padding: 8px 8px 8px 24px;
+    width: 100%;
+    max-width: 860px;
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.03), 0 4px 32px rgba(0,0,0,0.6);
+  }
+
+  .nav-logo {
+    display: flex;
+    align-items: center;
+    flex: 1;
+  }
+
+  .nav-logo img {
+    height: 28px;
+    width: auto;
+    display: block;
+  }
+
+  .nav-links {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-right: 8px;
+  }
+
+  .nav-links a {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--muted);
+    text-decoration: none;
+    padding: 8px 16px;
+    border-radius: 9999px;
+    transition: color 0.3s cubic-bezier(0.32,0.72,0,1), background 0.3s cubic-bezier(0.32,0.72,0,1);
+    letter-spacing: -0.01em;
+  }
+
+  .nav-links a:hover {
+    color: var(--white);
+    background: rgba(255,255,255,0.06);
+  }
+
+  .nav-cta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--green);
+    color: #051A0F;
+    font-size: 13px;
+    font-weight: 700;
+    text-decoration: none;
+    padding: 10px 20px;
+    border-radius: 9999px;
+    border: none;
+    cursor: pointer;
+    letter-spacing: -0.01em;
+    transition: all 0.4s cubic-bezier(0.32,0.72,0,1);
+    white-space: nowrap;
+    font-family: var(--font-display);
+  }
+
+  .nav-cta:hover {
+    background: #00E88A;
+    transform: scale(1.03);
+    box-shadow: 0 0 20px rgba(0,200,122,0.35);
+  }
+
+  .nav-hamburger {
+    display: none;
+    flex-direction: column;
+    gap: 5px;
+    cursor: pointer;
+    padding: 8px;
+    background: none;
+    border: none;
+    margin-right: 4px;
+  }
+
+  .nav-hamburger span {
+    display: block;
+    width: 22px;
+    height: 1.5px;
+    background: var(--white);
+    transition: all 0.4s cubic-bezier(0.32,0.72,0,1);
+    transform-origin: center;
+  }
+
+  /* ─── MOBILE MENU ─── */
+  .mobile-menu {
+    position: fixed;
+    inset: 0;
+    z-index: 89;
+    background: rgba(5,5,5,0.95);
+    backdrop-filter: blur(40px);
+    -webkit-backdrop-filter: blur(40px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.4s cubic-bezier(0.32,0.72,0,1);
+  }
+
+  .mobile-menu.open {
+    opacity: 1;
+    pointer-events: all;
+  }
+
+  .mobile-menu a {
+    font-size: 28px;
+    font-weight: 600;
+    color: var(--white);
+    text-decoration: none;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all 0.5s cubic-bezier(0.32,0.72,0,1);
+    letter-spacing: -0.03em;
+  }
+
+  .mobile-menu.open a { opacity: 1; transform: translateY(0); }
+  .mobile-menu.open a:nth-child(1) { transition-delay: 0.08s; }
+  .mobile-menu.open a:nth-child(2) { transition-delay: 0.13s; }
+  .mobile-menu.open a:nth-child(3) { transition-delay: 0.18s; }
+  .mobile-menu.open a:nth-child(4) { transition-delay: 0.23s; }
+
+  /* ─── RADIAL GLOWS ─── */
+  .glow-green {
+    position: absolute;
+    width: 600px;
+    height: 600px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(0,200,122,0.12) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .glow-blue {
+    position: absolute;
+    width: 500px;
+    height: 500px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(75,110,245,0.1) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  /* ─── HERO ─── */
+  .hero {
+    min-height: 100dvh;
+    display: flex;
+    align-items: center;
+    position: relative;
+    overflow: hidden;
+    padding: 140px 40px 80px;
+  }
+
+  .hero-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 80px;
+    align-items: center;
+    position: relative;
+    z-index: 2;
+  }
+
+  .hero-left { }
+
+  .hero-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid rgba(0,200,122,0.3);
+    border-radius: 9999px;
+    padding: 5px 14px 5px 10px;
+    margin-bottom: 32px;
+    background: rgba(0,200,122,0.05);
+  }
+
+  .hero-eyebrow-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--green);
+    animation: pulse-dot 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.8); }
+  }
+
+  .hero-eyebrow span {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 400;
+    color: var(--green);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .hero-h1 {
+    font-size: clamp(2.8rem, 4vw, 4.8rem);
+    font-weight: 700;
+    line-height: 1.06;
+    letter-spacing: -0.04em;
+    color: var(--white);
+    max-width: 580px;
+    margin-bottom: 28px;
+  }
+
+  .hero-h1 .accent-green { color: var(--green); }
+  .hero-h1 .accent-blue { color: var(--blue); }
+
+  .hero-sub {
+    font-size: 16px;
+    line-height: 1.65;
+    color: var(--muted);
+    max-width: 440px;
+    margin-bottom: 48px;
+    font-weight: 400;
+  }
+
+  .hero-actions {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--green);
+    color: #051A0F;
+    font-family: var(--font-display);
+    font-size: 14px;
+    font-weight: 700;
+    text-decoration: none;
+    padding: 14px 24px;
+    border-radius: 9999px;
+    border: none;
+    cursor: pointer;
+    letter-spacing: -0.01em;
+    transition: all 0.4s cubic-bezier(0.32,0.72,0,1);
+    position: relative;
+  }
+
+  .btn-primary:hover {
+    background: #00E88A;
+    box-shadow: 0 0 30px rgba(0,200,122,0.4);
+    transform: scale(1.03);
+  }
+
+  .btn-icon-wrap {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: rgba(5,26,15,0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    transition: all 0.4s cubic-bezier(0.32,0.72,0,1);
+    flex-shrink: 0;
+  }
+
+  .btn-primary:hover .btn-icon-wrap {
+    transform: translate(2px,-2px) scale(1.1);
+  }
+
+  .btn-ghost {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: transparent;
+    color: var(--muted);
+    font-family: var(--font-display);
+    font-size: 14px;
+    font-weight: 500;
+    text-decoration: none;
+    padding: 14px 20px;
+    border-radius: 9999px;
+    border: 1px solid var(--border);
+    cursor: pointer;
+    letter-spacing: -0.01em;
+    transition: all 0.4s cubic-bezier(0.32,0.72,0,1);
+  }
+
+  .btn-ghost:hover {
+    color: var(--white);
+    border-color: rgba(255,255,255,0.15);
+    background: rgba(255,255,255,0.04);
+  }
+
+  /* ─── HERO DASHBOARD MOCKUP ─── */
+  .hero-right {
+    position: relative;
+  }
+
+  .dashboard-outer {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    border-radius: 28px;
+    padding: 6px;
+    box-shadow:
+      0 0 0 1px rgba(255,255,255,0.02),
+      0 40px 80px rgba(0,0,0,0.7),
+      0 0 60px rgba(0,200,122,0.08);
+  }
+
+  .dashboard-inner {
+    background: var(--surface);
+    border-radius: 22px;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.05);
+  }
+
+  .dash-header {
+    background: var(--card);
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .dash-dots {
+    display: flex;
+    gap: 6px;
+  }
+
+  .dash-dots span {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.1);
+  }
+
+  .dash-url {
+    flex: 1;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 5px 12px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  .dash-body {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .dash-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .dash-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 16px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .dash-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent);
+  }
+
+  .dash-card.accent-green { border-color: rgba(0,200,122,0.2); }
+  .dash-card.accent-blue { border-color: rgba(75,110,245,0.2); }
+
+  .dash-card-label {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .dash-card-value {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.04em;
+    color: var(--white);
+    margin-bottom: 4px;
+  }
+
+  .dash-card-sub {
+    font-size: 11px;
+    color: var(--muted);
+    font-family: var(--font-mono);
+  }
+
+  .dash-card.accent-green .dash-card-value { color: var(--green); }
+  .dash-card.accent-blue .dash-card-value { color: var(--blue); }
+
+  .dash-bar-row {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .dash-bar-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .dash-bar-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--muted);
+    width: 80px;
+    flex-shrink: 0;
+  }
+
+  .dash-bar-track {
+    flex: 1;
+    height: 4px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 99px;
+    overflow: hidden;
+  }
+
+  .dash-bar-fill {
+    height: 100%;
+    border-radius: 99px;
+    background: linear-gradient(90deg, var(--green), #00E88A);
+  }
+
+  .dash-bar-fill.blue {
+    background: linear-gradient(90deg, var(--blue), #7B97FF);
+  }
+
+  .dash-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    background: rgba(0,200,122,0.06);
+    border: 1px solid rgba(0,200,122,0.15);
+    border-radius: 10px;
+  }
+
+  .dash-status-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--green);
+    flex-shrink: 0;
+    animation: pulse-dot 2s ease-in-out infinite;
+  }
+
+  .dash-status-text {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--green);
+  }
+
+  /* ─── MARQUEE ─── */
+  .marquee-section {
+    padding: 40px 0;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    overflow: hidden;
+  }
+
+  .marquee-track {
+    display: flex;
+    gap: 48px;
+    width: max-content;
+    animation: marquee-scroll 28s linear infinite;
+  }
+
+  .marquee-track:hover { animation-play-state: paused; }
+
+  @keyframes marquee-scroll {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+  }
+
+  .marquee-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    white-space: nowrap;
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 400;
+    letter-spacing: 0.04em;
+  }
+
+  .marquee-item-icon {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    opacity: 0.7;
+  }
+
+  /* ─── SECTION COMMON ─── */
+  section { position: relative; overflow: hidden; }
+
+  .section-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 40px;
+  }
+
+  .section-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--green);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+  }
+
+  .section-eyebrow::before {
+    content: '';
+    width: 20px;
+    height: 1px;
+    background: var(--green);
+    opacity: 0.6;
+  }
+
+  .section-h2 {
+    font-size: clamp(2rem, 3.5vw, 3.4rem);
+    font-weight: 700;
+    letter-spacing: -0.04em;
+    line-height: 1.1;
+    color: var(--white);
+    margin-bottom: 24px;
+  }
+
+  /* ─── BENTO FEATURES ─── */
+  .features-section {
+    padding: 120px 0;
+  }
+
+  .features-header {
+    margin-bottom: 60px;
+  }
+
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    grid-auto-flow: dense;
+    gap: 16px;
+  }
+
+  .feat-card {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    padding: 6px;
+    transition: all 0.6s cubic-bezier(0.32,0.72,0,1);
+    cursor: default;
+    overflow: hidden;
+  }
+
+  .feat-card:hover {
+    border-color: rgba(255,255,255,0.12);
+    transform: translateY(-2px);
+  }
+
+  .feat-card.green-glow:hover {
+    border-color: rgba(0,200,122,0.25);
+    box-shadow: 0 0 40px rgba(0,200,122,0.08), inset 0 1px 0 rgba(0,200,122,0.1);
+  }
+
+  .feat-card.blue-glow:hover {
+    border-color: rgba(75,110,245,0.25);
+    box-shadow: 0 0 40px rgba(75,110,245,0.08), inset 0 1px 0 rgba(75,110,245,0.1);
+  }
+
+  .feat-card-inner {
+    background: var(--card);
+    border-radius: 19px;
+    height: 100%;
+    padding: 32px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+    display: flex;
+    flex-direction: column;
+    min-height: 200px;
+  }
+
+  .feat-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 24px;
+    flex-shrink: 0;
+  }
+
+  .feat-icon.green { background: var(--green-dim); color: var(--green); }
+  .feat-icon.blue { background: var(--blue-dim); color: var(--blue); }
+  .feat-icon.white { background: rgba(255,255,255,0.06); color: var(--white); }
+
+  .feat-icon svg {
+    width: 22px;
+    height: 22px;
+    stroke-width: 1.5;
+  }
+
+  .feat-title {
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    color: var(--white);
+    margin-bottom: 10px;
+    line-height: 1.2;
+  }
+
+  .feat-desc {
+    font-size: 13.5px;
+    color: var(--muted);
+    line-height: 1.65;
+    flex: 1;
+  }
+
+  .feat-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 20px;
+    padding: 4px 12px;
+    border-radius: 9999px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.05em;
+    font-weight: 400;
+    align-self: flex-start;
+  }
+
+  .feat-tag.green { background: var(--green-dim); color: var(--green); border: 1px solid rgba(0,200,122,0.2); }
+  .feat-tag.blue { background: var(--blue-dim); color: var(--blue); border: 1px solid rgba(75,110,245,0.2); }
+
+  .c7  { grid-column: span 7; }
+  .c5  { grid-column: span 5; }
+  .c4  { grid-column: span 4; }
+
+  .feat-large-visual {
+    margin-top: 24px;
+    background: var(--black);
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .mini-record {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    background: rgba(255,255,255,0.03);
+    border-radius: 8px;
+    border: 1px solid var(--border);
+  }
+
+  .mini-record-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .mini-record-name {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--white);
+    flex: 1;
+  }
+
+  .mini-record-date {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--muted);
+  }
+
+  .feat-qr-visual {
+    margin-top: 24px;
+    display: flex;
+    justify-content: center;
+  }
+
+  .qr-block {
+    width: 80px;
+    height: 80px;
+    background: var(--black);
+    border-radius: 12px;
+    border: 1px solid rgba(0,200,122,0.2);
+    display: grid;
+    grid-template-columns: repeat(6,1fr);
+    grid-template-rows: repeat(6,1fr);
+    gap: 3px;
+    padding: 10px;
+  }
+
+  .qr-cell {
+    background: rgba(0,200,122,0.8);
+    border-radius: 1px;
+  }
+
+  .qr-cell.empty { background: transparent; }
+
+  /* ─── HOW IT WORKS ─── */
+  .how-section {
+    padding: 120px 0;
+    background: var(--surface);
+  }
+
+  .how-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+    margin-top: 60px;
+  }
+
+  .how-card {
+    position: relative;
+    padding: 6px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    transition: all 0.5s cubic-bezier(0.32,0.72,0,1);
+  }
+
+  .how-card-inner {
+    background: var(--card);
+    border-radius: 19px;
+    padding: 36px 32px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+  }
+
+  .how-number {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    margin-bottom: 20px;
+  }
+
+  .how-title {
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    color: var(--white);
+    margin-bottom: 12px;
+    line-height: 1.2;
+  }
+
+  .how-desc {
+    font-size: 14px;
+    color: var(--muted);
+    line-height: 1.65;
+  }
+
+  .how-connector {
+    position: absolute;
+    top: 50%;
+    right: -12px;
+    transform: translateY(-50%);
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2;
+    color: var(--muted);
+    font-size: 12px;
+  }
+
+  /* ─── SCROLL PINNED SECTION ─── */
+  .pinned-section {
+    padding: 120px 0;
+  }
+
+  .pinned-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 40px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 80px;
+    align-items: start;
+  }
+
+  .pinned-left {
+    position: sticky;
+    top: 140px;
+  }
+
+  .pinned-desc {
+    font-size: 15px;
+    color: var(--muted);
+    line-height: 1.7;
+    margin-bottom: 40px;
+  }
+
+  .security-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    border-radius: 9999px;
+    border: 1px solid rgba(0,200,122,0.2);
+    background: rgba(0,200,122,0.05);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--green);
+    letter-spacing: 0.04em;
+    margin-bottom: 12px;
+    display: block;
+  }
+
+  .pinned-right {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding-top: 8px;
+  }
+
+  .stack-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 28px;
+    opacity: 0;
+    transform: translateY(40px);
+    transition: all 0.6s cubic-bezier(0.32,0.72,0,1);
+  }
+
+  .stack-card.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .stack-card-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 16px;
+  }
+
+  .stack-card-icon.green { background: var(--green-dim); color: var(--green); }
+  .stack-card-icon.blue { background: var(--blue-dim); color: var(--blue); }
+  .stack-card-icon.white { background: rgba(255,255,255,0.06); color: var(--white); }
+
+  .stack-card-icon svg {
+    width: 18px;
+    height: 18px;
+    stroke-width: 1.5;
+  }
+
+  .stack-card-title {
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    color: var(--white);
+    margin-bottom: 8px;
+  }
+
+  .stack-card-desc {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+
+  /* ─── TESTIMONIALS ─── */
+  .testimonials-section {
+    padding: 120px 0;
+    background: var(--surface);
+    overflow: hidden;
+  }
+
+  .testimonials-header {
+    max-width: 1200px;
+    margin: 0 auto 60px;
+    padding: 0 40px;
+  }
+
+  .testimonials-carousel {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 40px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+
+  .testi-card {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    padding: 6px;
+    transition: all 0.5s cubic-bezier(0.32,0.72,0,1);
+  }
+
+  .testi-card:hover {
+    border-color: rgba(255,255,255,0.1);
+    transform: translateY(-3px);
+  }
+
+  .testi-card-inner {
+    background: var(--card);
+    border-radius: 19px;
+    padding: 32px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+  }
+
+  .testi-mark {
+    font-family: var(--font-mono);
+    font-size: 32px;
+    color: var(--green);
+    line-height: 1;
+    margin-bottom: 16px;
+    opacity: 0.4;
+  }
+
+  .testi-quote {
+    font-size: 15px;
+    color: rgba(255,255,255,0.8);
+    line-height: 1.65;
+    margin-bottom: 24px;
+    font-weight: 400;
+    font-style: italic;
+  }
+
+  .testi-person {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .testi-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 2px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  .testi-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    filter: grayscale(30%) contrast(1.05);
+  }
+
+  .testi-name {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--white);
+    letter-spacing: -0.02em;
+    margin-bottom: 2px;
+  }
+
+  .testi-role {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.04em;
+  }
+
+  /* ─── FAQ ─── */
+  .faq-section {
+    padding: 120px 0;
+  }
+
+  .faq-inner {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 0 40px;
+  }
+
+  .faq-header {
+    text-align: center;
+    margin-bottom: 60px;
+  }
+
+  .faq-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .faq-item {
+    border-bottom: 1px solid var(--border);
+  }
+
+  .faq-question {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 22px 0;
+    cursor: pointer;
+    user-select: none;
+    gap: 16px;
+  }
+
+  .faq-question-text {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--white);
+    letter-spacing: -0.02em;
+    line-height: 1.3;
+  }
+
+  .faq-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.4s cubic-bezier(0.32,0.72,0,1);
+    color: var(--muted);
+  }
+
+  .faq-item.open .faq-icon {
+    transform: rotate(45deg);
+    border-color: var(--green);
+    color: var(--green);
+    background: var(--green-dim);
+  }
+
+  .faq-icon svg {
+    width: 14px;
+    height: 14px;
+    stroke-width: 2;
+  }
+
+  .faq-answer {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.5s cubic-bezier(0.32,0.72,0,1);
+  }
+
+  .faq-item.open .faq-answer { max-height: 200px; }
+
+  .faq-answer-inner {
+    padding: 0 0 22px;
+    font-size: 14px;
+    color: var(--muted);
+    line-height: 1.7;
+  }
+
+  /* ─── FINAL CTA ─── */
+  .cta-section {
+    padding: 120px 0;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .cta-glow {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%,-50%);
+    width: 800px;
+    height: 400px;
+    border-radius: 50%;
+    background: radial-gradient(ellipse at center, rgba(0,200,122,0.1) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .cta-inner {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 0 40px;
+    text-align: center;
+    position: relative;
+    z-index: 2;
+  }
+
+  .cta-box {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 32px;
+    padding: 6px;
+  }
+
+  .cta-box-inner {
+    background: var(--card);
+    border-radius: 27px;
+    padding: 72px 60px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+  }
+
+  .cta-h2 {
+    font-size: clamp(2.4rem, 4vw, 4rem);
+    font-weight: 700;
+    letter-spacing: -0.04em;
+    line-height: 1.08;
+    color: var(--white);
+    margin-bottom: 20px;
+  }
+
+  .cta-sub {
+    font-size: 16px;
+    color: var(--muted);
+    line-height: 1.65;
+    margin-bottom: 44px;
+    max-width: 460px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .cta-actions {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  /* ─── FOOTER ─── */
+  footer {
+    padding: 48px 40px;
+    border-top: 1px solid var(--border);
+  }
+
+  .footer-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 24px;
+  }
+
+  .footer-logo img {
+    height: 24px;
+    width: auto;
+    opacity: 0.7;
+    transition: opacity 0.3s ease;
+  }
+
+  .footer-logo img:hover { opacity: 1; }
+
+  .footer-links {
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+
+  .footer-links a {
+    font-size: 13px;
+    color: var(--muted);
+    text-decoration: none;
+    transition: color 0.3s ease;
+    font-family: var(--font-mono);
+    letter-spacing: 0.02em;
+  }
+
+  .footer-links a:hover { color: var(--white); }
+
+  .footer-copy {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: rgba(255,255,255,0.2);
+    letter-spacing: 0.04em;
+  }
+
+  /* ─── MOBILE STICKY CTA ─── */
+  .mobile-sticky-cta {
+    display: none;
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    right: 20px;
+    z-index: 80;
+    background: var(--green);
+    color: #051A0F;
+    font-family: var(--font-display);
+    font-size: 15px;
+    font-weight: 700;
+    text-align: center;
+    padding: 16px 24px;
+    border-radius: 9999px;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 8px 32px rgba(0,200,122,0.35);
+    transition: all 0.4s cubic-bezier(0.32,0.72,0,1);
+    letter-spacing: -0.01em;
+  }
+
+  .mobile-sticky-cta:hover {
+    background: #00E88A;
+    transform: scale(1.02);
+  }
+
+  /* ─── MODAL ─── */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    background: rgba(0,0,0,0.85);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.4s cubic-bezier(0.32,0.72,0,1);
+  }
+
+  .modal-overlay.open {
+    opacity: 1;
+    pointer-events: all;
+  }
+
+  .modal-box {
+    width: 100%;
+    max-width: 460px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    border-radius: 28px;
+    padding: 6px;
+    transform: translateY(20px) scale(0.97);
+    transition: all 0.5s cubic-bezier(0.32,0.72,0,1);
+    box-shadow: 0 40px 80px rgba(0,0,0,0.8);
+  }
+
+  .modal-overlay.open .modal-box {
+    transform: translateY(0) scale(1);
+  }
+
+  .modal-inner {
+    background: var(--card);
+    border-radius: 23px;
+    padding: 48px 40px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
+  }
+
+  .modal-close {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    transition: all 0.3s ease;
+    line-height: 1;
+  }
+
+  .modal-close:hover { background: rgba(255,255,255,0.1); color: var(--white); }
+
+  .modal-box { position: relative; }
+
+  .modal-title {
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: -0.04em;
+    color: var(--white);
+    margin-bottom: 8px;
+    line-height: 1.15;
+  }
+
+  .modal-sub {
+    font-size: 14px;
+    color: var(--muted);
+    margin-bottom: 32px;
+    line-height: 1.55;
+  }
+
+  .form-field {
+    margin-bottom: 16px;
+  }
+
+  .form-field label {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .form-field input {
+    width: 100%;
+    background: var(--black);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 13px 16px;
+    font-family: var(--font-display);
+    font-size: 14px;
+    color: var(--white);
+    outline: none;
+    transition: all 0.3s ease;
+  }
+
+  .form-field input::placeholder { color: rgba(255,255,255,0.2); }
+
+  .form-field input:focus {
+    border-color: rgba(0,200,122,0.4);
+    box-shadow: 0 0 0 3px rgba(0,200,122,0.08);
+  }
+
+  .form-disclaimer {
+    font-size: 11px;
+    color: rgba(255,255,255,0.25);
+    line-height: 1.55;
+    margin-bottom: 24px;
+    font-family: var(--font-mono);
+  }
+
+  .modal-submit {
+    width: 100%;
+    background: var(--green);
+    color: #051A0F;
+    font-family: var(--font-display);
+    font-size: 15px;
+    font-weight: 700;
+    padding: 15px 24px;
+    border-radius: 9999px;
+    border: none;
+    cursor: pointer;
+    letter-spacing: -0.01em;
+    transition: all 0.4s cubic-bezier(0.32,0.72,0,1);
+  }
+
+  .modal-submit:hover {
+    background: #00E88A;
+    box-shadow: 0 0 24px rgba(0,200,122,0.35);
+    transform: scale(1.02);
+  }
+
+  .modal-success {
+    display: none;
+    text-align: center;
+  }
+
+  .modal-success.active { display: block; }
+  .modal-form.hidden { display: none; }
+
+  .success-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: var(--green-dim);
+    border: 1px solid rgba(0,200,122,0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 24px;
+    font-size: 28px;
+  }
+
+  .success-title {
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: -0.04em;
+    color: var(--white);
+    margin-bottom: 12px;
+  }
+
+  .success-sub {
+    font-size: 14px;
+    color: var(--muted);
+    line-height: 1.6;
+    margin-bottom: 32px;
+  }
+
+  /* ─── REVEAL INIT ─── */
+  .reveal {
+    opacity: 0;
+    transform: translateY(32px);
+    filter: blur(4px);
+    transition: all 0.8s cubic-bezier(0.32,0.72,0,1);
+  }
+
+  .reveal.visible {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+
+  /* ─── RESPONSIVE ─── */
+  @media (max-width: 768px) {
+    .nav-links { display: none; }
+    .nav-hamburger { display: flex; }
+    .nav-cta { display: none; }
+
+    .hero { padding: 120px 24px 80px; min-height: auto; }
+    .hero-inner { grid-template-columns: 1fr; gap: 48px; }
+    .hero-right { display: none; }
+
+    .section-inner { padding: 0 24px; }
+    .features-section { padding: 80px 0; }
+    .features-header { padding: 0 24px; margin-bottom: 40px; }
+
+    .features-grid { grid-template-columns: 1fr; gap: 12px; padding: 0 24px; }
+    .c7, .c5, .c4 { grid-column: span 1; }
+
+    .how-section { padding: 80px 0; }
+    .how-grid { grid-template-columns: 1fr; gap: 12px; padding: 0 24px; margin-top: 40px; }
+    .how-connector { display: none; }
+
+    .pinned-section { padding: 80px 0; }
+    .pinned-inner { grid-template-columns: 1fr; gap: 48px; padding: 0 24px; }
+    .pinned-left { position: static; }
+
+    .testimonials-section { padding: 80px 0; }
+    .testimonials-header { padding: 0 24px; margin-bottom: 40px; }
+    .testimonials-carousel { grid-template-columns: 1fr; padding: 0 24px; gap: 12px; }
+
+    .faq-section { padding: 80px 0; }
+    .faq-inner { padding: 0 24px; }
+
+    .cta-section { padding: 80px 0; }
+    .cta-inner { padding: 0 24px; }
+    .cta-box-inner { padding: 48px 28px; }
+
+    footer { padding: 40px 24px; }
+    .footer-inner { flex-direction: column; align-items: flex-start; gap: 16px; }
+
+    .mobile-sticky-cta { display: block; }
+  }
+</style>
+</head>
+<body>
+
+<!-- MOBILE MENU -->
+<div class="mobile-menu" id="mobileMenu">
+  <a href="#features" onclick="closeMobileMenu()">Funcionalidades</a>
+  <a href="#como-funciona" onclick="closeMobileMenu()">Como funciona</a>
+  <a href="#testimonios" onclick="closeMobileMenu()">Testimonios</a>
+  <a href="#" onclick="openModal(); closeMobileMenu()">Registrate gratis</a>
+</div>
+
+<!-- NAV -->
+<div class="nav-wrapper">
+  <nav>
+    <div class="nav-logo">
+      <img src="/logo-horizontal-negative.png" alt="Bresca">
+    </div>
+    <div class="nav-links">
+      <a href="#features">Funcionalidades</a>
+      <a href="#como-funciona">Como funciona</a>
+      <a href="#testimonios">Testimonios</a>
+    </div>
+    <button class="nav-hamburger" id="hamburger" onclick="toggleMobileMenu()" aria-label="Menu">
+      <span id="hLine1"></span>
+      <span id="hLine2"></span>
+    </button>
+    <a href="#" class="nav-cta" onclick="openModal(); return false;">
+      Empezar gratis
+      <div class="btn-icon-wrap">&#8599;</div>
+    </a>
+  </nav>
+</div>
+
+<!-- HERO -->
+<section class="hero" id="inicio">
+  <div class="glow-green" style="top:-100px; left:-200px;"></div>
+  <div class="glow-blue" style="bottom:-100px; right:-150px;"></div>
+
+  <div class="hero-inner">
+    <div class="hero-left">
+      <div class="hero-eyebrow">
+        <span class="hero-eyebrow-dot"></span>
+        <span>Tu vault de salud — encriptado end-to-end</span>
+      </div>
+
+      <h1 class="hero-h1">
+        Todos tus estudios.<br>
+        Un solo lugar.<br>
+        <span class="accent-green">Solo tuyo.</span>
+      </h1>
+
+      <p class="hero-sub">
+        Subis tus resultados médicos, Bresca los organiza inteligentemente. Compartís con quien vos querés, cuando querés, con un QR que se autodestruye.
+      </p>
+
+      <div class="hero-actions">
+        <a href="#" class="btn-primary" onclick="openModal(); return false;">
+          Crear tu vault gratis
+          <div class="btn-icon-wrap">&#8599;</div>
+        </a>
+        <a href="#como-funciona" class="btn-ghost">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8" fill="currentColor" stroke="none"/></svg>
+          Como funciona
+        </a>
+      </div>
+    </div>
+
+    <div class="hero-right" id="heroDashboard">
+      <div class="dashboard-outer">
+        <div class="dashboard-inner">
+          <div class="dash-header">
+            <div class="dash-dots">
+              <span></span><span></span><span></span>
+            </div>
+            <div class="dash-url">app.bresca.ar / vault</div>
+          </div>
+          <div class="dash-body">
+            <div class="dash-row">
+              <div class="dash-card accent-green">
+                <div class="dash-card-label">estudios totales</div>
+                <div class="dash-card-value">12</div>
+                <div class="dash-card-sub">+3 este mes</div>
+              </div>
+              <div class="dash-card accent-blue">
+                <div class="dash-card-label">accesos compartidos</div>
+                <div class="dash-card-value">4</div>
+                <div class="dash-card-sub">activos ahora</div>
+              </div>
+            </div>
+            <div class="dash-card" style="padding:16px;">
+              <div class="dash-card-label" style="margin-bottom:14px;">cobertura de salud</div>
+              <div class="dash-bar-row">
+                <div class="dash-bar-item">
+                  <span class="dash-bar-label">Laboratorio</span>
+                  <div class="dash-bar-track"><div class="dash-bar-fill" style="width:85%"></div></div>
+                </div>
+                <div class="dash-bar-item">
+                  <span class="dash-bar-label">Imágenes</span>
+                  <div class="dash-bar-track"><div class="dash-bar-fill blue" style="width:60%"></div></div>
+                </div>
+                <div class="dash-bar-item">
+                  <span class="dash-bar-label">Clínica</span>
+                  <div class="dash-bar-track"><div class="dash-bar-fill" style="width:40%"></div></div>
+                </div>
+              </div>
+            </div>
+            <div class="dash-status">
+              <div class="dash-status-dot"></div>
+              <span class="dash-status-text">Encriptación AES-256 activa — todos los datos protegidos</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- MARQUEE -->
+<div class="marquee-section">
+  <div class="marquee-track" id="marqueeTrack">
+    <div class="marquee-item">
+      <svg class="marquee-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      Encriptación AES-256
+    </div>
+    <div class="marquee-item">
+      <svg class="marquee-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+      Sin publicidad
+    </div>
+    <div class="marquee-item">
+      <svg class="marquee-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 7h4v4H7zM13 7h4v4h-4zM7 13h4v4H7zM13 13h4v4h-4z"/></svg>
+      QR con expiración
+    </div>
+    <div class="marquee-item">
+      <svg class="marquee-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      Acceso familiar
+    </div>
+    <div class="marquee-item">
+      <svg class="marquee-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      Datos nunca vendidos
+    </div>
+    <div class="marquee-item">
+      <svg class="marquee-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+      IA asistente incluida
+    </div>
+    <!-- duplicate for infinite loop -->
+    <div class="marquee-item">
+      <svg class="marquee-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      Encriptación AES-256
+    </div>
+    <div class="marquee-item">
+      <svg class="marquee-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+      Sin publicidad
+    </div>
+    <div class="marquee-item">
+      <svg class="marquee-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 7h4v4H7zM13 7h4v4h-4zM7 13h4v4H7zM13 13h4v4h-4z"/></svg>
+      QR con expiración
+    </div>
+    <div class="marquee-item">
+      <svg class="marquee-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      Acceso familiar
+    </div>
+    <div class="marquee-item">
+      <svg class="marquee-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      Datos nunca vendidos
+    </div>
+    <div class="marquee-item">
+      <svg class="marquee-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+      IA asistente incluida
+    </div>
+  </div>
+</div>
+
+<!-- FEATURES BENTO -->
+<section class="features-section" id="features">
+  <div class="section-inner">
+    <div class="features-header reveal">
+      <div class="section-eyebrow">Funcionalidades</div>
+      <h2 class="section-h2">Pensado para<br>la realidad de LATAM</h2>
+    </div>
+
+    <div class="features-grid" style="padding: 0;">
+      <!-- R1: col-7 + col-5 = 12 -->
+      <div class="feat-card green-glow c7 reveal" style="--delay:0s">
+        <div class="feat-card-inner" style="min-height:280px;">
+          <div class="feat-icon green">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+          </div>
+          <div class="feat-title">Vault inteligente de estudios</div>
+          <div class="feat-desc">Subis PDFs o fotos de laboratorio, análisis clínicos, imágenes de diagnóstico. Bresca los lee, organiza y hace todo searchable al instante.</div>
+          <div class="feat-large-visual">
+            <div class="mini-record">
+              <div class="mini-record-dot" style="background:var(--green)"></div>
+              <span class="mini-record-name">Hemograma completo.pdf</span>
+              <span class="mini-record-date">15/04/2026</span>
+            </div>
+            <div class="mini-record">
+              <div class="mini-record-dot" style="background:var(--blue)"></div>
+              <span class="mini-record-name">Eco abdominal — informe.pdf</span>
+              <span class="mini-record-date">02/03/2026</span>
+            </div>
+            <div class="mini-record">
+              <div class="mini-record-dot" style="background:rgba(255,255,255,0.3)"></div>
+              <span class="mini-record-name">Perfil tiroideo TSH.pdf</span>
+              <span class="mini-record-date">18/01/2026</span>
+            </div>
+          </div>
+          <div class="feat-tag green">OCR automatico</div>
+        </div>
+      </div>
+
+      <div class="feat-card blue-glow c5 reveal" style="--delay:0.1s">
+        <div class="feat-card-inner" style="min-height:280px;">
+          <div class="feat-icon blue">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 7h4v4H7zM13 7h4v4h-4zM7 13h4v4H7zM13 13h4v4h-4z"/></svg>
+          </div>
+          <div class="feat-title">Compartir con QR de acceso temporal</div>
+          <div class="feat-desc">Generate un QR que expira exactamente cuando vos decidis. El medico escanea, ve lo que permitiste, y despues el acceso se cierra solo.</div>
+          <div class="feat-qr-visual">
+            <div class="qr-block">
+              <div class="qr-cell"></div><div class="qr-cell"></div><div class="qr-cell"></div><div class="qr-cell empty"></div><div class="qr-cell"></div><div class="qr-cell"></div>
+              <div class="qr-cell"></div><div class="qr-cell empty"></div><div class="qr-cell"></div><div class="qr-cell"></div><div class="qr-cell empty"></div><div class="qr-cell"></div>
+              <div class="qr-cell"></div><div class="qr-cell"></div><div class="qr-cell empty"></div><div class="qr-cell"></div><div class="qr-cell"></div><div class="qr-cell empty"></div>
+              <div class="qr-cell empty"></div><div class="qr-cell"></div><div class="qr-cell"></div><div class="qr-cell empty"></div><div class="qr-cell"></div><div class="qr-cell"></div>
+              <div class="qr-cell"></div><div class="qr-cell empty"></div><div class="qr-cell"></div><div class="qr-cell"></div><div class="qr-cell empty"></div><div class="qr-cell"></div>
+              <div class="qr-cell"></div><div class="qr-cell"></div><div class="qr-cell empty"></div><div class="qr-cell"></div><div class="qr-cell"></div><div class="qr-cell"></div>
+            </div>
+          </div>
+          <div class="feat-tag blue">Expira automaticamente</div>
+        </div>
+      </div>
+
+      <!-- R2: col-4 + col-4 + col-4 = 12 -->
+      <div class="feat-card green-glow c4 reveal" style="--delay:0.15s">
+        <div class="feat-card-inner">
+          <div class="feat-icon white">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          </div>
+          <div class="feat-title">Perfil familiar completo</div>
+          <div class="feat-desc">Administras la salud de toda tu familia desde una sola cuenta. Cada integrante con su propio vault privado.</div>
+          <div class="feat-tag green">Hasta 6 perfiles</div>
+        </div>
+      </div>
+
+      <div class="feat-card c4 reveal" style="--delay:0.2s">
+        <div class="feat-card-inner">
+          <div class="feat-icon green">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          </div>
+          <div class="feat-title">Asistente de salud con IA</div>
+          <div class="feat-desc">Pregunte sobre tus resultados en lenguaje natural. La IA analiza tu historial y da contexto claro, sin reemplazar a tu medico.</div>
+          <div class="feat-tag green">Disponible 24/7</div>
+        </div>
+      </div>
+
+      <div class="feat-card blue-glow c4 reveal" style="--delay:0.25s">
+        <div class="feat-card-inner">
+          <div class="feat-icon blue">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          </div>
+          <div class="feat-title">Privacidad por diseno</div>
+          <div class="feat-desc">Tus datos nunca se venden, nunca se comparten sin consentimiento explicito. Vos controlás quien ve que y por cuanto tiempo.</div>
+          <div class="feat-tag blue">LATAM compliant</div>
+        </div>
+      </div>
+
+      <!-- R3: col-5 + col-7 = 12 -->
+      <div class="feat-card c5 reveal" style="--delay:0.3s">
+        <div class="feat-card-inner">
+          <div class="feat-icon white">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+          </div>
+          <div class="feat-title">Historial cronologico automatico</div>
+          <div class="feat-desc">Cada estudio se ubica en una linea de tiempo. Ves la evolucion de cualquier parametro de salud a lo largo del tiempo sin buscar manualmente.</div>
+        </div>
+      </div>
+
+      <div class="feat-card green-glow c7 reveal" style="--delay:0.35s">
+        <div class="feat-card-inner">
+          <div class="feat-icon green">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 1h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 8.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+          </div>
+          <div class="feat-title">Acceso de emergencia con un toque</div>
+          <div class="feat-desc">Configuras un perfil de emergencia que incluye solo los datos criticos — grupo sanguineo, alergias, medicacion actual — accesible desde la pantalla de bloqueo de tu celular. Sin necesidad de login.</div>
+          <div class="feat-tag green">Sin login requerido</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="how-section" id="como-funciona">
+  <div class="section-inner">
+    <div class="reveal" style="text-align:center; margin-bottom:0;">
+      <div class="section-eyebrow" style="justify-content:center;">Como funciona</div>
+      <h2 class="section-h2" style="text-align:center;">En tres pasos,<br>tu historial listo</h2>
+    </div>
+
+    <div class="how-grid">
+      <div class="how-card reveal" style="--delay:0s">
+        <div class="how-card-inner">
+          <div class="how-number">01</div>
+          <div class="how-title">Creas tu cuenta</div>
+          <div class="how-desc">En menos de 2 minutos. Solo tu email. Sin pedir datos medicos de entrada ni tarjeta de credito.</div>
+        </div>
+        <div class="how-connector">&#8594;</div>
+      </div>
+
+      <div class="how-card reveal" style="--delay:0.1s">
+        <div class="how-card-inner">
+          <div class="how-number">02</div>
+          <div class="how-title">Subis tu primer estudio</div>
+          <div class="how-desc">Foto, escaneo o PDF. El OCR inteligente extrae y organiza automaticamente toda la informacion relevante.</div>
+        </div>
+        <div class="how-connector">&#8594;</div>
+      </div>
+
+      <div class="how-card reveal" style="--delay:0.2s">
+        <div class="how-card-inner">
+          <div class="how-number">03</div>
+          <div class="how-title">Tu historial, a mano</div>
+          <div class="how-desc">Accedes desde cualquier dispositivo. Compartis con medicos cuando hace falta. Tu historial siempre disponible, siempre bajo tu control.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PINNED SECURITY SECTION -->
+<section class="pinned-section">
+  <div class="pinned-inner">
+    <div class="pinned-left reveal">
+      <div class="section-eyebrow">Seguridad</div>
+      <h2 class="section-h2">Construida para<br>que confies</h2>
+      <p class="pinned-desc">Bresca no gana dinero vendiendo tus datos. Nunca. La unica forma en que generamos ingresos es con tu suscripcion. Eso significa que tus datos son un activo que protegemos, no que monetizamos.</p>
+      <div style="display:flex; flex-direction:column; gap:8px;">
+        <span class="security-pill">AES-256 encryption en reposo y en transito</span>
+        <span class="security-pill">Zero-knowledge architecture — ni nosotros vemos tus datos</span>
+        <span class="security-pill">Consentimiento explicito antes de cada acceso compartido</span>
+        <span class="security-pill">Logs de auditoria inmutables por estudio</span>
+      </div>
+    </div>
+
+    <div class="pinned-right" id="stackCards">
+      <div class="stack-card">
+        <div class="stack-card-icon green">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        </div>
+        <div class="stack-card-title">Encriptacion end-to-end</div>
+        <div class="stack-card-desc">Los archivos se encriptan localmente antes de subirse. La clave de desencriptacion nunca toca nuestros servidores.</div>
+      </div>
+
+      <div class="stack-card">
+        <div class="stack-card-icon blue">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        </div>
+        <div class="stack-card-title">Vos decidis quien accede</div>
+        <div class="stack-card-desc">Cada acceso compartido requiere tu aprobacion activa. Podés revocar cualquier acceso en tiempo real, incluso despues de generado el QR.</div>
+      </div>
+
+      <div class="stack-card">
+        <div class="stack-card-icon white">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        </div>
+        <div class="stack-card-title">Sin tracking, sin ads, sin venta</div>
+        <div class="stack-card-desc">No hay publicidad en Bresca. No hay perfiles de comportamiento. No hay datos vendidos a aseguradoras, farmacias ni laboratorios. Nunca.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TESTIMONIALS -->
+<section class="testimonials-section" id="testimonios">
+  <div class="testimonials-header reveal">
+    <div class="section-eyebrow">Testimonios</div>
+    <h2 class="section-h2">Lo que dicen<br>quienes ya usan Bresca</h2>
+  </div>
+
+  <div class="testimonials-carousel">
+    <div class="testi-card reveal" style="--delay:0s">
+      <div class="testi-card-inner">
+        <div class="testi-mark">"</div>
+        <p class="testi-quote">Antes de Bresca tenia estudios en carpetas fisicas, en el mail, en WhatsApp. Ahora entro al turno con el medico y se los comparto en segundos desde el celular. Cambio total.</p>
+        <div class="testi-person">
+          <div class="testi-avatar">
+            <img src="https://picsum.photos/seed/woman-argentina/80/80" alt="Valentina">
+          </div>
+          <div>
+            <div class="testi-name">Valentina M.</div>
+            <div class="testi-role">Buenos Aires — usuario desde enero 2026</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="testi-card reveal" style="--delay:0.1s">
+      <div class="testi-card-inner">
+        <div class="testi-mark">"</div>
+        <p class="testi-quote">Le configuré el perfil a mi mama de 72 años. Ahora yo puedo ver sus estudios desde Rosario y ella no tiene que andar buscando papeles cuando va al medico. Un alivio enorme para los dos.</p>
+        <div class="testi-person">
+          <div class="testi-avatar">
+            <img src="https://picsum.photos/seed/man-rosario/80/80" alt="Diego">
+          </div>
+          <div>
+            <div class="testi-name">Diego F.</div>
+            <div class="testi-role">Rosario — perfil familiar activo</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="testi-card reveal" style="--delay:0.2s">
+      <div class="testi-card-inner">
+        <div class="testi-mark">"</div>
+        <p class="testi-quote">Soy medica y lo que mas valoro es el QR. Mis pacientes me comparten exactamente lo que necesito ver sin tener que pedirles que me manden todo por WhatsApp. Mucho mas profesional y seguro.</p>
+        <div class="testi-person">
+          <div class="testi-avatar">
+            <img src="https://picsum.photos/seed/doctor-woman/80/80" alt="Dra. Carolina">
+          </div>
+          <div>
+            <div class="testi-name">Dra. Carolina R.</div>
+            <div class="testi-role">Medica clinica — Cordoba</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section class="faq-section">
+  <div class="faq-inner">
+    <div class="faq-header reveal">
+      <div class="section-eyebrow" style="justify-content:center;">Preguntas frecuentes</div>
+      <h2 class="section-h2" style="text-align:center; font-size:clamp(1.8rem,3vw,2.8rem);">Todo lo que<br>querés saber</h2>
+    </div>
+
+    <div class="faq-list reveal">
+      <div class="faq-item">
+        <div class="faq-question" onclick="toggleFAQ(this)">
+          <span class="faq-question-text">Es gratis para siempre?</span>
+          <div class="faq-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </div>
+        </div>
+        <div class="faq-answer">
+          <div class="faq-answer-inner">El plan gratuito te da hasta 5 estudios almacenados, 2 QR activos simultáneos, y acceso al asistente de IA con límite mensual. Para historial ilimitado y familia completa, hay un plan premium accesible. No pedimos tarjeta para empezar.</div>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-question" onclick="toggleFAQ(this)">
+          <span class="faq-question-text">Mis datos estan realmente seguros?</span>
+          <div class="faq-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </div>
+        </div>
+        <div class="faq-answer">
+          <div class="faq-answer-inner">Sí. Encriptación AES-256, arquitectura zero-knowledge (ni nosotros podemos leer tus archivos), y logs de auditoría inmutables para cada acceso. No vendemos datos a nadie — ni aseguradoras, ni laboratorios, ni farmacéuticas.</div>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-question" onclick="toggleFAQ(this)">
+          <span class="faq-question-text">El medico necesita tener Bresca para ver mis estudios?</span>
+          <div class="faq-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </div>
+        </div>
+        <div class="faq-answer">
+          <div class="faq-answer-inner">No. El QR abre directamente en el navegador. El médico escanea con cualquier celular, accede a los estudios que vos habilitaste, y no necesita crear cuenta ni instalar nada. El acceso expira automáticamente.</div>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-question" onclick="toggleFAQ(this)">
+          <span class="faq-question-text">Funciona para cualquier tipo de estudio?</span>
+          <div class="faq-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </div>
+        </div>
+        <div class="faq-answer">
+          <div class="faq-answer-inner">Sí. Análisis de sangre, imágenes de diagnóstico (eco, RX, TAC, RMN), informes clínicos, recetas, certificados. Cualquier PDF o foto. El OCR identifica el tipo de documento y lo categoriza automáticamente.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FINAL CTA -->
+<section class="cta-section">
+  <div class="cta-glow"></div>
+  <div class="cta-inner">
+    <div class="cta-box reveal">
+      <div class="cta-box-inner">
+        <h2 class="cta-h2">Tu historial médico,<br>siempre con vos</h2>
+        <p class="cta-sub">Empezá gratis en 2 minutos. Sin tarjeta, sin burocracia. Solo tus datos, bajo tu control.</p>
+        <div class="cta-actions">
+          <a href="#" class="btn-primary" onclick="openModal(); return false;" style="font-size:15px; padding:16px 28px;">
+            Crear cuenta gratis
+            <div class="btn-icon-wrap">&#8599;</div>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-logo">
+      <img src="/logo-horizontal-negative.png" alt="Bresca">
+    </div>
+    <div class="footer-links">
+      <a href="#">Privacidad</a>
+      <a href="#">Terminos</a>
+      <a href="#">Seguridad</a>
+      <a href="#">Contacto</a>
+    </div>
+    <div class="footer-copy">Bresca &copy; 2026 — LATAM</div>
+  </div>
+</footer>
+
+<!-- MOBILE STICKY CTA -->
+<button class="mobile-sticky-cta" onclick="openModal()">Crear tu vault gratis</button>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modalOverlay" onclick="handleOverlayClick(event)">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModal()">&#215;</button>
+    <div class="modal-inner">
+      <div class="modal-form" id="modalForm">
+        <div class="modal-title">Crea tu vault<br>de salud</div>
+        <p class="modal-sub">Gratis para siempre en el plan base. Sin tarjeta de credito.</p>
+        <form onsubmit="handleSubmit(event)">
+          <div class="form-field">
+            <label>Nombre</label>
+            <input type="text" placeholder="Como te llamas?" required>
+          </div>
+          <div class="form-field">
+            <label>Email</label>
+            <input type="email" placeholder="tu@email.com" required>
+          </div>
+          <div class="form-field">
+            <label>Contrasena</label>
+            <input type="password" placeholder="Minimo 8 caracteres" required minlength="8">
+          </div>
+          <p class="form-disclaimer">Al registrarte aceptas los Terminos de Servicio y la Politica de Privacidad de Bresca. Tus datos nunca se venden ni comparten sin tu consentimiento explicito.</p>
+          <button type="submit" class="modal-submit">Crear cuenta gratis</button>
+        </form>
+      </div>
+
+      <div class="modal-success" id="modalSuccess">
+        <div class="success-icon" style="color:var(--green);">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        </div>
+        <div class="success-title">Cuenta creada</div>
+        <p class="success-sub">Tu vault esta listo. El siguiente paso es subir tu primer estudio — podes hacerlo ahora mismo desde la app.</p>
+        <a href="#" class="btn-primary" style="display:inline-flex; margin-top:8px;">
+          Ir a la app
+          <div class="btn-icon-wrap" style="background:rgba(5,26,15,0.2);">&#8599;</div>
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  gsap.registerPlugin(ScrollTrigger, ScrollToPlugin);
+
+  // ─── HERO DASHBOARD PARALLAX ───
+  gsap.to('#heroDashboard', {
+    y: -40,
+    ease: 'none',
+    scrollTrigger: {
+      trigger: '.hero',
+      start: 'top top',
+      end: 'bottom top',
+      scrub: 1.5
+    }
+  });
+
+  // ─── SCROLL REVEALS ───
+  document.querySelectorAll('.reveal').forEach(function(el, i) {
+    var delay = el.style.getPropertyValue('--delay') || '0s';
+    var delayMs = parseFloat(delay) * 1000;
+    gsap.fromTo(el,
+      { opacity: 0, y: 36, filter: 'blur(6px)' },
+      {
+        opacity: 1,
+        y: 0,
+        filter: 'blur(0px)',
+        duration: 0.85,
+        delay: delayMs / 1000,
+        ease: 'power3.out',
+        scrollTrigger: {
+          trigger: el,
+          start: 'top 88%',
+          toggleActions: 'play none none none'
+        }
+      }
+    );
+  });
+
+  // ─── STACK CARDS STAGGER ───
+  var stackCards = document.querySelectorAll('.stack-card');
+  stackCards.forEach(function(card, i) {
+    gsap.fromTo(card,
+      { opacity: 0, y: 50 },
+      {
+        opacity: 1,
+        y: 0,
+        duration: 0.7,
+        delay: i * 0.15,
+        ease: 'power3.out',
+        scrollTrigger: {
+          trigger: card,
+          start: 'top 85%',
+          toggleActions: 'play none none none'
+        }
+      }
+    );
+  });
+
+  // ─── HOW CARDS STAGGER ───
+  var howCards = document.querySelectorAll('.how-card');
+  howCards.forEach(function(card, i) {
+    gsap.fromTo(card,
+      { opacity: 0, y: 40 },
+      {
+        opacity: 1,
+        y: 0,
+        duration: 0.65,
+        delay: i * 0.12,
+        ease: 'power3.out',
+        scrollTrigger: {
+          trigger: '.how-grid',
+          start: 'top 80%',
+          toggleActions: 'play none none none'
+        }
+      }
+    );
+  });
+
+  // ─── HERO ENTRANCE ───
+  gsap.fromTo('.hero-left',
+    { opacity: 0, y: 30, filter: 'blur(8px)' },
+    { opacity: 1, y: 0, filter: 'blur(0px)', duration: 1.0, ease: 'power3.out', delay: 0.2 }
+  );
+
+  gsap.fromTo('.hero-right',
+    { opacity: 0, y: 40, scale: 0.97 },
+    { opacity: 1, y: 0, scale: 1, duration: 1.1, ease: 'power3.out', delay: 0.4 }
+  );
+
+  // ─── NAV ───
+  function toggleMobileMenu() {
+    var menu = document.getElementById('mobileMenu');
+    var l1 = document.getElementById('hLine1');
+    var l2 = document.getElementById('hLine2');
+    var open = menu.classList.toggle('open');
+    if (open) {
+      l1.style.transform = 'translateY(3.5px) rotate(45deg)';
+      l2.style.transform = 'translateY(-3.5px) rotate(-45deg)';
+    } else {
+      l1.style.transform = '';
+      l2.style.transform = '';
+    }
+  }
+
+  function closeMobileMenu() {
+    var menu = document.getElementById('mobileMenu');
+    var l1 = document.getElementById('hLine1');
+    var l2 = document.getElementById('hLine2');
+    menu.classList.remove('open');
+    l1.style.transform = '';
+    l2.style.transform = '';
+  }
+
+  // ─── MODAL ───
+  function openModal() {
+    document.getElementById('modalOverlay').classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeModal() {
+    document.getElementById('modalOverlay').classList.remove('open');
+    document.body.style.overflow = '';
+    setTimeout(function() {
+      document.getElementById('modalForm').classList.remove('hidden');
+      document.getElementById('modalSuccess').classList.remove('active');
+    }, 400);
+  }
+
+  function handleOverlayClick(e) {
+    if (e.target === document.getElementById('modalOverlay')) closeModal();
+  }
+
+  function handleSubmit(e) {
+    e.preventDefault();
+    document.getElementById('modalForm').classList.add('hidden');
+    document.getElementById('modalSuccess').classList.add('active');
+  }
+
+  // ─── FAQ ───
+  function toggleFAQ(el) {
+    var item = el.parentElement;
+    var wasOpen = item.classList.contains('open');
+    document.querySelectorAll('.faq-item').forEach(function(i) { i.classList.remove('open'); });
+    if (!wasOpen) item.classList.add('open');
+  }
+
+  // ─── SMOOTH SCROLL ───
+  document.querySelectorAll('a[href^="#"]').forEach(function(a) {
+    var href = a.getAttribute('href');
+    if (href.length > 1) {
+      a.addEventListener('click', function(e) {
+        var target = document.querySelector(href);
+        if (target) {
+          e.preventDefault();
+          gsap.to(window, { duration: 0.9, scrollTo: { y: target, offsetY: 80 }, ease: 'power3.inOut' });
+        }
+      });
+    }
+  });
+
+  // ─── MOBILE STICKY CTA HIDE ON SCROLL UP ───
+  var lastScroll = 0;
+  var stickyCta = document.querySelector('.mobile-sticky-cta');
+  window.addEventListener('scroll', function() {
+    var current = window.scrollY;
+    if (current < 300) {
+      stickyCta.style.transform = 'translateY(100px)';
+      stickyCta.style.opacity = '0';
+    } else {
+      stickyCta.style.transform = '';
+      stickyCta.style.opacity = '';
+    }
+    lastScroll = current;
+  }, { passive: true });
+
+  stickyCta.style.transition = 'transform 0.4s cubic-bezier(0.32,0.72,0,1), opacity 0.4s cubic-bezier(0.32,0.72,0,1), background 0.4s cubic-bezier(0.32,0.72,0,1)';
+  stickyCta.style.transform = 'translateY(100px)';
+  stickyCta.style.opacity = '0';
+</script>
+</body>
+</html>

@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<!--
+  design_plan:
+  Python RNG: prompt_len=3247, seed=3247%6=1
+  Hero: 1%3=1 → Artistic Asymmetry (text left, warm image right, massive negative space)
+  Font: 1%4=1 → Fraunces (display serif, warmth) + Plus Jakarta Sans (body)
+  Components: Z-Axis Cascade Cards, Portrait Testimonials, Warm Accordion
+  GSAP: Card Stacking scroll + Scroll Pinning left/right split
+  Vibe: Editorial Luxury (warm cream #FDFAF5, muted sage, espresso — physical paper feel)
+  Layout: Z-Axis Cascade (overlapping card depth, subtle rotations)
+  Mobile collapse: rotations removed below 768px, single-column stack
+  Bento math: N/A — this variant uses Z-axis cascade, not traditional bento grid
+  Hero max-w: max-w-2xl on left column (text), H1 constrained to 3 lines max at clamp
+  No meta-labels. Warm amber + green on cream = accessible contrast.
+  AIDA: Nav(split) Attention=Hero Asymmetry Interest=Cascade Desire=GSAP Pin Action=Warm CTA
+-->
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bresca — Tu historial médico, siempre cerca</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;0,9..144,700;1,9..144,300;1,9..144,600;1,9..144,700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+  <style>
+    :root {
+      --cream: #FDFAF5;
+      --cream-dark: #F5F0E8;
+      --espresso: #1C0F0A;
+      --sage: #5A7A5C;
+      --green: #00C87A;
+      --amber: #D97706;
+      --warm-border: rgba(28,15,10,0.1);
+      --muted: #6B5E56;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background: var(--cream);
+      color: var(--espresso);
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+    .display { font-family: 'Fraunces', serif; }
+
+    /* Noise overlay for paper feel */
+    body::before {
+      content: '';
+      position: fixed; inset: 0; z-index: 1000; pointer-events: none;
+      opacity: 0.025;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+      background-size: 200px;
+    }
+
+    /* ── NAV (split) ── */
+    .split-nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 20px 40px;
+      background: rgba(253,250,245,0.9);
+      backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--warm-border);
+    }
+    .nav-links { display: flex; gap: 28px; align-items: center; }
+    .nav-a { font-size: 14px; font-weight: 500; color: var(--muted); text-decoration: none; transition: color 200ms; }
+    .nav-a:hover { color: var(--espresso); }
+    .nav-warm-btn {
+      background: var(--espresso); color: var(--cream);
+      padding: 10px 22px; border-radius: 100px;
+      font-size: 14px; font-weight: 600;
+      border: none; cursor: pointer; font-family: 'Plus Jakarta Sans', sans-serif;
+      transition: opacity 0.25s, transform 0.25s cubic-bezier(0.32,0.72,0,1);
+    }
+    .nav-warm-btn:hover { opacity: 0.82; transform: scale(1.02); }
+
+    /* ── SECTION ── */
+    .section { padding: 100px 40px; }
+    .section-sm { padding: 72px 40px; }
+    .container { max-width: 1160px; margin: 0 auto; }
+
+    /* ── EYEBROW ── */
+    .eyebrow {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(0,200,122,0.1); border: 1px solid rgba(0,200,122,0.2);
+      border-radius: 100px; padding: 5px 14px; margin-bottom: 24px;
+      font-size: 11px; font-weight: 600; letter-spacing: 0.18em;
+      text-transform: uppercase; color: var(--sage);
+    }
+    .eyebrow-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--green); }
+
+    /* ── Z-AXIS CASCADE CARDS ── */
+    .cascade-wrap {
+      position: relative; padding-bottom: 32px;
+    }
+    .cascade-card {
+      background: #fff; border-radius: 24px; padding: 32px;
+      border: 1px solid var(--warm-border);
+      box-shadow: 0 4px 24px rgba(28,15,10,0.07);
+      transition: transform 0.6s cubic-bezier(0.32,0.72,0,1), box-shadow 0.6s cubic-bezier(0.32,0.72,0,1);
+      margin-bottom: -24px;
+    }
+    .cascade-card:nth-child(1) { transform: rotate(-0.8deg); z-index: 1; }
+    .cascade-card:nth-child(2) { transform: rotate(0.5deg); z-index: 2; }
+    .cascade-card:nth-child(3) { transform: rotate(-0.3deg); z-index: 3; }
+    .cascade-card:nth-child(4) { transform: rotate(0.7deg); z-index: 4; margin-bottom: 0; }
+    .cascade-card:hover { transform: translateY(-6px) rotate(0deg); box-shadow: 0 16px 48px rgba(28,15,10,0.12); z-index: 10; }
+    @media (max-width: 768px) {
+      .cascade-card { margin-bottom: 12px; }
+      .cascade-card:nth-child(n) { transform: none; }
+    }
+
+    /* ── FEATURE ICON ── */
+    .feat-icon-warm {
+      width: 52px; height: 52px; border-radius: 16px;
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 20px; flex-shrink: 0;
+    }
+
+    /* ── TESTIMONIALS ── */
+    .testi-portrait {
+      width: 56px; height: 56px; border-radius: 50%;
+      object-fit: cover; border: 3px solid var(--cream);
+      box-shadow: 0 4px 12px rgba(28,15,10,0.15);
+    }
+    .quote-mark {
+      font-family: 'Fraunces', serif; font-size: 64px; line-height: 0.6;
+      color: rgba(0,200,122,0.25); margin-bottom: 20px; display: block;
+    }
+
+    /* ── FAQ WARM ── */
+    .faq-warm-item { border-bottom: 1px solid var(--warm-border); }
+    .faq-warm-btn {
+      width: 100%; display: flex; align-items: center; justify-content: space-between;
+      padding: 22px 0; background: none; border: none; cursor: pointer;
+      font-family: 'Plus Jakarta Sans', sans-serif; text-align: left;
+    }
+    .faq-warm-text { font-size: 16px; font-weight: 600; color: var(--espresso); }
+    .faq-warm-icon {
+      width: 28px; height: 28px; border-radius: 50%;
+      background: var(--cream-dark); border: 1px solid var(--warm-border);
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+      transition: transform 0.4s cubic-bezier(0.32,0.72,0,1), background 0.3s;
+    }
+    .faq-warm-btn.open .faq-warm-icon { transform: rotate(45deg); background: var(--green); border-color: var(--green); }
+    .faq-warm-btn.open .faq-warm-icon svg { stroke: #fff; }
+    .faq-warm-answer {
+      max-height: 0; overflow: hidden;
+      transition: max-height 0.5s cubic-bezier(0.32,0.72,0,1), padding 0.4s;
+      font-size: 15px; color: var(--muted); line-height: 1.8;
+    }
+    .faq-warm-answer.open { max-height: 300px; padding-bottom: 22px; }
+
+    /* ── MODAL ── */
+    .modal-overlay {
+      position: fixed; inset: 0; z-index: 300;
+      background: rgba(28,15,10,0.6);
+      backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+      display: none; align-items: center; justify-content: center; padding: 24px;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal-warm {
+      background: var(--cream); border-radius: 28px; padding: 44px 40px;
+      width: 100%; max-width: 440px;
+      border: 1px solid var(--warm-border);
+      box-shadow: 0 40px 100px rgba(28,15,10,0.25);
+      animation: warmUp 0.5s cubic-bezier(0.32,0.72,0,1);
+      position: relative;
+    }
+    @keyframes warmUp { from { opacity: 0; transform: translateY(40px) scale(0.96); } to { opacity: 1; transform: translateY(0) scale(1); } }
+    .modal-close-warm {
+      position: absolute; top: 16px; right: 16px;
+      background: var(--cream-dark); border: 1px solid var(--warm-border); border-radius: 50%;
+      width: 36px; height: 36px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; font-family: inherit;
+      transition: background 0.2s;
+    }
+    .modal-close-warm:hover { background: #E8E0D4; }
+    .warm-field {
+      width: 100%; padding: 14px 16px; border-radius: 14px;
+      border: 1.5px solid var(--warm-border); outline: none;
+      font-family: 'Plus Jakarta Sans', sans-serif; font-size: 15px; color: var(--espresso);
+      background: #fff;
+      transition: border-color 0.3s, box-shadow 0.3s;
+      margin-bottom: 14px; display: block;
+    }
+    .warm-field:focus { border-color: var(--green); box-shadow: 0 0 0 4px rgba(0,200,122,0.1); }
+    .btn-warm {
+      background: var(--espresso); color: var(--cream);
+      padding: 15px 28px; border-radius: 100px;
+      font-weight: 700; font-size: 15px; font-family: 'Plus Jakarta Sans', sans-serif;
+      border: none; cursor: pointer; width: 100%;
+      transition: opacity 0.25s, transform 0.3s cubic-bezier(0.32,0.72,0,1);
+    }
+    .btn-warm:hover { opacity: 0.85; transform: scale(1.02); }
+    .upload-warm { display: none; }
+    .upload-warm.active { display: block; animation: warmUp 0.5s cubic-bezier(0.32,0.72,0,1); }
+
+    /* ── STICKY MOBILE CTA ── */
+    .sticky-warm {
+      display: none; position: fixed; bottom: 0; left: 0; right: 0;
+      padding: 12px 16px 24px;
+      background: rgba(253,250,245,0.96); backdrop-filter: blur(10px);
+      border-top: 1px solid var(--warm-border); z-index: 90;
+    }
+    @media (max-width: 640px) { .sticky-warm { display: block; } }
+    .sticky-warm-btn {
+      background: var(--espresso); color: var(--cream);
+      padding: 15px; border-radius: 100px; font-size: 15px; font-weight: 700;
+      border: none; cursor: pointer; width: 100%;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+
+    /* ── REVEAL ── */
+    .reveal { opacity: 0; transform: translateY(32px); }
+
+    /* ── PILL ── */
+    .warm-pill {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--cream-dark); border: 1px solid var(--warm-border);
+      border-radius: 100px; padding: 7px 16px;
+      font-size: 13px; font-weight: 500; color: var(--muted);
+    }
+    .warm-dot { width: 6px; height: 6px; border-radius: 50%; }
+
+    @media (max-width: 768px) {
+      .split-nav { padding: 16px 20px; }
+      .section { padding: 72px 20px; }
+      .section-sm { padding: 52px 20px; }
+    }
+    @media (max-width: 480px) {
+      .nav-links a:not(:last-child) { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV (split) -->
+<nav class="split-nav" id="main-nav">
+  <a href="#"><img src="../assets/logo-horizontal-bicolor.png" alt="Bresca" style="height:26px;width:auto;display:block;"></a>
+  <div class="nav-links">
+    <a href="#beneficios" class="nav-a">Beneficios</a>
+    <a href="#como-funciona" class="nav-a">Cómo funciona</a>
+    <a href="#faq" class="nav-a">Preguntas</a>
+    <button class="nav-warm-btn" onclick="openModal()">Empezá gratis</button>
+  </div>
+</nav>
+
+<!-- HERO (Asymmetry) -->
+<section style="min-height:100dvh;padding:100px 40px 80px;background:var(--cream);position:relative;overflow:hidden;">
+  <!-- Background warm orb -->
+  <div style="position:absolute;top:-200px;right:-300px;width:700px;height:700px;border-radius:50%;background:radial-gradient(circle,rgba(0,200,122,0.08) 0%,transparent 70%);pointer-events:none;"></div>
+  <div style="position:absolute;bottom:-150px;left:-200px;width:500px;height:500px;border-radius:50%;background:radial-gradient(circle,rgba(217,119,6,0.06) 0%,transparent 70%);pointer-events:none;"></div>
+
+  <div class="container" style="display:grid;grid-template-columns:1fr 1fr;gap:64px;align-items:center;min-height:calc(100dvh - 180px);" id="hero-grid">
+    <!-- Left: text -->
+    <div>
+      <div class="eyebrow reveal"><span class="eyebrow-dot"></span>Para toda tu familia</div>
+
+      <h1 class="display reveal" style="font-size:clamp(2.8rem,5vw,4.8rem);font-weight:700;line-height:1.08;letter-spacing:-0.02em;color:var(--espresso);margin-bottom:28px;">
+        Tu salud,<br>
+        <em style="font-style:italic;font-weight:300;color:var(--sage);">organizada</em><br>
+        de una vez.
+      </h1>
+
+      <p class="reveal" style="font-size:clamp(1rem,1.5vw,1.15rem);color:var(--muted);max-width:420px;line-height:1.8;margin-bottom:44px;font-weight:400;">
+        Dejá de buscar estudios en correos y carpetas de papel. Bresca guarda todo en un lugar seguro para que te puedas enfocar en lo que importa — tu bienestar y el de tu familia.
+      </p>
+
+      <div class="reveal" style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:44px;">
+        <button onclick="openModal()" style="background:var(--green);color:#fff;padding:16px 32px;border-radius:100px;font-size:16px;font-weight:700;border:none;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;box-shadow:0 10px 36px rgba(0,200,122,0.3);transition:opacity 0.3s,transform 0.3s cubic-bezier(0.32,0.72,0,1);display:inline-flex;align-items:center;gap:10px;" onmouseover="this.style.opacity='.88';this.style.transform='scale(1.02)'" onmouseout="this.style.opacity='1';this.style.transform='scale(1)'">
+          Empezá a organizar tu salud hoy
+          <span style="background:rgba(255,255,255,0.22);width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7"/><path d="M7 7h10v10"/></svg>
+          </span>
+        </button>
+        <a href="#como-funciona" style="background:transparent;color:var(--espresso);padding:16px 28px;border-radius:100px;font-size:15px;font-weight:600;border:1.5px solid var(--warm-border);text-decoration:none;transition:border-color 0.3s;display:inline-flex;align-items:center;gap:8px;" onmouseover="this.style.borderColor='rgba(28,15,10,0.35)'" onmouseout="this.style.borderColor='var(--warm-border)'">
+          Ver cómo funciona
+        </a>
+      </div>
+
+      <div class="reveal" style="display:flex;gap:16px;flex-wrap:wrap;">
+        <span class="warm-pill"><span class="warm-dot" style="background:var(--green);"></span>Cifrado end-to-end</span>
+        <span class="warm-pill"><span class="warm-dot" style="background:var(--amber);"></span>+12.000 familias</span>
+        <span class="warm-pill"><span class="warm-dot" style="background:var(--sage);"></span>100% gratis</span>
+      </div>
+    </div>
+
+    <!-- Right: warm image with cascading cards overlay -->
+    <div class="reveal" style="position:relative;">
+      <div style="border-radius:28px;overflow:hidden;box-shadow:0 24px 64px rgba(28,15,10,0.15);position:relative;">
+        <img src="https://picsum.photos/seed/familyhealth/640/720" alt="" style="width:100%;height:480px;object-fit:cover;filter:saturate(0.8) contrast(1.05);">
+        <div style="position:absolute;inset:0;background:linear-gradient(180deg,transparent 40%,rgba(28,15,10,0.5) 100%);"></div>
+      </div>
+      <!-- Floating stat card -->
+      <div style="position:absolute;bottom:-24px;left:-32px;background:#fff;border-radius:20px;padding:20px 24px;box-shadow:0 16px 48px rgba(28,15,10,0.15);border:1px solid var(--warm-border);">
+        <div style="font-size:28px;font-weight:800;color:var(--espresso);font-family:'Fraunces',serif;margin-bottom:4px;">12.000+</div>
+        <div style="font-size:13px;color:var(--muted);font-weight:500;">familias organizaron<br>su historial con Bresca</div>
+      </div>
+      <!-- Floating security badge -->
+      <div style="position:absolute;top:20px;right:-20px;background:#fff;border-radius:100px;padding:10px 18px;box-shadow:0 8px 28px rgba(28,15,10,0.12);border:1px solid var(--warm-border);display:flex;align-items:center;gap:8px;">
+        <div style="width:28px;height:28px;border-radius:50%;background:rgba(0,200,122,0.12);display:flex;align-items:center;justify-content:center;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        </div>
+        <span style="font-size:13px;font-weight:600;color:var(--espresso);">Cifrado AES-256</span>
+      </div>
+    </div>
+  </div>
+  <style>@media(max-width:768px){#hero-grid{grid-template-columns:1fr!important;gap:40px!important;}}</style>
+</section>
+
+<!-- FEATURES (Z-AXIS CASCADE) -->
+<section class="section" id="beneficios" style="background:var(--cream-dark);">
+  <div class="container" style="display:grid;grid-template-columns:1fr 1fr;gap:80px;align-items:start;" id="feat-split">
+    <!-- Left: sticky title -->
+    <div id="feat-sticky" style="position:sticky;top:120px;">
+      <div class="eyebrow reveal"><span class="eyebrow-dot"></span>Por qué Bresca</div>
+      <h2 class="display reveal" style="font-size:clamp(2rem,3.5vw,3.2rem);font-weight:700;letter-spacing:-0.02em;line-height:1.12;color:var(--espresso);margin-bottom:20px;">
+        Para que vos te enfoques en vivir,<br>
+        <em style="font-style:italic;font-weight:300;color:var(--sage);">no en administrar.</em>
+      </h2>
+      <p class="reveal" style="font-size:16px;color:var(--muted);line-height:1.75;max-width:380px;">
+        Cada feature de Bresca fue diseñado pensando en una sola cosa: quitarte el peso de encima para que puedas focalizar en tu salud, no en los papeles.
+      </p>
+      <div style="margin-top:36px;">
+        <button onclick="openModal()" class="reveal" style="background:var(--espresso);color:var(--cream);padding:14px 28px;border-radius:100px;font-size:15px;font-weight:700;border:none;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;transition:opacity 0.25s,transform 0.25s cubic-bezier(0.32,0.72,0,1);" onmouseover="this.style.opacity='.82';this.style.transform='scale(1.02)'" onmouseout="this.style.opacity='1';this.style.transform='scale(1)'">
+          Llevá tu historia clínica con vos
+        </button>
+      </div>
+    </div>
+
+    <!-- Right: cascade cards -->
+    <div class="cascade-wrap">
+      <div class="cascade-card reveal">
+        <div style="display:flex;gap:16px;align-items:flex-start;">
+          <div class="feat-icon-warm" style="background:rgba(0,200,122,0.1);">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+          </div>
+          <div>
+            <h3 style="font-size:18px;font-weight:700;color:var(--espresso);margin-bottom:10px;">Todo en un solo lugar</h3>
+            <p style="font-size:14px;color:var(--muted);line-height:1.75;">Análisis de sangre, radiografías, ecografías, historias clínicas. Sin importar de qué laboratorio o clínica vengan, Bresca los organiza solos.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="cascade-card reveal">
+        <div style="display:flex;gap:16px;align-items:flex-start;">
+          <div class="feat-icon-warm" style="background:rgba(217,119,6,0.1);">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--amber)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          </div>
+          <div>
+            <h3 style="font-size:18px;font-weight:700;color:var(--espresso);margin-bottom:10px;">Listo en segundos</h3>
+            <p style="font-size:14px;color:var(--muted);line-height:1.75;">Fotografiás el papel o subís el PDF. La IA lee todo y extrae los valores en segundos. Vos confirmás, y listo — queda guardado para siempre.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="cascade-card reveal">
+        <div style="display:flex;gap:16px;align-items:flex-start;">
+          <div class="feat-icon-warm" style="background:rgba(90,122,92,0.1);">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--sage)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          </div>
+          <div>
+            <h3 style="font-size:18px;font-weight:700;color:var(--espresso);margin-bottom:10px;">Para toda la familia</h3>
+            <p style="font-size:14px;color:var(--muted);line-height:1.75;">Gestioná los estudios de tus hijos, tu pareja o tus padres desde una sola cuenta. Cada perfil es privado e independiente.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="cascade-card reveal">
+        <div style="display:flex;gap:16px;align-items:flex-start;">
+          <div class="feat-icon-warm" style="background:rgba(28,15,10,0.07);">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--espresso)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+          </div>
+          <div>
+            <h3 style="font-size:18px;font-weight:700;color:var(--espresso);margin-bottom:10px;">Compartir con tu médico</h3>
+            <p style="font-size:14px;color:var(--muted);line-height:1.75;">Un QR temporal y tu médico ve exactamente lo que vos le mostrás — sin registrarse, sin apps extra. Simple y controlado.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <style>@media(max-width:900px){#feat-split{grid-template-columns:1fr!important;gap:40px!important;}#feat-sticky{position:relative!important;top:auto!important;}}</style>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="section" id="como-funciona">
+  <div class="container">
+    <div style="text-align:center;margin-bottom:72px;">
+      <div class="eyebrow reveal"><span class="eyebrow-dot"></span>Cómo funciona</div>
+      <h2 class="display reveal" style="font-size:clamp(2rem,3.5vw,3.2rem);font-weight:700;letter-spacing:-0.02em;line-height:1.12;color:var(--espresso);max-width:600px;margin:0 auto 16px;">
+        Tres pasos, y tu historial está listo.
+      </h2>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:28px;" id="steps-warm">
+      <div class="reveal" style="background:#fff;border-radius:24px;padding:32px;border:1px solid var(--warm-border);">
+        <div style="width:44px;height:44px;border-radius:14px;background:rgba(0,200,122,0.1);display:flex;align-items:center;justify-content:center;margin-bottom:20px;">
+          <span class="display" style="font-size:22px;font-weight:700;color:var(--green);">1</span>
+        </div>
+        <h3 style="font-size:17px;font-weight:700;color:var(--espresso);margin-bottom:10px;">Subí o fotografiá</h3>
+        <p style="font-size:14px;color:var(--muted);line-height:1.75;">Sacá una foto del papel o subí el PDF directamente. Funciona con cualquier laboratorio o clínica.</p>
+      </div>
+      <div class="reveal" style="background:#fff;border-radius:24px;padding:32px;border:1px solid var(--warm-border);">
+        <div style="width:44px;height:44px;border-radius:14px;background:rgba(217,119,6,0.1);display:flex;align-items:center;justify-content:center;margin-bottom:20px;">
+          <span class="display" style="font-size:22px;font-weight:700;color:var(--amber);">2</span>
+        </div>
+        <h3 style="font-size:17px;font-weight:700;color:var(--espresso);margin-bottom:10px;">La IA organiza todo</h3>
+        <p style="font-size:14px;color:var(--muted);line-height:1.75;">En segundos, la IA identifica tipo de estudio, fecha y valores. Vos revisás y confirmás — siempre en control.</p>
+      </div>
+      <div class="reveal" style="background:#fff;border-radius:24px;padding:32px;border:1px solid var(--warm-border);">
+        <div style="width:44px;height:44px;border-radius:14px;background:rgba(90,122,92,0.1);display:flex;align-items:center;justify-content:center;margin-bottom:20px;">
+          <span class="display" style="font-size:22px;font-weight:700;color:var(--sage);">3</span>
+        </div>
+        <h3 style="font-size:17px;font-weight:700;color:var(--espresso);margin-bottom:10px;">Accedé y compartí</h3>
+        <p style="font-size:14px;color:var(--muted);line-height:1.75;">Tu historial siempre disponible desde el celular. Un QR y tu médico ve lo que necesita, cuando lo necesita.</p>
+      </div>
+    </div>
+  </div>
+  <style>@media(max-width:768px){#steps-warm{grid-template-columns:1fr!important;}}</style>
+</section>
+
+<!-- TESTIMONIALS -->
+<section class="section" style="background:var(--cream-dark);">
+  <div class="container">
+    <div style="text-align:center;margin-bottom:56px;">
+      <div class="eyebrow reveal"><span class="eyebrow-dot"></span>Lo que dicen</div>
+      <h2 class="display reveal" style="font-size:clamp(1.8rem,3vw,2.8rem);font-weight:700;letter-spacing:-0.02em;color:var(--espresso);max-width:480px;margin:0 auto;">
+        Personas que recuperaron la calma.
+      </h2>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px;" id="testi-warm-grid">
+      <div class="reveal" style="background:#fff;border-radius:24px;padding:32px;border:1px solid var(--warm-border);">
+        <span class="quote-mark">"</span>
+        <p style="font-size:15px;color:var(--espresso);line-height:1.8;margin-bottom:24px;font-weight:400;">"Nunca más perdí tiempo buscando estudios antes de una consulta. Todo está ahí, organizado y listo para mostrar."</p>
+        <div style="display:flex;align-items:center;gap:14px;padding-top:20px;border-top:1px solid var(--warm-border);">
+          <img src="https://picsum.photos/seed/warmwoman1/80/80" alt="" class="testi-portrait">
+          <div>
+            <div style="font-size:14px;font-weight:700;color:var(--espresso);">Luciana M.</div>
+            <div style="font-size:12px;color:var(--muted);">Buenos Aires · Mamá de 3 hijos</div>
+          </div>
+        </div>
+      </div>
+      <div class="reveal" style="background:#fff;border-radius:24px;padding:32px;border:1px solid var(--warm-border);">
+        <span class="quote-mark">"</span>
+        <p style="font-size:15px;color:var(--espresso);line-height:1.8;margin-bottom:24px;font-weight:400;">"Cuido a mi mamá de 78 años. Con Bresca tengo todo su historial en el teléfono — es una tranquilidad enorme."</p>
+        <div style="display:flex;align-items:center;gap:14px;padding-top:20px;border-top:1px solid var(--warm-border);">
+          <img src="https://picsum.photos/seed/warmman2/80/80" alt="" class="testi-portrait">
+          <div>
+            <div style="font-size:14px;font-weight:700;color:var(--espresso);">Gonzalo P.</div>
+            <div style="font-size:12px;color:var(--muted);">Mendoza · Hijo cuidador</div>
+          </div>
+        </div>
+      </div>
+      <div class="reveal" style="background:#fff;border-radius:24px;padding:32px;border:1px solid var(--warm-border);">
+        <span class="quote-mark">"</span>
+        <p style="font-size:15px;color:var(--espresso);line-height:1.8;margin-bottom:24px;font-weight:400;">"Viví dos años buscando el analítico de mi hija en WhatsApp. Ahora está todo en Bresca. No lo puedo creer."</p>
+        <div style="display:flex;align-items:center;gap:14px;padding-top:20px;border-top:1px solid var(--warm-border);">
+          <img src="https://picsum.photos/seed/warmwoman3/80/80" alt="" class="testi-portrait">
+          <div>
+            <div style="font-size:14px;font-weight:700;color:var(--espresso);">Andrea F.</div>
+            <div style="font-size:12px;color:var(--muted);">Rosario · 40 años</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <style>@media(max-width:768px){#testi-warm-grid{grid-template-columns:1fr!important;}}</style>
+</section>
+
+<!-- FAQ -->
+<section class="section" id="faq">
+  <div class="container" style="max-width:680px;">
+    <div style="text-align:center;margin-bottom:56px;">
+      <div class="eyebrow reveal"><span class="eyebrow-dot"></span>Preguntas frecuentes</div>
+      <h2 class="display reveal" style="font-size:clamp(1.8rem,3vw,2.8rem);font-weight:700;letter-spacing:-0.02em;color:var(--espresso);">Las dudas más comunes.</h2>
+    </div>
+    <div class="faq-warm-item reveal">
+      <button class="faq-warm-btn" onclick="toggleFaq(this)">
+        <span class="faq-warm-text">¿Es seguro guardar mis estudios en Bresca?</span>
+        <span class="faq-warm-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--espresso)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span>
+      </button>
+      <div class="faq-warm-answer">Absolutamente. Usamos cifrado AES-256, el mismo estándar de los bancos. Solo vos podés ver tus estudios, y solo los compartís cuando vos lo decidís. No vendemos datos ni hacemos publicidad médica.</div>
+    </div>
+    <div class="faq-warm-item reveal">
+      <button class="faq-warm-btn" onclick="toggleFaq(this)">
+        <span class="faq-warm-text">¿Necesito pagar para usarlo?</span>
+        <span class="faq-warm-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--espresso)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span>
+      </button>
+      <div class="faq-warm-answer">No. El vault básico de Bresca es completamente gratuito, sin límite de tiempo y sin tarjeta de crédito. Podés subir tus estudios y los de tu familia sin gastar un peso.</div>
+    </div>
+    <div class="faq-warm-item reveal">
+      <button class="faq-warm-btn" onclick="toggleFaq(this)">
+        <span class="faq-warm-text">¿Funciona con cualquier laboratorio?</span>
+        <span class="faq-warm-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--espresso)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span>
+      </button>
+      <div class="faq-warm-answer">Sí. Funciona con cualquier laboratorio, clínica, sanatorio u hospital. Subís el PDF o fotografiás el papel impreso — la IA reconoce más de 200 formatos de resultados distintos.</div>
+    </div>
+    <div class="faq-warm-item reveal">
+      <button class="faq-warm-btn" onclick="toggleFaq(this)">
+        <span class="faq-warm-text">¿Puedo compartir estudios con mi médico fácilmente?</span>
+        <span class="faq-warm-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--espresso)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span>
+      </button>
+      <div class="faq-warm-answer">Sí. Con un tap generás un QR válido por 24 horas. Tu médico lo escanea y ve solo los estudios que vos elegiste — sin registrarse ni descargar ninguna app. Después el acceso expira solo.</div>
+    </div>
+  </div>
+</section>
+
+<!-- FINAL CTA -->
+<section class="section" style="background:var(--espresso);position:relative;overflow:hidden;">
+  <div style="position:absolute;top:-300px;right:-300px;width:700px;height:700px;border-radius:50%;background:radial-gradient(circle,rgba(0,200,122,0.12) 0%,transparent 70%);pointer-events:none;"></div>
+  <div class="container" style="text-align:center;position:relative;">
+    <div class="reveal" style="width:72px;height:72px;border-radius:24px;background:rgba(0,200,122,0.15);border:1px solid rgba(0,200,122,0.3);display:flex;align-items:center;justify-content:center;margin:0 auto 28px;">
+      <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+    </div>
+    <h2 class="display reveal" style="font-size:clamp(2.2rem,4vw,3.8rem);font-weight:700;letter-spacing:-0.025em;line-height:1.1;color:var(--cream);max-width:640px;margin:0 auto 20px;">
+      Empezá hoy.<br>
+      <em style="font-style:italic;font-weight:300;color:var(--green);">Es completamente gratis.</em>
+    </h2>
+    <p class="reveal" style="font-size:17px;color:rgba(253,250,245,0.6);max-width:420px;margin:0 auto 44px;line-height:1.75;">
+      Tu historial médico organizado, tu familia cuidada, tu tranquilidad recuperada.
+    </p>
+    <button onclick="openModal()" class="reveal" style="background:var(--green);color:#fff;padding:18px 44px;border-radius:100px;font-size:18px;font-weight:700;border:none;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;box-shadow:0 12px 40px rgba(0,200,122,0.4);transition:opacity 0.3s,transform 0.3s cubic-bezier(0.32,0.72,0,1);" onmouseover="this.style.opacity='.88';this.style.transform='scale(1.03)'" onmouseout="this.style.opacity='1';this.style.transform='scale(1)'">
+      Tu primer estudio, gratis y seguro
+    </button>
+    <p class="reveal" style="font-size:13px;color:rgba(253,250,245,0.4);margin-top:20px;">Sin tarjeta de crédito · Sin compromiso · Para siempre gratis</p>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer style="background:var(--cream-dark);border-top:1px solid var(--warm-border);padding:48px 40px 32px;">
+  <div class="container">
+    <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:40px;margin-bottom:40px;" id="footer-warm-grid">
+      <div>
+        <img src="../assets/logo-horizontal-bicolor.png" alt="Bresca" style="height:26px;width:auto;margin-bottom:12px;">
+        <p style="font-size:12px;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:10px;">Health Data Autonomy</p>
+        <p style="font-size:13px;color:var(--muted);line-height:1.7;max-width:280px;">Tus estudios, tu familia, tu tranquilidad. Todo en un lugar.</p>
+      </div>
+      <div>
+        <p style="font-size:12px;font-weight:700;color:var(--espresso);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:14px;">Producto</p>
+        <a href="#beneficios" style="display:block;font-size:14px;color:var(--muted);text-decoration:none;margin-bottom:10px;">Funciones</a>
+        <a href="#como-funciona" style="display:block;font-size:14px;color:var(--muted);text-decoration:none;margin-bottom:10px;">Cómo funciona</a>
+        <a href="#" style="display:block;font-size:14px;color:var(--muted);text-decoration:none;">Para médicos</a>
+      </div>
+      <div>
+        <p style="font-size:12px;font-weight:700;color:var(--espresso);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:14px;">Legal</p>
+        <a href="#" style="display:block;font-size:14px;color:var(--muted);text-decoration:none;margin-bottom:10px;">Privacidad</a>
+        <a href="#" style="display:block;font-size:14px;color:var(--muted);text-decoration:none;margin-bottom:10px;">Términos de uso</a>
+        <a href="#" style="display:block;font-size:14px;color:var(--muted);text-decoration:none;">Consentimiento</a>
+      </div>
+    </div>
+    <div style="border-top:1px solid var(--warm-border);padding-top:20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+      <p style="font-size:13px;color:var(--muted);">© 2026 Bresca. Todos los derechos reservados.</p>
+      <p style="font-size:13px;color:var(--muted);">Hecho con cuidado en LATAM</p>
+    </div>
+  </div>
+  <style>@media(max-width:640px){#footer-warm-grid{grid-template-columns:1fr!important;}}</style>
+</footer>
+
+<!-- STICKY MOBILE CTA -->
+<div class="sticky-warm">
+  <button class="sticky-warm-btn" onclick="openModal()">Empezá a organizar tu salud hoy</button>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal" onclick="handleOverlayClick(event)">
+  <div class="modal-warm">
+    <button class="modal-close-warm" onclick="closeModal()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+
+    <div id="reg-form">
+      <div style="margin-bottom:28px;">
+        <h3 class="display" style="font-size:26px;font-weight:700;color:var(--espresso);letter-spacing:-0.02em;margin-bottom:8px;">Creá tu cuenta</h3>
+        <p style="font-size:14px;color:var(--muted);line-height:1.65;">En menos de un minuto, tu historial médico tiene un hogar.</p>
+      </div>
+      <form onsubmit="handleRegister(event)">
+        <label style="display:block;font-size:13px;font-weight:600;color:var(--espresso);margin-bottom:6px;">Nombre</label>
+        <input class="warm-field" type="text" placeholder="Tu nombre" required />
+        <label style="display:block;font-size:13px;font-weight:600;color:var(--espresso);margin-bottom:6px;">Email</label>
+        <input class="warm-field" type="email" placeholder="tu@email.com" required />
+        <label style="display:block;font-size:13px;font-weight:600;color:var(--espresso);margin-bottom:6px;">Contraseña</label>
+        <input class="warm-field" type="password" placeholder="Mínimo 8 caracteres" required style="margin-bottom:24px;" />
+        <button type="submit" class="btn-warm">Crear mi cuenta</button>
+        <p style="font-size:12px;color:#94A3B8;text-align:center;margin-top:14px;line-height:1.6;">Al registrarte aceptás los <a href="#" style="color:var(--green);">Términos de uso</a> y la <a href="#" style="color:var(--green);">Política de privacidad</a>.</p>
+      </form>
+    </div>
+
+    <div class="upload-warm" id="upload-state">
+      <div style="text-align:center;">
+        <div style="width:64px;height:64px;border-radius:20px;background:rgba(0,200,122,0.12);border:1px solid rgba(0,200,122,0.2);display:flex;align-items:center;justify-content:center;margin:0 auto 20px;">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        </div>
+        <h3 class="display" style="font-size:24px;font-weight:700;color:var(--espresso);margin-bottom:10px;">Cuenta creada</h3>
+        <p style="font-size:15px;color:var(--muted);line-height:1.7;margin-bottom:28px;">Tu vault esta listo. Subí tu primer estudio ahora para ver como funciona la organizacion automatica.</p>
+        <button onclick="closeModal()" style="background:var(--green);color:#fff;padding:14px 28px;border-radius:100px;font-size:15px;font-weight:700;border:none;cursor:pointer;width:100%;font-family:'Plus Jakarta Sans',sans-serif;margin-bottom:12px;">
+          Subir mi primer estudio
+        </button>
+        <button onclick="closeModal()" style="background:transparent;color:var(--muted);padding:12px;border-radius:100px;font-size:14px;font-weight:500;border:none;cursor:pointer;width:100%;font-family:'Plus Jakarta Sans',sans-serif;">
+          Lo hago despues
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  gsap.registerPlugin(ScrollTrigger);
+
+  document.querySelectorAll('.reveal').forEach(el => {
+    gsap.fromTo(el,
+      { opacity: 0, y: 36 },
+      {
+        opacity: 1, y: 0, duration: 0.9,
+        ease: 'power3.out',
+        scrollTrigger: { trigger: el, start: 'top 88%', once: true }
+      }
+    );
+  });
+
+  // Cascade cards stagger
+  document.querySelectorAll('.cascade-card').forEach((card, i) => {
+    gsap.fromTo(card,
+      { opacity: 0, y: 60 + i * 20 },
+      {
+        opacity: 1, y: 0, duration: 0.9, delay: i * 0.12,
+        ease: 'power3.out',
+        scrollTrigger: { trigger: card, start: 'top 85%', once: true }
+      }
+    );
+  });
+
+  // Hero image parallax
+  gsap.to('.hero-img', {
+    yPercent: -15,
+    scrollTrigger: {
+      trigger: 'section',
+      start: 'top top',
+      end: 'bottom top',
+      scrub: 1.5
+    }
+  });
+
+  function openModal() {
+    document.getElementById('modal').classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+  function closeModal() {
+    document.getElementById('modal').classList.remove('open');
+    document.body.style.overflow = '';
+    setTimeout(() => {
+      document.getElementById('reg-form').style.display = 'block';
+      document.getElementById('upload-state').classList.remove('active');
+    }, 400);
+  }
+  function handleOverlayClick(e) {
+    if (e.target === document.getElementById('modal')) closeModal();
+  }
+  function handleRegister(e) {
+    e.preventDefault();
+    document.getElementById('reg-form').style.display = 'none';
+    document.getElementById('upload-state').classList.add('active');
+  }
+  function toggleFaq(btn) {
+    const answer = btn.nextElementSibling;
+    const isOpen = btn.classList.contains('open');
+    document.querySelectorAll('.faq-warm-btn').forEach(b => {
+      b.classList.remove('open');
+      b.nextElementSibling.classList.remove('open');
+    });
+    if (!isOpen) { btn.classList.add('open'); answer.classList.add('open'); }
+  }
+</script>
+</body>
+</html>
