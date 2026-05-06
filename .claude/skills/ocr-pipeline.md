@@ -1,30 +1,36 @@
 # Skill: ocr-pipeline
-> Cargar cuando: trabajás en el flujo de upload, modificás la extracción de campos clínicos, debuggeás resultados de OCR, o tocás la tabla `studies` o `study_draft`.
+> Cargar cuando: trabajás en el flujo de upload, modificás la extracción de campos clínicos, debuggeás resultados de OCR, o tocás las tablas `studies` o `study_drafts`.
 
-## Flujo completo
+## Flujo completo (async, non-blocking)
 
 ```
-Mobile upload
-  → POST /upload (multipart)
-  → Supabase Storage (archivo original)
-  → Google Document AI (extracción)
-  → study_draft (temporal, TTL 24h)
-  → Pantalla confirmación (usuario valida)
-  → POST /confirm
-  → studies (confirmed=true)
-  → Edge Function async (genera embedding)
+web-patient Upload
+  → POST /extract (multipart/form-data)
+  → Supabase Storage (archivo original — studies/{profile_id}/{uuid}.{ext})
+  → INSERT study_drafts (status='pending', storage_paths=[...])
+  → API responde 202 inmediatamente ← frontend navega al Vault SIN esperar OCR
+  → Trigger pg_net dispara Edge Function process-study-draft (async)
+  → Edge Function: DeepSeek Vision (imágenes) / pdf-parse (PDFs)
+  → UPDATE study_drafts SET status='done', extracted_fields={...}
+     (o status='error', error_log='...' si falla)
+  → Supabase Realtime notifica al frontend
+  → Card del draft se actualiza en el Vault
+  → Usuario confirma datos en pantalla de detalle
+  → POST /extract/confirm
+  → INSERT studies (confirmed=true, storage_paths=[...])
 ```
 
 **Regla crítica:** `confirmed=false` hasta que el usuario valida explícitamente. NUNCA auto-commit.
+**Regla crítica:** el frontend NUNCA bloquea esperando el OCR — navega al Vault inmediatamente.
 
 ---
 
 ## Schema de campos clínicos normalizados (allowlist)
 
-Solo estos campos pueden aparecer en `extracted_fields` y ser retornados al cliente. Cualquier campo que Document AI extraiga fuera de esta lista se descarta en el backend antes de insertar en DB y antes de responder al cliente.
+Solo estos campos pueden aparecer en `extracted_fields` y ser retornados al cliente. Cualquier campo que DeepSeek extraiga fuera de esta lista se descarta en el backend antes de insertar en DB y antes de responder al cliente.
 
 ```typescript
-// apps/api/src/services/ocr.ts
+// apps/api/src/extract/allowlist.ts
 
 export const CLINICAL_FIELDS_ALLOWLIST = {
   // Laboratorio
@@ -56,53 +62,73 @@ export const CLINICAL_FIELDS_ALLOWLIST = {
 
 // NUNCA permitir en extracted_fields:
 // patient_name, patient_id, doctor_name, address, phone, email
-// → Si Document AI los extrae, se descartan silenciosamente
+// → Si DeepSeek los extrae, se descartan silenciosamente
 ```
 
 ---
 
-## Implementación del pipeline
+## Tabla `study_drafts` (temporal, TTL 24h)
+
+```sql
+CREATE TABLE study_drafts (
+  id               uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  profile_id       uuid NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  category         text NOT NULL,
+  status           text NOT NULL CHECK (status IN ('pending','processing','done','error'))
+                   DEFAULT 'pending',
+  storage_paths    text[],             -- una o múltiples páginas/fotos
+  extracted_fields jsonb,              -- solo campos del allowlist (null hasta que OCR termina)
+  study_type       text,
+  lab_name         text,
+  study_date       date,
+  error_log        text,               -- descripción del error si status='error'
+  created_at       timestamptz NOT NULL DEFAULT now()
+);
+
+-- Limpiar drafts viejos (pg_cron, diario):
+-- DELETE FROM study_drafts WHERE created_at < now() - interval '24 hours'
+```
+
+---
+
+## Edge Function: process-study-draft
 
 ```typescript
-// apps/api/src/services/ocr.ts
+// supabase/functions/process-study-draft/index.ts
+// Disparada por pg_net trigger en INSERT study_drafts
 
-export async function extractStudyFields(
-  filePath: string,
-  fileType: 'pdf' | 'jpg' | 'png'
-): Promise<Result<ExtractedFields>> {
+Deno.serve(async (req) => {
+  const { draft_id } = await req.json();
 
-  const provider = process.env.OCR_PROVIDER ?? 'docai';
+  // 1. Marcar como 'processing'
+  await supabase.from('study_drafts').update({ status: 'processing' }).eq('id', draft_id);
 
-  try {
-    const rawFields = provider === 'docai'
-      ? await extractWithDocumentAI(filePath, fileType)
-      : await extractWithTextract(filePath, fileType);  // fallback
+  // 2. Descargar archivo(s) desde Storage
+  const draft = await getDraft(draft_id);
+  const files = await downloadFromStorage(draft.storage_paths);
 
-    // Filtrar contra allowlist — SIEMPRE, sin excepción
-    const sanitized = sanitizeFields(rawFields, CLINICAL_FIELDS_ALLOWLIST);
-
-    return { ok: true, data: sanitized };
-
-  } catch (error) {
-    // Si OCR falla, retornar campos vacíos — el usuario completa manualmente
-    // NUNCA fallar el upload completo por un error de OCR
-    console.error('[OCR] Extraction failed, returning empty fields:', error);
-    return { ok: true, data: {} };
-  }
-}
-
-function sanitizeFields(
-  raw: Record<string, unknown>,
-  allowlist: typeof CLINICAL_FIELDS_ALLOWLIST
-): ExtractedFields {
-  const sanitized: ExtractedFields = {};
-  for (const [key, expectedType] of Object.entries(allowlist)) {
-    if (key in raw && typeof raw[key] === expectedType) {
-      sanitized[key] = raw[key] as never;
+  // 3. OCR según tipo de archivo
+  let rawFields: Record<string, unknown>;
+  for (const file of files) {
+    if (file.mimetype === 'application/pdf') {
+      rawFields = await extractWithPdfParse(file.buffer);
+    } else {
+      // jpg, png → DeepSeek Vision
+      rawFields = await extractWithDeepSeekVision(file.buffer, file.mimetype);
     }
   }
-  return sanitized;
-}
+
+  // 4. Sanitizar contra allowlist
+  const extracted_fields = sanitizeFields(rawFields, CLINICAL_FIELDS_ALLOWLIST);
+
+  // 5. Actualizar draft con resultado
+  await supabase.from('study_drafts').update({
+    status: 'done',
+    extracted_fields,
+    study_type: classified.study_type,
+    category:   classified.category,
+  }).eq('id', draft_id);
+});
 ```
 
 ---
@@ -110,13 +136,10 @@ function sanitizeFields(
 ## Categorización automática
 
 ```typescript
-// apps/api/src/services/ocr.ts
-
-export function classifyStudy(extractedFields: ExtractedFields, fileName: string): {
+export function classifyStudy(extractedFields: ExtractedFields): {
   study_type: StudyType;
   category: string;
 } {
-  // Detectar por campos presentes
   const hasLabFields = ['glucose_mgdl', 'hemoglobin_gdl', 'cholesterol_total']
     .some(f => f in extractedFields);
   const hasImageFields = ['findings_text', 'impression_text']
@@ -125,59 +148,22 @@ export function classifyStudy(extractedFields: ExtractedFields, fileName: string
     .some(f => f in extractedFields);
 
   if (hasLabFields)   return { study_type: 'laboratorio', category: detectLabCategory(extractedFields) };
-  if (hasImageFields) return { study_type: 'imagen',      category: detectImageCategory(fileName) };
+  if (hasImageFields) return { study_type: 'imagen',      category: 'imagen_diagnostica' };
   if (hasRxFields)    return { study_type: 'receta',       category: 'farmacologico' };
 
   return { study_type: 'otro', category: 'sin_clasificar' };
 }
-
-function detectLabCategory(fields: ExtractedFields): string {
-  if ('glucose_mgdl' in fields || 'hba1c_percent' in fields) return 'metabolismo_glucosa';
-  if ('hemoglobin_gdl' in fields)  return 'hemograma';
-  if ('cholesterol_total' in fields) return 'perfil_lipidico';
-  if ('creatinine_mgdl' in fields) return 'funcion_renal';
-  if ('tsh_uiul' in fields)        return 'funcion_tiroidea';
-  return 'laboratorio_general';
-}
 ```
 
 ---
 
-## Tabla `study_draft` (temporal)
+## Estados del draft en el Vault (UX)
 
-```sql
-CREATE TABLE study_draft (
-  id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  profile_id       UUID REFERENCES profiles(id) NOT NULL,
-  file_path        TEXT NOT NULL,
-  extracted_fields JSONB,           -- solo campos del allowlist
-  study_type       TEXT,
-  category         TEXT,
-  expires_at       TIMESTAMPTZ NOT NULL DEFAULT now() + INTERVAL '24 hours',
-  created_at       TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-
--- Limpiar drafts expirados (pg_cron, diario)
-SELECT cron.schedule(
-  'clean-study-drafts',
-  '0 3 * * *',
-  'DELETE FROM study_draft WHERE expires_at < now()'
-);
-```
-
----
-
-## Activar fallback a Textract
-
-Si el error rate de Document AI supera el 20%:
-
-```bash
-# En Railway: Environment Variables
-OCR_PROVIDER=textract
-# Restart del servicio — el cambio es inmediato
-```
-
-El código usa `process.env.OCR_PROVIDER` en runtime, sin necesidad de redeploy.
+| `status` | Card en Vault | Color | CTA |
+|---|---|---|---|
+| `pending` / `processing` | Spinner + "Analizando documento..." | Gris | — |
+| `done` | Campos extraídos listos para confirmar | Verde | "Revisar y confirmar" |
+| `error` | "No pudimos analizar el documento" | Rojo | "Ingresar datos manualmente" / "Descartar" |
 
 ---
 
@@ -198,4 +184,19 @@ export const CLINICAL_REFERENCE_RANGES = {
 } as const;
 // Si un valor extraído está fuera de rango: mostrar ⚠ en confirmación
 // NUNCA bloquear el upload — el usuario decide si el valor es correcto
+```
+
+---
+
+## Debuggear el OCR en producción
+
+```bash
+# Ver logs de la Edge Function
+supabase functions logs process-study-draft --project-ref mkacuagcvwxoduhdthwg
+
+# Ver drafts con error en las últimas 24h (SQL Editor en Supabase Dashboard)
+SELECT id, profile_id, error_log, created_at
+FROM study_drafts
+WHERE status = 'error' AND created_at > now() - interval '24h'
+ORDER BY created_at DESC;
 ```

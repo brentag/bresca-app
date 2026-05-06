@@ -5,26 +5,26 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 # Bresca — Claude Code Context
 
 ## Estado del proyecto
-**Fase actual: Diseño + Documentación.** El monorepo descrito abajo es la arquitectura planificada — aún no scaffoldeado. Código existente: solo `Design System/` (prototipo HTML + assets). Los docs en `docs/` son la fuente de verdad de decisiones técnicas.
+**Fase actual: MVP en producción.** web-patient + API live. web-cro implementado pero pendiente de deploy en Vercel. Mobile no iniciado aún.
 
 ## Producto
 Plataforma two-sided de datos de salud en LATAM.
-- **B2C:** app móvil para pacientes (health vault, copilot IA, QR sharing, familia, consentimiento)
+- **B2C:** web app para pacientes (health vault, copilot IA, QR sharing, familia, consentimiento)
 - **B2B:** panel CRO (dashboard, matching anónimo, funnel de estudios clínicos)
 
-## Comandos (una vez scaffoldeado el monorepo)
+## Comandos
 
 ```bash
 # Desarrollo
 pnpm dev                                    # Levanta todos los apps (Turborepo)
-pnpm dev --filter=mobile                    # Solo app mobile
 pnpm dev --filter=web-cro                   # Solo panel CRO
 pnpm dev --filter=api                       # Solo backend
 
 # Supabase local
 supabase start                              # Levanta DB + Auth + Storage local
 supabase db reset --local                   # Reset completo + seed (permitido)
-supabase gen types typescript > packages/shared/src/database.types.ts
+supabase gen types typescript --project-ref mkacuagcvwxoduhdthwg \
+  > packages/shared/src/database.types.ts
 
 # Tests
 pnpm test                                   # Todos los packages
@@ -36,33 +36,39 @@ npx vitest run --reporter=verbose           # Tests unitarios con detalle
 npx eslint apps/                            # Lint
 npx tsc --noEmit                            # Chequeo de tipos sin compilar
 
-# Mobile
-npx expo start                              # Dev server Expo
-npx expo start --ios / --android            # Con simulador
+# QA post-deploy
+node scripts/post-deploy-qa.mjs             # 14 tests — mínimo 12/14 aceptable
+node scripts/post-deploy-qa.mjs --no-issues # Sin crear GitHub issues
+
+# Mobile (pendiente — no iniciado aún)
+# cd apps/mobile && npx expo start
 ```
 
 ## Monorepo
 ```
-apps/mobile        → React Native (Expo SDK 52) — paciente B2C
-apps/web-cro       → React + Vite — panel investigador B2B
-apps/api           → Node.js + Express — backend REST
-packages/shared    → Supabase singleton, tipos TS, utils
-supabase/          → migraciones SQL, seed, Edge Functions
-.claude/           → CLAUDE.md, skills/, settings.json, hooks/
+apps/web-patient  → React + Vite — app paciente B2C (en producción en Vercel)
+apps/web-cro      → React + Vite — panel investigador B2B (pendiente deploy)
+apps/api          → Node.js + Express — backend REST (en producción en Render.com)
+packages/shared   → Supabase singleton, tipos TS, utils
+supabase/         → migraciones SQL, seed, Edge Functions
+scripts/          → post-deploy-qa.mjs y otros scripts operacionales
+.claude/          → CLAUDE.md, skills/, settings.json, hooks/
 ```
 
 ## Stack
 | Capa | Tech |
 |---|---|
-| Mobile | React Native + Expo SDK 52 + TypeScript |
+| Web B2C (paciente) | React 18 + Vite 5 + TypeScript |
 | Web CRO | React 18 + Vite 5 + TypeScript |
 | Backend | Node.js 20 LTS + Express |
 | DB | PostgreSQL 15 vía Supabase |
 | Auth + Storage | Supabase (anon sign-in, RLS, buckets) |
-| OCR | Google Document AI (fallback: `OCR_PROVIDER=textract`) |
-| AI Copilot | Claude API — `claude-sonnet-4-6` default |
-| Push | expo-notifications + FCM/APNs |
-| Deploy | Railway (api) + Vercel (web-cro) |
+| OCR | DeepSeek Vision + pdf-parse (Edge Function Supabase, async) |
+| AI Copilot | DeepSeek — `deepseek-chat` (API OpenAI-compatible) |
+| Push | expo-notifications + FCM/APNs (pendiente — mobile no iniciado) |
+| Deploy API | Render.com — `https://bresca-api.onrender.com` |
+| Deploy Web B2C | Vercel — `https://bresca-app-api.vercel.app` |
+| Deploy Web CRO | Vercel — pendiente |
 
 ## Reglas absolutas — nunca violar
 
@@ -71,6 +77,7 @@ SEGURIDAD
 - NUNCA usar SUPABASE_SERVICE_ROLE_KEY en el cliente (solo en apps/api)
 - NUNCA retornar extracted_fields crudo al cliente — filtrar contra allowlist
 - NUNCA exponer profile_id real en respuestas del CRO Panel (usar md5 hash)
+- NUNCA aceptar patient_hash como parámetro de entrada en endpoints /cro/
 - RLS debe estar activo en TODA tabla antes de hacer merge a main
 - Cada tabla con PII necesita vista anónima antes de ser accesible desde CRO
 
@@ -81,13 +88,14 @@ CONSENTIMIENTO
 
 OCR
 - NUNCA auto-commit de datos extraídos — siempre requiere confirmed=true del usuario
-- study_draft tiene TTL de 24h — limpiar con pg_cron
+- study_drafts tiene TTL de 24h — limpiar con pg_cron
+- OCR es async (Edge Function) — el frontend navega al Vault inmediatamente post-enqueue
 
 COPILOT
 - System prompt en COPILOT_SYSTEM_PROMPT_V1 (constante en apps/api/src/copilot/system-prompt.ts)
 - max_tokens: 1024 — el Copilot no escribe ensayos
 - Rate limit: 20 queries/usuario/hora — hardcodeado, no configurable por usuario
-- NUNCA incluir PII del usuario en el contexto enviado a Claude API
+- NUNCA incluir PII del usuario en el contexto enviado a la DeepSeek API
 ```
 
 ## Patrones de código
@@ -108,25 +116,26 @@ feat|fix|chore|docs|test(scope): descripción en español
 - Nunca editar migración existente — cambios en migración nueva
 - RLS policies en la misma migración que la tabla
 - Migraciones van ANTES del deploy del código que las usa
+- Aplicar con: `supabase db push --linked --project-ref mkacuagcvwxoduhdthwg`
 
 ## Variables de entorno sensibles
 ```
 SUPABASE_SERVICE_ROLE_KEY  → solo apps/api, nunca cliente
-GOOGLE_DOCAI_KEY           → rotación mensual
-ANTHROPIC_API_KEY          → rotación mensual
+DEEPSEEK_API_KEY           → rotación mensual (OCR Vision + Copilot)
 QR_TOKEN_SECRET            → rotación semestral
 ```
 
 ## Skills disponibles (cargar con @skill nombre)
 ```
-@skill bresca-architecture    → estructura completa del proyecto y decisiones
+@skill bresca-architecture    → estructura completa del proyecto, rutas, deploy actual
 @skill supabase-rls           → patrones RLS, políticas multi-perfil, QR, CRO
-@skill ocr-pipeline           → schema de campos clínicos, extracción, fallbacks
-@skill copilot-context        → chunking del vault, retrieval semántico, rate limiting
-@skill consent-system         → schema consent_audit, 3 capas, auditoría
+@skill ocr-pipeline           → schema de campos clínicos, extracción async, Edge Function
+@skill copilot-context        → contexto del vault, DeepSeek API, rate limiting
+@skill consent-system         → schema consent_audit, 3 capas, auditoría append-only
 @skill cro-matching           → fit score, anonimización, vistas SQL
-@skill react-native-patterns  → navegación Expo, push notifications, EAS Build
+@skill react-native-patterns  → navegación Expo, push notifications, EAS Build (mobile pendiente)
 @skill testing-patterns       → E2E flows críticos, RLS tests, Copilot rule tests
+@skill post-deploy-qa         → runner QA post-deploy, 14 tests, análisis Haiku
 ```
 
 ## Diseño UX/UI
@@ -143,21 +152,18 @@ Design System/README.md                   → voice & tone, color system, iconog
 
 Navegación del prototipo: sidebar izquierdo mapea todos los flows (Onboarding → Vault → Copilot → Familia → Menú → Panel CRO). El botón "Ver Panel CRO" alterna entre las dos interfaces.
 
-Navegación real en mobile usa **Expo Router** con grupos de rutas:
-- `(auth)/` — onboarding sin autenticar
-- `(app)/` — tabs autenticados (vault, copilot, family, menu)
-- `qr/[token]` — vista médico sin auth
-
 ## Documentación de referencia
 ```
 docs/01_RFC-001_Bresca.md       → por qué existe Bresca, problema y solución
-docs/02_ADR_Bresca.md           → decisiones técnicas registradas (ADR-001 a ADR-005)
+docs/02_ADR_Bresca.md           → decisiones técnicas registradas (ADR-001 a ADR-006)
 docs/03_PRD_Bresca.md           → qué construir, features, criterios de éxito
 docs/04_TechSpec_Bresca.md      → schema DB, RLS policies, flujos de datos
 docs/05_SystemDesign_Bresca.md  → arquitectura, escalabilidad, seguridad
 docs/06_Runbook_Bresca.md       → operaciones, deploys, incidentes
 docs/07_PostMortem_Bresca.md    → template blameless
 docs/08_SystemPromptSpec_Bresca.md → system prompt Copilot, test suite CT-001/CT-007
+docs/09_TestPlan_Bresca.md      → plan de pruebas del MVP (26 escenarios)
+docs/10_TestResults_Bresca.md   → resultados QA post-deploy (25/26 OK, 1 pendiente TS-023)
 ```
 
 ## Comportamiento del agente
@@ -168,6 +174,6 @@ Ver `AGENTS.md` para zonas de autonomía, confirmación y exclusión absoluta. R
 
 ## Contexto de desarrollo
 - Equipo: 1 dev + Claude Code como co-developer
-- MVP funcional — no prototipo, no production enterprise
+- MVP funcional en producción — no prototipo, no production enterprise
 - El output de este MVP alimenta la siguiente etapa (código no descartable)
 - Diseño UX/UI completo en Claude Projects — input nativo disponible

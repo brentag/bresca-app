@@ -96,3 +96,11 @@ Los 2 SKIPs no son fallas — son entornos no configurados/no deployados aún.
 | OCR non-blocking (navegar al Vault inmediatamente) | Bloquear UI hasta que OCR termine | El OCR puede tardar 10–30s. Bloquear la UI es inaceptable para onboarding. Realtime actualiza la card cuando el draft está listo. |
 | `storage_paths TEXT[]` para multi-foto | Una sola columna `storage_path` | Estudios de múltiples páginas son comunes (analíticas, imágenes). La columna legacy `storage_path` se mantiene para retrocompatibilidad. |
 | `QA_WEB_PATIENT_URL` como variable de entorno del QA runner | Hardcodear la URL | La URL de Vercel puede variar entre previews y producción. Parametrizar evita falsos negativos. |
+
+---
+
+## Log de publicaciones (auto-generado)
+
+| Hash | Hora | Descripción |
+|---|---|---|
+| `064328d` | 19:50 | docs(all): actualizar documentación técnica al estado real del proyecto |

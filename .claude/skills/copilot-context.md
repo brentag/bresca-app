@@ -6,13 +6,15 @@
 ```
 Usuario envía mensaje
   → Rate limit check (20/hora/usuario)
-  → Embed pregunta (text-embedding-3-small)
-  → Cosine similarity en study_embeddings (top-5)
+  → Cargar estudios confirmados del perfil (context building)
   → Construir prompt (system + estudios relevantes + historial)
-  → POST Claude API (claude-sonnet-4-5, max_tokens: 1024)
+  → POST DeepSeek API (deepseek-chat, max_tokens: 1024)
+    API es OpenAI-compatible → mismo SDK, distinto base_url + key
   → Retornar respuesta
   → Guardar en historial (últimos 10 turnos)
 ```
+
+**MVP:** el contexto incluye los estudios confirmados del perfil activo, sanitizados contra la allowlist de campos clínicos. Retrieval semántico con embeddings está planificado para v2.
 
 ---
 
@@ -20,7 +22,7 @@ Usuario envía mensaje
 
 El system prompt vive en `apps/api/src/copilot/system-prompt.ts` como constante exportada.
 
-**Regla:** nunca inline el system prompt en `chat.ts`. Siempre importar la constante.
+**Regla:** nunca inline el system prompt en el handler. Siempre importar la constante.
 **Cambios:** requieren PR + review + tests CT-001 a CT-007 (ver `docs/08_SystemPromptSpec_Bresca.md`).
 
 ```typescript
@@ -34,127 +36,88 @@ Eres el Copilot de Bresca...
 
 ---
 
-## Retrieval semántico
+## Llamada a la API (DeepSeek, OpenAI-compatible)
 
 ```typescript
-// apps/api/src/copilot/retrieval.ts
+// apps/api/src/copilot/chat.ts
+import OpenAI from 'openai';
 
-const TOP_K = 5;
-const EMBEDDING_MODEL = 'text-embedding-3-small';
-const EMBEDDING_DIMS = 1536;
+const deepseek = new OpenAI({
+  baseURL: 'https://api.deepseek.com',
+  apiKey:  process.env.DEEPSEEK_API_KEY!,
+});
 
-export async function getRelevantStudies(
-  profileId: string,
-  userQuery: string
-): Promise<Result<NormalizedStudy[]>> {
+async function callCopilot(req: CopilotRequest): Promise<Result<string>> {
+  const response = await deepseek.chat.completions.create({
+    model:      'deepseek-chat',
+    max_tokens: 1024,
+    messages: [
+      { role: 'system', content: COPILOT_SYSTEM_PROMPT_V1 },
+      {
+        role:    'user',
+        content: `
+<estudios_relevantes>
+${JSON.stringify(req.relevantStudies, null, 2)}
+</estudios_relevantes>
 
-  // 1. Embed la pregunta del usuario
-  const queryEmbedding = await openai.embeddings.create({
-    model: EMBEDDING_MODEL,
-    input: userQuery,
+${req.userMessage}
+        `.trim()
+      },
+      // Historial de la conversación (máx 10 turnos = 20 mensajes)
+      ...req.conversationHistory.slice(-20),
+    ],
   });
 
-  // 2. Cosine similarity en DB (pgvector)
-  // Solo busca en estudios del perfil autenticado — NUNCA cross-profile
-  const { data, error } = await supabaseAdmin.rpc('match_study_embeddings', {
-    query_embedding: queryEmbedding.data[0].embedding,
-    match_profile_id: profileId,
-    match_threshold: 0.7,
-    match_count: TOP_K,
-  });
-
-  if (error) return { ok: false, error: new Error(error.message) };
-
-  // 3. Sanitizar antes de enviar a Claude API — nunca PII
-  const sanitized = data.map(sanitizeStudyForCopilot);
-  return { ok: true, data: sanitized };
+  const text = response.choices[0]?.message?.content ?? '';
+  return { ok: true, data: text };
 }
-
-// Función SQL correspondiente en Supabase
-// supabase/migrations/..._add_match_embeddings_function.sql
-/*
-CREATE FUNCTION match_study_embeddings(
-  query_embedding VECTOR(1536),
-  match_profile_id UUID,
-  match_threshold FLOAT DEFAULT 0.7,
-  match_count INT DEFAULT 5
-)
-RETURNS TABLE (
-  id UUID, study_type TEXT, study_date DATE,
-  category TEXT, extracted_fields JSONB, similarity FLOAT
-)
-LANGUAGE plpgsql
-AS $$
-BEGIN
-  RETURN QUERY
-  SELECT
-    s.id, s.study_type, s.study_date, s.category, s.extracted_fields,
-    1 - (se.embedding <=> query_embedding) AS similarity
-  FROM study_embeddings se
-  JOIN studies s ON s.id = se.study_id
-  WHERE s.profile_id = match_profile_id
-    AND s.confirmed = true
-    AND 1 - (se.embedding <=> query_embedding) > match_threshold
-  ORDER BY similarity DESC
-  LIMIT match_count;
-END;
-$$;
-*/
 ```
 
 ---
 
-## Sanitización antes de enviar a Claude API
+## Sanitización antes de enviar a DeepSeek
 
 ```typescript
-// apps/api/src/copilot/retrieval.ts
-
 // Lo que el Copilot puede ver de cada estudio
 interface NormalizedStudy {
   study_type: string;
   study_date: string;       // 'YYYY-MM-DD'
   category: string;
   extracted_fields: Record<string, string | number>;
-  // NUNCA incluir: profile_id, user_id, file_path, nombres propios
+  // NUNCA incluir: profile_id, user_id, storage_path, nombres propios
 }
 
-function sanitizeStudyForCopilot(raw: StudyWithEmbedding): NormalizedStudy {
+function sanitizeStudyForCopilot(raw: Study): NormalizedStudy {
   return {
     study_type:       raw.study_type,
     study_date:       raw.study_date,
     category:         raw.category,
     extracted_fields: filterAllowlist(raw.extracted_fields),
-    // file_path, profile_id → descartados aquí
+    // storage_path, profile_id → descartados aquí
   };
 }
 ```
 
 ---
 
-## Construcción del prompt final
+## Construcción del contexto
 
 ```typescript
-// apps/api/src/copilot/chat.ts
+// apps/api/src/copilot/context.ts
 
-export async function buildCopilotMessages(
-  userMessage: string,
-  relevantStudies: NormalizedStudy[],
-  history: ConversationMessage[]  // últimos 10 turnos = 20 mensajes
-): Promise<MessageParam[]> {
+export async function buildCopilotContext(
+  profileId: string
+): Promise<NormalizedStudy[]> {
+  // Solo estudios confirmados del perfil activo
+  const { data: studies } = await supabase
+    .from('studies')
+    .select('study_type, study_date, category, extracted_fields')
+    .eq('profile_id', profileId)
+    .eq('confirmed', true)
+    .order('study_date', { ascending: false })
+    .limit(20);  // cap para no exceder context window
 
-  const contextBlock = relevantStudies.length > 0
-    ? `<estudios_relevantes>\n${JSON.stringify(relevantStudies, null, 2)}\n</estudios_relevantes>\n\n`
-    : '<estudios_relevantes>Sin estudios disponibles para esta consulta.</estudios_relevantes>\n\n';
-
-  return [
-    // Primer mensaje: contexto + pregunta
-    {
-      role: 'user',
-      content: `${contextBlock}${userMessage}`
-    },
-    // Historial de la conversación (sin el primer contexto inyectado)
-    ...history.slice(-20),
-  ];
+  return (studies ?? []).map(sanitizeStudyForCopilot);
 }
 ```
 
@@ -169,7 +132,7 @@ const MAX_QUERIES_PER_HOUR = 20; // hardcodeado — no configurable por usuario
 
 export async function checkCopilotRateLimit(
   profileId: string
-): Promise<Result<void>> {
+): Promise<Result<{ remainingQueries: number }>> {
 
   const windowStart = new Date(Date.now() - 60 * 60 * 1000); // última hora
 
@@ -179,65 +142,45 @@ export async function checkCopilotRateLimit(
     .eq('profile_id', profileId)
     .gte('created_at', windowStart.toISOString());
 
-  if ((count ?? 0) >= MAX_QUERIES_PER_HOUR) {
+  const used = count ?? 0;
+
+  if (used >= MAX_QUERIES_PER_HOUR) {
     return {
       ok: false,
-      error: new Error(`Límite de ${MAX_QUERIES_PER_HOUR} consultas por hora alcanzado`)
+      error: Object.assign(
+        new Error(`Límite de ${MAX_QUERIES_PER_HOUR} consultas por hora alcanzado`),
+        { retryAfterMs: 60 * 60 * 1000 }
+      )
     };
   }
 
-  // Registrar uso
   await supabase.from('copilot_usage').insert({ profile_id: profileId });
-  return { ok: true, data: undefined };
+  return { ok: true, data: { remainingQueries: MAX_QUERIES_PER_HOUR - used - 1 } };
 }
 ```
 
 ---
 
-## Generación de embeddings (async, post-confirm)
-
-```typescript
-// supabase/functions/generate-embeddings/index.ts
-// Se dispara via Supabase Edge Function después de confirm
-
-Deno.serve(async (req) => {
-  const { studyId } = await req.json();
-
-  const study = await getConfirmedStudy(studyId);
-
-  // Construir texto normalizado para embedding
-  const text = [
-    `Tipo: ${study.study_type}`,
-    `Categoría: ${study.category}`,
-    `Fecha: ${study.study_date}`,
-    ...Object.entries(study.extracted_fields)
-      .map(([k, v]) => `${k}: ${v}`)
-  ].join('\n');
-
-  const embedding = await openai.embeddings.create({
-    model: 'text-embedding-3-small',
-    input: text,
-  });
-
-  await supabase.from('study_embeddings').upsert({
-    study_id: studyId,
-    embedding: embedding.data[0].embedding,
-    normalized_text: text,
-  });
-});
-```
-
----
-
-## Estimación de costo por query
+## Estimación de costo por query (DeepSeek)
 
 | Componente | Tokens aprox | Costo aprox (USD) |
 |---|---|---|
-| Embed pregunta (input) | ~50 tokens | ~$0.000010 |
-| System prompt (input) | ~500 tokens | ~$0.000750 |
-| 5 estudios contexto (input) | ~2.000 tokens | ~$0.003000 |
-| Historial 10 turnos (input) | ~1.500 tokens | ~$0.002250 |
-| Respuesta (output, max 1024) | ~400 tokens avg | ~$0.006000 |
-| **Total por query** | **~4.450 tokens** | **~$0.012** |
+| System prompt (input) | ~500 tokens | ~$0.000070 |
+| 20 estudios contexto (input) | ~2.000 tokens | ~$0.000280 |
+| Historial 10 turnos (input) | ~1.500 tokens | ~$0.000210 |
+| Respuesta (output, max 1024) | ~400 tokens avg | ~$0.000440 |
+| **Total por query** | **~4.400 tokens** | **~$0.001** |
 
-Con 20 queries/hora máx/usuario: costo máximo ~$0.24/usuario/hora (caso extremo).
+DeepSeek es ~10-15x más barato que Claude API para el mismo volumen.
+Con 20 queries/hora máx/usuario: costo máximo ~$0.02/usuario/hora (caso extremo).
+
+---
+
+## Plan v2: retrieval semántico
+
+Para vaults con muchos estudios (> 20), se implementará:
+1. **Indexación:** cada estudio confirmado se vectoriza con DeepSeek embeddings y se guarda en `study_embeddings`.
+2. **Retrieval por query:** cosine similarity top-K antes de cada llamada al Copilot.
+3. **Función SQL:** `match_study_embeddings(query_embedding, profile_id, threshold, k)` con pgvector.
+
+Hasta implementar v2, el MVP envía directamente los últimos 20 estudios confirmados.

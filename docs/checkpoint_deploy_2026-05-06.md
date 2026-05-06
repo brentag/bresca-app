@@ -74,3 +74,15 @@
 | **Etiqueta familiar en Upload** | 🟡 Media | Banner con nombre del familiar cuando `?p=` está presente |
 | **QA T01b web-cro runner** | 🟡 Media | Ya pasa como T01b — verificar que el runner lo reporta correctamente |
 | **Bundle size web-cro** | 🟢 Baja | 773kB chunk recharts → `React.lazy` |
+
+---
+
+## Log de publicaciones (auto-generado)
+
+| Hash | Hora | Descripción |
+|---|---|---|
+| `028c519` | 23:09 | docs: checkpoint 2026-05-06 — share WhatsApp + fix upload errors |
+
+| `2174748` | 02:59 | feat(dicom): visualizador DICOM con extracción de metadata y viewer canvas |
+| `57f8101` | 03:09 | ci: workflow GitHub Actions para deploy automático de Edge Functions |
+| `34427bd` | 03:48 | docs: roadmap post-MVP v2.0 — F1 a F6, ~14.5 días estimados |

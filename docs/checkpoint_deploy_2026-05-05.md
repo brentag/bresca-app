@@ -76,3 +76,7 @@ Una vez deployado, actualizar `QA_WEB_PATIENT_URL`-equivalente para web-cro en e
 
 | `c435fd3` | 08:20 | feat(deploy): web-cro en producción — https://bresca-cro.vercel.app |
 | `cc96a2d` | 10:05 | feat(web-cro): responsive mobile + bloqueo patient_hash (TS-023) |
+| `d56f9d8` | 10:09 | docs: actualizar test results y checkpoint al estado 2026-05-05 |
+| `5cba9ed` | 10:26 | feat(family): subir estudios al vault de familiares + fix error PDF |
+| `8e6a666` | 10:50 | fix(web-cro): mobile overlay nav oculta por selector demasiado amplio |
+| `790d293` | 15:18 | feat(vault): upload UX libera interfaz inmediatamente — estado OCR en cards |

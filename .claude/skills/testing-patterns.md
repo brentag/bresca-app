@@ -5,12 +5,15 @@
 
 ```
 1. RLS multi-perfil: usuario A no puede leer datos de usuario B
-2. RLS QR: médico solo ve estudios del token, no el vault completo
-3. RLS CRO: cro_reader no puede hacer SELECT directo en profiles/studies/users
-4. consent_audit append-only: UPDATE y DELETE lanzan excepción
-5. Copilot rules CT-001 a CT-007 (ver docs/08_SystemPromptSpec_Bresca.md)
-6. OCR sanitización: PII en extracted_fields se descarta
-7. QR token expirado: retorna 401, no los estudios
+2. RLS familiar: usuario B no puede leer perfiles familiares de usuario A
+3. RLS QR: médico solo ve estudios del token, no el vault completo
+4. RLS CRO: cro_reader no puede hacer SELECT directo en profiles/studies/consent_audit
+5. consent_audit append-only: UPDATE y DELETE lanzan excepción de DB
+6. consent_audit layer: insertar con valor inválido de layer lanza error de constraint
+7. Copilot rules CT-001 a CT-007 (ver docs/08_SystemPromptSpec_Bresca.md)
+8. OCR sanitización: PII en extracted_fields se descarta
+9. QR token expirado: retorna 401, no los estudios
+10. patient_hash NO aceptado como parámetro en endpoints /cro/ (TS-023)
 ```
 
 ## Tests de RLS (integración con Supabase local)
@@ -40,19 +43,38 @@ async function clientAs(email: string) {
 
 describe('RLS: cross-profile isolation', () => {
   it('user B cannot read profiles of user A', async () => {
-    const userA = await createTestUser('a@test.com');
-    const userB = await createTestUser('b@test.com');
+    await createTestUser('a@test.com');
+    await createTestUser('b@test.com');
 
     const clientA = await clientAs('a@test.com');
     const { data: profile } = await clientA
-      .from('profiles').insert({ name: 'Test A', is_self: true }).select().single();
+      .from('profiles')
+      .insert({ display_name: 'Test A' })
+      .select().single();
 
     const clientB = await clientAs('b@test.com');
-    const { data, error } = await clientB
+    const { data } = await clientB
       .from('profiles').select().eq('id', profile!.id);
 
     expect(data).toHaveLength(0); // RLS → array vacío, sin error
-    expect(error).toBeNull();
+  });
+
+  it('user B cannot read family profiles of user A', async () => {
+    const userAData = await admin.auth.admin.getUserById('...'); // get userA id
+    const clientA = await clientAs('a@test.com');
+
+    // userA crea perfil familiar
+    const { data: familyProfile } = await clientA
+      .from('profiles')
+      .insert({ display_name: 'Tomás (hijo)', relationship: 'Hijo/a' })
+      // owner_user_id se setea en el backend via service_role
+      .select().single();
+
+    const clientB = await clientAs('b@test.com');
+    const { data } = await clientB
+      .from('profiles').select().eq('id', familyProfile!.id);
+
+    expect(data).toHaveLength(0);
   });
 
   it('user B cannot read studies of user A', async () => {
@@ -61,14 +83,27 @@ describe('RLS: cross-profile isolation', () => {
     // Expect: data vacío
   });
 
-  it('consent_audit rejects UPDATE', async () => {
+  it('consent_audit rejects UPDATE at DB level', async () => {
     const clientA = await clientAs('a@test.com');
-    // Intentar UPDATE en consent_audit
     const { error } = await clientA
       .from('consent_audit')
       .update({ granted: false })
-      .eq('profile_id', testProfileId);
-    expect(error?.message).toContain('append-only');
+      .eq('profile_id', 'some-profile-id');
+    // PostgREST devuelve 200 con 0 rows (sin policy UPDATE)
+    // Para verificar el trigger: usar service_role que sí tiene acceso UPDATE
+    const { error: adminError } = await admin
+      .from('consent_audit')
+      .update({ granted: false })
+      .eq('id', 'some-id');
+    expect(adminError?.message).toContain('append-only');
+  });
+
+  it('consent_audit rejects invalid layer value', async () => {
+    const clientA = await clientAs('a@test.com');
+    const { error } = await clientA
+      .from('consent_audit')
+      .insert({ profile_id: 'some-id', layer: 'basic', granted: true });
+    expect(error).not.toBeNull(); // constraint violation
   });
 });
 
@@ -89,7 +124,7 @@ describe('RLS: CRO reader cannot access raw tables', () => {
 
 ```typescript
 // tests/copilot/rules.test.ts
-// Estos tests llaman a Claude API real — requieren ANTHROPIC_API_KEY
+// Estos tests llaman a DeepSeek API real — requieren DEEPSEEK_API_KEY
 // Se corren en CI solo en rama main (no en cada PR para ahorrar costo)
 
 const RULE_TESTS = [
@@ -166,6 +201,24 @@ describe('OCR: sanitization removes PII', () => {
 });
 ```
 
+## Test TS-023: patient_hash no aceptado como input en CRO
+
+```typescript
+// tests/cro/no-patient-hash-input.test.ts
+describe('CRO: patient_hash cannot be used as input', () => {
+  it('POST /cro/match with patient_hash filter returns 400', async () => {
+    const res = await fetch(`${API_URL}/cro/match`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${croToken}` },
+      body: JSON.stringify({
+        criteria: { patient_hash: 'some-hash' }, // intento de lookup inverso
+      }),
+    });
+    expect(res.status).toBe(400);
+  });
+});
+```
+
 ## Configuración de CI (GitHub Actions)
 
 ```yaml
@@ -185,30 +238,27 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: '20' }
-      - run: npm ci
+      - run: pnpm install
       - run: supabase db reset --local
-      - run: npm run lint
-      - run: npm run typecheck
-      - run: npm run test           # unit + RLS tests
+      - run: pnpm run lint
+      - run: pnpm run typecheck
+      - run: pnpm run test           # unit + RLS tests
       # Copilot rule tests: solo en main, no en PRs (costo de API)
       - if: github.ref == 'refs/heads/main'
-        run: npm run test:integration
+        run: pnpm run test:integration
         env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
 ```
 
-## Hook: filtrar output de tests (reduce tokens)
+## QA post-deploy (runner automatizado)
 
 ```bash
-# .claude/hooks/filter-test-output.sh
-#!/bin/bash
-input=$(cat)
-cmd=$(echo "$input" | jq -r '.tool_input.command // empty')
+# Correr los 14 tests del runner post-deploy
+node scripts/post-deploy-qa.mjs
 
-if [[ "$cmd" =~ ^(npm test|npx jest|npx vitest) ]]; then
-  filtered="$cmd 2>&1 | grep -A 10 -E '(FAIL|PASS|ERROR|✕|●|error:)' | head -100"
-  echo "{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"allow\",\"updatedInput\":{\"command\":\"$filtered\"}}}"
-else
-  echo "{}"
-fi
+# Sin crear GitHub issues (para runs locales)
+node scripts/post-deploy-qa.mjs --no-issues
+
+# Resultado esperado: 12/14 PASS mínimo
+# T01a y T01b son SKIP hasta que las URLs estén configuradas
 ```
