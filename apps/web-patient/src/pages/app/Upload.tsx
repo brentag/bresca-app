@@ -36,6 +36,7 @@ export default function Upload() {
   const { profile } = useProfile();
   // ?p= indica un perfil familiar como destino del estudio
   const familyProfileId = searchParams.get('p') ?? undefined;
+  const [familyName, setFamilyName]   = useState<string | null>(null);
   const [step, setStep]               = useState<Step>('source');
   const [uploading, setUploading]     = useState(false);
   const [files, setFiles]             = useState<SelectedFile[]>([]);
@@ -44,6 +45,16 @@ export default function Upload() {
   const [saving, setSaving]           = useState(false);
   const [saveError, setSaveError]     = useState('');
   const [extractError, setExtractError] = useState('');
+
+  useEffect(() => {
+    if (!familyProfileId) return;
+    supabase
+      .from('profiles')
+      .select('display_name')
+      .eq('id', familyProfileId)
+      .single()
+      .then(({ data }) => { if (data) setFamilyName(data.display_name); });
+  }, [familyProfileId]);
 
   // Modo review: viene desde Vault cuando el OCR terminó
   useEffect(() => {
@@ -177,6 +188,15 @@ export default function Upload() {
         <span style={{ fontSize: 16, fontWeight: 600, color: '#0F172A' }}>Subir estudio</span>
         <div style={{ width: 60 }} />
       </div>
+
+      {/* Banner perfil familiar */}
+      {familyProfileId && familyName && (
+        <div style={{ background: '#EFF6FF', borderBottom: '1px solid #BFDBFE', padding: '10px 20px', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontSize: 13, color: '#1D4ED8' }}>
+            Subiendo para: <strong>{familyName}</strong>
+          </span>
+        </div>
+      )}
 
       {/* ── PASO: source ── */}
       {step === 'source' && (
