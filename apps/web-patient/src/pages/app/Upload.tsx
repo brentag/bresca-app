@@ -120,9 +120,18 @@ export default function Upload() {
       nav(vaultPath, { replace: true, state: { pendingDraftId: job_id } });
     } catch (err) {
       console.error('Processing error:', err);
-      const msg = err instanceof Error && err.message.startsWith('extract enqueue')
-        ? 'El servidor tardó en responder. Esperá unos segundos e intentá de nuevo.'
-        : 'No pudimos procesar el archivo. Revisá que sea un PDF o imagen y volvé a intentar.';
+      let msg: string;
+      if (err instanceof Error) {
+        if (err.message.startsWith('extract enqueue') || err.message.startsWith('storage_upload_failed')) {
+          msg = 'Hubo un problema al procesar el archivo. Intentá de nuevo en unos segundos.';
+        } else if (err.name === 'TypeError' || err.message.toLowerCase().includes('fetch') || err.message.toLowerCase().includes('network')) {
+          msg = 'No se pudo conectar con el servidor. Esperá unos segundos e intentá de nuevo.';
+        } else {
+          msg = 'No pudimos procesar el archivo. Revisá que sea un PDF o imagen y volvé a intentar.';
+        }
+      } else {
+        msg = 'No pudimos procesar el archivo. Revisá que sea un PDF o imagen y volvé a intentar.';
+      }
       setExtractError(msg);
       setUploading(false);
     }

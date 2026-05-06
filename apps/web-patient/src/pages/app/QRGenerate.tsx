@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import QRCode from 'react-qr-code';
-import { ArrowLeft, Copy, Check, Trash2 } from 'lucide-react';
+import { ArrowLeft, Copy, Check, Trash2, Share2 } from 'lucide-react';
 import { generateQR, revokeQR } from '../../lib/api';
 import { useProfile } from '../../lib/useProfile';
 import { supabase } from '../../lib/supabase';
@@ -79,6 +79,11 @@ export default function QRGenerate() {
     setTimeout(() => setCopied(false), 2000);
   }
 
+  function shareWhatsApp() {
+    const text = `Te comparto mis estudios médicos 🏥\n${url}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener');
+  }
+
   return (
     <div style={{ minHeight: '100dvh', background: '#F7F9FC' }}>
       {/* Header */}
@@ -105,8 +110,18 @@ export default function QRGenerate() {
               <button
                 onClick={copy}
                 style={{ background: 'none', border: 'none', cursor: 'pointer', color: copied ? '#00C87A' : '#64748B', minWidth: 44, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
+                title="Copiar link"
               >
                 {copied ? <Check size={18} /> : <Copy size={18} />}
+              </button>
+            </div>
+            <div style={{ display: 'flex', gap: 8, width: '100%' }}>
+              <button
+                onClick={shareWhatsApp}
+                style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '12px', borderRadius: 12, border: 'none', background: '#25D366', color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer', minHeight: 46 }}
+              >
+                <Share2 size={16} />
+                Compartir por WhatsApp
               </button>
             </div>
             <p style={{ fontSize: 12, color: '#94A3B8', textAlign: 'center' }}>El médico abre este link — sin app ni login.</p>
