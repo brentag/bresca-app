@@ -84,6 +84,7 @@
       "Write(AGENTS.md)",
       "Write(scripts/**)",
       "Write(docs/qa-reports/**)",
+      "Write(.github/workflows/**)",
       "Bash(node scripts/*)",
       "Bash(gh issue create *)",
       "Bash(gh auth status)"
