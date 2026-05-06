@@ -1,0 +1,453 @@
+<!--
+  PRUEBA DE DISEÑO — INDEX
+  ========================
+  Hub de revisión de variantes de landing page de Bresca durante el MVP.
+  Objetivo: tener todas las opciones activas y accesibles en un solo lugar
+  para poder comparar y decidir cuál se lleva a producción.
+
+  Variantes de landing:
+    index1.html — Light, logo texto+gradiente, phone derecha
+    index2.html — Ídem index1 con fix de scripts CDN y links locales
+    index3.html — Dark/navy, accent teal, logo blanco
+    index4.html — Light, logos reales (assets/), phone izquierda
+
+  Panel CRO:
+    bresca-cro.vercel.app — Panel B2B para investigadores (en producción)
+
+  Estado: en revisión — landing sin deployar a producción.
+-->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Prueba de Diseño — Index · Bresca</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Space Grotesk', sans-serif;
+      background: #F7F9FC;
+      color: #0F172A;
+      min-height: 100vh;
+      padding: 48px 24px;
+    }
+    .header {
+      max-width: 960px;
+      margin: 0 auto 48px;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+    .header-left {}
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(0,200,122,.1);
+      border: 1px solid rgba(0,200,122,.25);
+      border-radius: 100px;
+      padding: 4px 14px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: #00C87A;
+      margin-bottom: 16px;
+    }
+    .badge-dot { width: 6px; height: 6px; border-radius: 50%; background: #00C87A; }
+    h1 {
+      font-size: 32px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: #0F172A;
+      margin-bottom: 10px;
+    }
+    .subtitle {
+      font-size: 15px;
+      color: #64748B;
+      line-height: 1.6;
+      max-width: 520px;
+    }
+    .section-label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: #94A3B8;
+      max-width: 960px;
+      margin: 0 auto 14px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px;
+      max-width: 960px;
+      margin: 0 auto 48px;
+    }
+    .grid-single {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 20px;
+      max-width: 960px;
+      margin: 0 auto;
+    }
+    .card {
+      background: #fff;
+      border: 1px solid #E2E8F0;
+      border-radius: 16px;
+      overflow: hidden;
+      transition: transform 180ms ease-out, box-shadow 180ms ease-out;
+      text-decoration: none;
+      color: inherit;
+      display: flex;
+      flex-direction: column;
+    }
+    .card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 12px 32px rgba(0,0,0,0.1);
+    }
+    .card-cro {
+      flex-direction: row;
+      align-items: stretch;
+    }
+    .card-preview {
+      height: 180px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 500;
+      color: #94A3B8;
+      letter-spacing: .04em;
+      position: relative;
+      overflow: hidden;
+    }
+    .card-preview-cro {
+      width: 220px;
+      flex-shrink: 0;
+      height: auto;
+    }
+    .prev-1 { background: linear-gradient(135deg, #ffffff 0%, #F7F9FC 100%); border-bottom: 1px solid #E2E8F0; }
+    .prev-2 { background: linear-gradient(135deg, #ffffff 0%, #EFF6FF 100%); border-bottom: 1px solid #E2E8F0; }
+    .prev-3 { background: linear-gradient(135deg, #0F172A 0%, #111827 60%, #1e2d45 100%); }
+    .prev-4 { background: linear-gradient(135deg, #F0FDF4 0%, #EFF6FF 100%); border-bottom: 1px solid #E2E8F0; }
+    .prev-cro { background: linear-gradient(135deg, #0F172A 0%, #1a2236 100%); border-right: 1px solid #1e293b; }
+    .prev-mockup {
+      position: absolute;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      align-items: center;
+    }
+    .mock-bar {
+      height: 3px;
+      border-radius: 2px;
+      background: linear-gradient(90deg, #00C87A, #4B6EF5);
+    }
+    .mock-logo {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+    .mock-hero-line {
+      height: 8px;
+      border-radius: 4px;
+      background: #E2E8F0;
+    }
+    .mock-btn {
+      height: 24px;
+      border-radius: 100px;
+      background: linear-gradient(90deg, #00C87A, #4B6EF5);
+    }
+    .mock-cro-row {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+    .mock-cro-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+    }
+    .mock-cro-line {
+      height: 7px;
+      border-radius: 3px;
+      background: #334155;
+    }
+    .mock-cro-bar-green {
+      height: 28px;
+      border-radius: 4px;
+      background: linear-gradient(180deg, #00C87A, #00a366);
+    }
+    .card-body {
+      padding: 20px 24px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .card-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .card-num {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: #94A3B8;
+    }
+    .card-tag {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 10px;
+      border-radius: 100px;
+    }
+    .tag-light   { background: #F1F5F9; color: #475569; }
+    .tag-dark    { background: #1e293b; color: #94A3B8; }
+    .tag-live    { background: #DCFCE7; color: #15803D; }
+    .card-title {
+      font-size: 17px;
+      font-weight: 700;
+      color: #0F172A;
+    }
+    .card-desc {
+      font-size: 13px;
+      color: #64748B;
+      line-height: 1.6;
+    }
+    .card-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 24px;
+      border-top: 1px solid #F1F5F9;
+    }
+    .card-details {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .detail-chip {
+      font-size: 11px;
+      background: #F8FAFC;
+      border: 1px solid #E2E8F0;
+      border-radius: 100px;
+      padding: 2px 10px;
+      color: #64748B;
+    }
+    .open-link {
+      font-size: 13px;
+      font-weight: 600;
+      color: #4B6EF5;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      white-space: nowrap;
+    }
+    .open-link svg { flex-shrink: 0; }
+    @media (max-width: 640px) {
+      .grid { grid-template-columns: 1fr; }
+      .card-cro { flex-direction: column; }
+      .card-preview-cro { width: 100%; height: 140px; border-right: none; border-bottom: 1px solid #1e293b; }
+      h1 { font-size: 24px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div class="header-left">
+      <div class="badge"><span class="badge-dot"></span>Prueba de Diseño</div>
+      <h1>Landing — Index de variantes</h1>
+      <p class="subtitle">
+        Cuatro propuestas de landing page en revisión + acceso al panel CRO en producción.
+        Cada variante es standalone — no necesita servidor.
+      </p>
+    </div>
+    <img src="/logo-horizontal-bicolor.png" alt="Bresca" style="height:36px;width:auto;margin-top:4px;">
+  </div>
+
+  <!-- Landing variants -->
+  <div class="section-label">Variantes de landing B2C</div>
+  <div class="grid">
+
+    <a href="index1.html" class="card" target="_blank">
+      <div class="card-preview prev-1">
+        <div class="prev-mockup" style="width:220px;">
+          <div class="mock-logo" style="color:#0F172A;">Bresca</div>
+          <div class="mock-bar" style="width:180px;"></div>
+          <div style="display:flex;flex-direction:column;gap:5px;width:180px;">
+            <div class="mock-hero-line" style="width:100%;"></div>
+            <div class="mock-hero-line" style="width:80%;"></div>
+          </div>
+          <div class="mock-btn" style="width:120px;"></div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="card-top">
+          <span class="card-num">Variante 01</span>
+          <span class="card-tag tag-light">Light</span>
+        </div>
+        <div class="card-title">Clásica — texto + gradiente</div>
+        <div class="card-desc">Fondo blanco, logo en texto con gradiente CSS, phone derecha en hero.</div>
+      </div>
+      <div class="card-footer">
+        <div class="card-details">
+          <span class="detail-chip">Light bg</span>
+          <span class="detail-chip">Logo texto</span>
+          <span class="detail-chip">Phone derecha</span>
+        </div>
+        <span class="open-link">Abrir <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></span>
+      </div>
+    </a>
+
+    <a href="index2.html" class="card" target="_blank">
+      <div class="card-preview prev-2">
+        <div class="prev-mockup" style="width:220px;">
+          <div class="mock-logo" style="color:#0F172A;">Bresca</div>
+          <div class="mock-bar" style="width:180px;"></div>
+          <div style="display:flex;flex-direction:column;gap:5px;width:180px;">
+            <div class="mock-hero-line" style="width:100%;"></div>
+            <div class="mock-hero-line" style="width:80%;"></div>
+          </div>
+          <div class="mock-btn" style="width:120px;"></div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="card-top">
+          <span class="card-num">Variante 02</span>
+          <span class="card-tag tag-light">Light</span>
+        </div>
+        <div class="card-title">Clásica — fix CDN + links</div>
+        <div class="card-desc">Igual a index1. Fix de scripts CDN y links relativos locales para que funcione offline.</div>
+      </div>
+      <div class="card-footer">
+        <div class="card-details">
+          <span class="detail-chip">Light bg</span>
+          <span class="detail-chip">Logo texto</span>
+          <span class="detail-chip">CDN fix</span>
+        </div>
+        <span class="open-link">Abrir <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></span>
+      </div>
+    </a>
+
+    <a href="index3.html" class="card" target="_blank">
+      <div class="card-preview prev-3">
+        <div class="prev-mockup" style="width:220px;">
+          <div class="mock-logo" style="color:#fff;">Bresca</div>
+          <div class="mock-bar" style="width:180px;opacity:.7;"></div>
+          <div style="display:flex;flex-direction:column;gap:5px;width:180px;">
+            <div class="mock-hero-line" style="width:100%;background:#334155;"></div>
+            <div class="mock-hero-line" style="width:80%;background:#334155;"></div>
+          </div>
+          <div class="mock-btn" style="width:120px;"></div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="card-top">
+          <span class="card-num">Variante 03</span>
+          <span class="card-tag tag-dark">Dark</span>
+        </div>
+        <div class="card-title">Dark / Navy — accent teal</div>
+        <div class="card-desc">Tema oscuro con fondo navy y accent teal. Logo versión negativa (blanca).</div>
+      </div>
+      <div class="card-footer">
+        <div class="card-details">
+          <span class="detail-chip">Dark bg</span>
+          <span class="detail-chip">Logo blanco</span>
+          <span class="detail-chip">Accent teal</span>
+        </div>
+        <span class="open-link">Abrir <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></span>
+      </div>
+    </a>
+
+    <a href="index4.html" class="card" target="_blank">
+      <div class="card-preview prev-4">
+        <div class="prev-mockup" style="width:220px;align-items:flex-start;">
+          <img src="/logo-horizontal-bicolor.png" alt="Bresca" style="height:22px;width:auto;margin-bottom:4px;">
+          <div class="mock-bar" style="width:180px;"></div>
+          <div style="display:flex;flex-direction:column;gap:5px;width:180px;">
+            <div class="mock-hero-line" style="width:100%;"></div>
+            <div class="mock-hero-line" style="width:80%;"></div>
+          </div>
+          <div class="mock-btn" style="width:120px;"></div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="card-top">
+          <span class="card-num">Variante 04</span>
+          <span class="card-tag tag-light">Light</span>
+        </div>
+        <div class="card-title">Logo real — phone izquierda</div>
+        <div class="card-desc">Versión light con logos PNG reales. Phone izquierda, texto del hero a la derecha.</div>
+      </div>
+      <div class="card-footer">
+        <div class="card-details">
+          <span class="detail-chip">Light bg</span>
+          <span class="detail-chip">Logo PNG</span>
+          <span class="detail-chip">Phone izquierda</span>
+        </div>
+        <span class="open-link">Abrir <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></span>
+      </div>
+    </a>
+
+  </div>
+
+  <!-- Panel CRO -->
+  <div class="section-label">Panel B2B</div>
+  <div class="grid-single">
+
+    <a href="https://bresca-cro.vercel.app" class="card card-cro" target="_blank">
+      <div class="card-preview prev-cro card-preview-cro">
+        <div class="prev-mockup" style="width:160px;gap:10px;">
+          <!-- Simulated CRO dashboard -->
+          <div style="display:flex;gap:8px;width:160px;">
+            <div style="flex:1;background:#1e293b;border-radius:6px;padding:8px;">
+              <div class="mock-cro-line" style="width:60%;margin-bottom:5px;"></div>
+              <div style="font-size:16px;font-weight:700;color:#00C87A;">124</div>
+            </div>
+            <div style="flex:1;background:#1e293b;border-radius:6px;padding:8px;">
+              <div class="mock-cro-line" style="width:60%;margin-bottom:5px;"></div>
+              <div style="font-size:16px;font-weight:700;color:#4B6EF5;">3</div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:flex-end;gap:4px;width:160px;height:36px;">
+            <div class="mock-cro-bar-green" style="width:18px;height:70%;"></div>
+            <div class="mock-cro-bar-green" style="width:18px;height:90%;"></div>
+            <div class="mock-cro-bar-green" style="width:18px;height:55%;"></div>
+            <div class="mock-cro-bar-green" style="width:18px;height:100%;"></div>
+            <div class="mock-cro-bar-green" style="width:18px;height:75%;"></div>
+            <div class="mock-cro-bar-green" style="width:18px;height:85%;"></div>
+          </div>
+          <div class="mock-cro-line" style="width:160px;"></div>
+          <div class="mock-cro-line" style="width:120px;"></div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;flex:1;">
+        <div class="card-body">
+          <div class="card-top">
+            <span class="card-num">Panel B2B</span>
+            <span class="card-tag tag-live">En producción</span>
+          </div>
+          <div class="card-title">Panel CRO — Investigadores</div>
+          <div class="card-desc">Dashboard para investigadores clínicos. Matching anónimo de cohortes, funnel de estudios, métricas de consentimiento. Datos anonimizados con k-anonimato ≥ 5.</div>
+        </div>
+        <div class="card-footer">
+          <div class="card-details">
+            <span class="detail-chip">bresca-cro.vercel.app</span>
+            <span class="detail-chip">B2B</span>
+            <span class="detail-chip">Anonimizado</span>
+          </div>
+          <span class="open-link">Abrir panel <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></span>
+        </div>
+      </div>
+    </a>
+
+  </div>
+
+</body>
+</html>

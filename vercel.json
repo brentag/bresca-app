@@ -4,6 +4,6 @@
   "installCommand": "pnpm install",
   "framework": null,
   "rewrites": [
-    { "source": "/((?!assets|icons|manifest\\.json|sw\\.js).*)", "destination": "/index.html" }
+    { "source": "/((?!assets|icons|manifest\\.json|sw\\.js|landing).*)", "destination": "/index.html" }
   ]
 }

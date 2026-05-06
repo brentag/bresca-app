@@ -1,0 +1,937 @@
+<!DOCTYPE html>
+<!-- saved from url=(0099)file:///C:/Users/pc/Documents/CO-WORK/Activo/Bresca/1051%20-%20Landing%20-%20Homes/index%20(1).html -->
+<html lang="es" style="scroll-behavior: smooth;"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bresca — Tu historial médico, siempre con vos</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com/">
+    <link rel="preconnect" href="https://fonts.gstatic.com/" crossorigin="">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                    colors: {
+                        teal: {
+                            400: '#00B8D4',
+                            500: '#00B8D4',
+                            600: '#0097A7',
+                            700: '#00838F',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        :root {
+            --bg-primary: #F8FAFC;
+            --bg-secondary: #F1F5F9;
+            --bg-tertiary: #E2E8F0;
+            --text-primary: #0F172A;
+            --text-secondary: #475569;
+            --text-muted: #94A3B8;
+            --green-400: #33D494;
+            --green-500: #00C87A;
+            --green-600: #00A064;
+            --teal-400: #00B8D4;
+            --teal-500: #00B8D4;
+            --blue-400: #7090F7;
+            --blue-500: #4B6EF5;
+            --blue-600: #2E52D4;
+            --border-light: rgba(226, 232, 240, 0.8);
+            --border-subtle: rgba(148, 163, 184, 0.2);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            overflow-x: hidden;
+        }
+
+        /* Animated Gradient Mesh Background */
+        .gradient-mesh {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            background: 
+                radial-gradient(ellipse 80% 60% at 20% 40%, rgba(0, 200, 122, 0.06) 0%, transparent 60%),
+                radial-gradient(ellipse 60% 80% at 80% 60%, rgba(75, 110, 245, 0.04) 0%, transparent 50%),
+                radial-gradient(ellipse 50% 50% at 50% 50%, rgba(0, 184, 212, 0.03) 0%, transparent 70%);
+            animation: meshMove 20s ease-in-out infinite alternate;
+        }
+
+        @keyframes meshMove {
+            0% { background-position: 0% 0%, 100% 100%, 50% 50%; }
+            50% { background-position: 100% 50%, 0% 50%, 50% 0%; }
+            100% { background-position: 50% 100%, 50% 0%, 0% 50%; }
+        }
+
+        /* Noise texture overlay */
+        .noise-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            opacity: 0.02;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+            pointer-events: none;
+        }
+
+        /* Glassmorphism utilities - light theme */
+        .glass {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--border-light);
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--border-light);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .glass-card:hover {
+            border-color: rgba(0, 200, 122, 0.3);
+            box-shadow: 0 0 40px rgba(0, 200, 122, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+            transform: translateY(-4px);
+        }
+
+        /* Reveal animation system */
+        .reveal-on-scroll {
+            opacity: 0;
+            transform: translateY(30px);
+            filter: blur(6px);
+            transition: opacity 0.6s ease-out, transform 0.6s ease-out, filter 0.6s ease-out;
+        }
+
+        .reveal-on-scroll.revealed {
+            opacity: 1;
+            transform: translateY(0);
+            filter: blur(0);
+        }
+
+        .stagger-1 { transition-delay: 0ms; }
+        .stagger-2 { transition-delay: 100ms; }
+        .stagger-3 { transition-delay: 200ms; }
+        .stagger-4 { transition-delay: 300ms; }
+        .stagger-5 { transition-delay: 400ms; }
+        .stagger-6 { transition-delay: 500ms; }
+
+        /* Phone mockup - light theme */
+        .phone-mockup {
+            position: relative;
+            width: 280px;
+            height: 560px;
+            background: #0a0f1a;
+            border-radius: 40px;
+            border: 3px solid rgba(0, 0, 0, 0.08);
+            box-shadow: 
+                0 0 0 1px rgba(0, 0, 0, 0.05),
+                0 25px 80px rgba(0, 0, 0, 0.15),
+                0 0 60px rgba(0, 200, 122, 0.1);
+            overflow: hidden;
+            animation: phoneFloat 3s ease-in-out infinite;
+        }
+
+        .phone-notch {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 120px;
+            height: 28px;
+            background: #0a0f1a;
+            border-bottom-left-radius: 16px;
+            border-bottom-right-radius: 16px;
+            z-index: 10;
+        }
+
+        .phone-screen {
+            width: 100%;
+            height: 100%;
+            padding: 48px 16px 16px;
+            overflow-y: auto;
+            background: linear-gradient(180deg, #0f1629 0%, #0a0f1a 100%);
+        }
+
+        @keyframes phoneFloat {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-8px); }
+        }
+
+        /* Study cards inside phone */
+        .study-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 12px;
+            opacity: 0;
+            transform: translateY(20px);
+            filter: blur(8px);
+        }
+
+        .study-card.visible {
+            opacity: 1;
+            transform: translateY(0);
+            filter: blur(0);
+            transition: all 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .study-card:nth-child(1) { transition-delay: 0ms; }
+        .study-card:nth-child(2) { transition-delay: 200ms; }
+        .study-card:nth-child(3) { transition-delay: 400ms; }
+
+        /* Status badges */
+        .badge-ok { background: rgba(0, 200, 122, 0.15); color: #33D494; border: 1px solid rgba(0, 200, 122, 0.3); }
+        .badge-rev { background: rgba(251, 191, 36, 0.15); color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.3); }
+        .badge-pdf { background: rgba(75, 110, 245, 0.15); color: #7090F7; border: 1px solid rgba(75, 110, 245, 0.3); }
+
+        /* CTA Button */
+        .cta-primary {
+            background: linear-gradient(135deg, #00C87A 0%, #00A064 100%);
+            color: white;
+            font-weight: 600;
+            padding: 14px 32px;
+            border-radius: 9999px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 20px rgba(0, 200, 122, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .cta-primary::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .cta-primary:hover::before {
+            left: 100%;
+        }
+
+        .cta-primary:hover {
+            transform: scale(1.05);
+            box-shadow: 0 8px 40px rgba(0, 200, 122, 0.5);
+        }
+
+        .cta-secondary {
+            color: #00A064;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .cta-secondary:hover {
+            color: #00C87A;
+            gap: 12px;
+        }
+
+        /* Shield glow animation */
+        .shield-glow {
+            animation: shieldPulse 3s ease-in-out infinite;
+        }
+
+        @keyframes shieldPulse {
+            0%, 100% { filter: drop-shadow(0 0 20px rgba(0, 200, 122, 0.3)); }
+            50% { filter: drop-shadow(0 0 40px rgba(0, 200, 122, 0.5)); }
+        }
+
+        /* Step connector line */
+        .step-connector {
+            position: absolute;
+            top: 24px;
+            left: calc(100% - 20px);
+            width: calc(100% - 40px);
+            height: 2px;
+            background: linear-gradient(90deg, #00C87A, transparent);
+            opacity: 0.3;
+        }
+
+        /* Trust badge pills - light theme */
+        .trust-pill {
+            background: rgba(0, 200, 122, 0.08);
+            border: 1px solid rgba(0, 200, 122, 0.15);
+            padding: 6px 16px;
+            border-radius: 9999px;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            white-space: nowrap;
+        }
+
+        /* Navbar scroll state - light theme */
+        .navbar-scrolled {
+            background: rgba(248, 250, 252, 0.85) !important;
+            backdrop-filter: blur(20px) !important;
+            -webkit-backdrop-filter: blur(20px) !important;
+            border-bottom: 1px solid var(--border-light) !important;
+        }
+
+        /* Section spacing rhythm */
+        section {
+            position: relative;
+        }
+
+        /* Custom scrollbar - light theme */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: var(--bg-primary);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--bg-tertiary);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #00C87A;
+        }
+
+        /* Mobile menu - light theme */
+        .mobile-menu {
+            transform: translateX(100%);
+            transition: transform 0.3s ease-in-out;
+        }
+        .mobile-menu.open {
+            transform: translateX(0);
+        }
+
+        /* Gradient text - light theme */
+        .gradient-text {
+            background: linear-gradient(135deg, #0F172A 0%, #00C87A 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        /* Hero floating elements */
+        .float-element {
+            animation: floatElement 6s ease-in-out infinite;
+        }
+        @keyframes floatElement {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-15px) rotate(2deg); }
+        }
+
+        /* Privacy section background - light theme variation */
+        .privacy-bg {
+            background: linear-gradient(180deg, transparent 0%, rgba(0, 200, 122, 0.03) 50%, transparent 100%);
+        }
+
+        /* Final CTA background - light theme */
+        .cta-bg {
+            background: linear-gradient(180deg, var(--bg-primary) 0%, rgba(0, 200, 122, 0.05) 50%, var(--bg-primary) 100%);
+        }
+
+        .cta-bg-radial {
+            background: radial-gradient(ellipse 60% 50% at 50% 50%, rgba(0, 200, 122, 0.06) 0%, transparent 70%),
+                        radial-gradient(ellipse 40% 40% at 30% 60%, rgba(75, 110, 245, 0.04) 0%, transparent 60%);
+        }
+    </style>
+<style>*, ::before, ::after{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x: ;--tw-pan-y: ;--tw-pinch-zoom: ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position: ;--tw-gradient-via-position: ;--tw-gradient-to-position: ;--tw-ordinal: ;--tw-slashed-zero: ;--tw-numeric-figure: ;--tw-numeric-spacing: ;--tw-numeric-fraction: ;--tw-ring-inset: ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur: ;--tw-brightness: ;--tw-contrast: ;--tw-grayscale: ;--tw-hue-rotate: ;--tw-invert: ;--tw-saturate: ;--tw-sepia: ;--tw-drop-shadow: ;--tw-backdrop-blur: ;--tw-backdrop-brightness: ;--tw-backdrop-contrast: ;--tw-backdrop-grayscale: ;--tw-backdrop-hue-rotate: ;--tw-backdrop-invert: ;--tw-backdrop-opacity: ;--tw-backdrop-saturate: ;--tw-backdrop-sepia: ;--tw-contain-size: ;--tw-contain-layout: ;--tw-contain-paint: ;--tw-contain-style: }::backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x: ;--tw-pan-y: ;--tw-pinch-zoom: ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position: ;--tw-gradient-via-position: ;--tw-gradient-to-position: ;--tw-ordinal: ;--tw-slashed-zero: ;--tw-numeric-figure: ;--tw-numeric-spacing: ;--tw-numeric-fraction: ;--tw-ring-inset: ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur: ;--tw-brightness: ;--tw-contrast: ;--tw-grayscale: ;--tw-hue-rotate: ;--tw-invert: ;--tw-saturate: ;--tw-sepia: ;--tw-drop-shadow: ;--tw-backdrop-blur: ;--tw-backdrop-brightness: ;--tw-backdrop-contrast: ;--tw-backdrop-grayscale: ;--tw-backdrop-hue-rotate: ;--tw-backdrop-invert: ;--tw-backdrop-opacity: ;--tw-backdrop-saturate: ;--tw-backdrop-sepia: ;--tw-contain-size: ;--tw-contain-layout: ;--tw-contain-paint: ;--tw-contain-style: }/* ! tailwindcss v3.4.17 | MIT License | https://tailwindcss.com */*,::after,::before{box-sizing:border-box;border-width:0;border-style:solid;border-color:#e5e7eb}::after,::before{--tw-content:''}:host,html{line-height:1.5;-webkit-text-size-adjust:100%;-moz-tab-size:4;tab-size:4;font-family:Inter, system-ui, sans-serif;font-feature-settings:normal;font-variation-settings:normal;-webkit-tap-highlight-color:transparent}body{margin:0;line-height:inherit}hr{height:0;color:inherit;border-top-width:1px}abbr:where([title]){-webkit-text-decoration:underline dotted;text-decoration:underline dotted}h1,h2,h3,h4,h5,h6{font-size:inherit;font-weight:inherit}a{color:inherit;text-decoration:inherit}b,strong{font-weight:bolder}code,kbd,pre,samp{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;font-feature-settings:normal;font-variation-settings:normal;font-size:1em}small{font-size:80%}sub,sup{font-size:75%;line-height:0;position:relative;vertical-align:baseline}sub{bottom:-.25em}sup{top:-.5em}table{text-indent:0;border-color:inherit;border-collapse:collapse}button,input,optgroup,select,textarea{font-family:inherit;font-feature-settings:inherit;font-variation-settings:inherit;font-size:100%;font-weight:inherit;line-height:inherit;letter-spacing:inherit;color:inherit;margin:0;padding:0}button,select{text-transform:none}button,input:where([type=button]),input:where([type=reset]),input:where([type=submit]){-webkit-appearance:button;background-color:transparent;background-image:none}:-moz-focusring{outline:auto}:-moz-ui-invalid{box-shadow:none}progress{vertical-align:baseline}::-webkit-inner-spin-button,::-webkit-outer-spin-button{height:auto}[type=search]{-webkit-appearance:textfield;outline-offset:-2px}::-webkit-search-decoration{-webkit-appearance:none}::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}summary{display:list-item}blockquote,dd,dl,figure,h1,h2,h3,h4,h5,h6,hr,p,pre{margin:0}fieldset{margin:0;padding:0}legend{padding:0}menu,ol,ul{list-style:none;margin:0;padding:0}dialog{padding:0}textarea{resize:vertical}input::placeholder,textarea::placeholder{opacity:1;color:#9ca3af}[role=button],button{cursor:pointer}:disabled{cursor:default}audio,canvas,embed,iframe,img,object,svg,video{display:block;vertical-align:middle}img,video{max-width:100%;height:auto}[hidden]:where(:not([hidden=until-found])){display:none}.visible{visibility:visible}.fixed{position:fixed}.absolute{position:absolute}.relative{position:relative}.inset-0{inset:0px}.-bottom-10{bottom:-2.5rem}.-left-10{left:-2.5rem}.-right-10{right:-2.5rem}.-top-10{top:-2.5rem}.left-0{left:0px}.right-0{right:0px}.right-6{right:1.5rem}.top-0{top:0px}.top-6{top:1.5rem}.z-10{z-index:10}.z-40{z-index:40}.z-50{z-index:50}.mx-auto{margin-left:auto;margin-right:auto}.mb-1{margin-bottom:0.25rem}.mb-16{margin-bottom:4rem}.mb-20{margin-bottom:5rem}.mb-3{margin-bottom:0.75rem}.mb-4{margin-bottom:1rem}.mb-6{margin-bottom:1.5rem}.mt-0\.5{margin-top:0.125rem}.mt-4{margin-top:1rem}.inline-block{display:inline-block}.flex{display:flex}.inline-flex{display:inline-flex}.grid{display:grid}.hidden{display:none}.h-12{height:3rem}.h-32{height:8rem}.h-48{height:12rem}.h-5{height:1.25rem}.h-6{height:1.5rem}.h-64{height:16rem}.h-8{height:2rem}.h-full{height:100%}.min-h-screen{min-height:100vh}.w-12{width:3rem}.w-32{width:8rem}.w-48{width:12rem}.w-5{width:1.25rem}.w-6{width:1.5rem}.w-64{width:16rem}.w-8{width:2rem}.w-full{width:100%}.min-w-0{min-width:0px}.max-w-2xl{max-width:42rem}.max-w-3xl{max-width:48rem}.max-w-4xl{max-width:56rem}.max-w-7xl{max-width:80rem}.max-w-lg{max-width:32rem}.max-w-xl{max-width:36rem}.flex-1{flex:1 1 0%}.scale-150{--tw-scale-x:1.5;--tw-scale-y:1.5;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.flex-col{flex-direction:column}.flex-wrap{flex-wrap:wrap}.items-start{align-items:flex-start}.items-center{align-items:center}.justify-center{justify-content:center}.justify-between{justify-content:space-between}.gap-12{gap:3rem}.gap-16{gap:4rem}.gap-2{gap:0.5rem}.gap-3{gap:0.75rem}.gap-4{gap:1rem}.gap-6{gap:1.5rem}.gap-8{gap:2rem}.space-y-4 > :not([hidden]) ~ :not([hidden]){--tw-space-y-reverse:0;margin-top:calc(1rem * calc(1 - var(--tw-space-y-reverse)));margin-bottom:calc(1rem * var(--tw-space-y-reverse))}.space-y-6 > :not([hidden]) ~ :not([hidden]){--tw-space-y-reverse:0;margin-top:calc(1.5rem * calc(1 - var(--tw-space-y-reverse)));margin-bottom:calc(1.5rem * var(--tw-space-y-reverse))}.space-y-8 > :not([hidden]) ~ :not([hidden]){--tw-space-y-reverse:0;margin-top:calc(2rem * calc(1 - var(--tw-space-y-reverse)));margin-bottom:calc(2rem * var(--tw-space-y-reverse))}.overflow-hidden{overflow:hidden}.truncate{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.rounded-2xl{border-radius:1rem}.rounded-full{border-radius:9999px}.rounded-xl{border-radius:0.75rem}.border-t{border-top-width:1px}.border-slate-200\/60{border-color:rgb(226 232 240 / 0.6)}.bg-blue-500\/10{background-color:rgb(59 130 246 / 0.1)}.bg-green-500\/10{background-color:rgb(34 197 94 / 0.1)}.bg-green-500\/20{background-color:rgb(34 197 94 / 0.2)}.bg-white\/95{background-color:rgb(255 255 255 / 0.95)}.p-2{padding:0.5rem}.p-8{padding:2rem}.px-10{padding-left:2.5rem;padding-right:2.5rem}.px-2{padding-left:0.5rem;padding-right:0.5rem}.px-6{padding-left:1.5rem;padding-right:1.5rem}.py-1{padding-top:0.25rem;padding-bottom:0.25rem}.py-12{padding-top:3rem;padding-bottom:3rem}.py-24{padding-top:6rem;padding-bottom:6rem}.py-3{padding-top:0.75rem;padding-bottom:0.75rem}.py-4{padding-top:1rem;padding-bottom:1rem}.pb-16{padding-bottom:4rem}.pt-20{padding-top:5rem}.pt-4{padding-top:1rem}.text-center{text-align:center}.text-2xl{font-size:1.5rem;line-height:2rem}.text-3xl{font-size:1.875rem;line-height:2.25rem}.text-4xl{font-size:2.25rem;line-height:2.5rem}.text-6xl{font-size:3.75rem;line-height:1}.text-base{font-size:1rem;line-height:1.5rem}.text-lg{font-size:1.125rem;line-height:1.75rem}.text-sm{font-size:0.875rem;line-height:1.25rem}.text-xl{font-size:1.25rem;line-height:1.75rem}.text-xs{font-size:0.75rem;line-height:1rem}.font-bold{font-weight:700}.font-medium{font-weight:500}.font-semibold{font-weight:600}.uppercase{text-transform:uppercase}.leading-relaxed{line-height:1.625}.leading-tight{line-height:1.25}.tracking-tight{letter-spacing:-0.025em}.tracking-wider{letter-spacing:0.05em}.text-gray-500{--tw-text-opacity:1;color:rgb(107 114 128 / var(--tw-text-opacity, 1))}.text-green-500{--tw-text-opacity:1;color:rgb(34 197 94 / var(--tw-text-opacity, 1))}.text-green-500\/20{color:rgb(34 197 94 / 0.2)}.text-slate-300{--tw-text-opacity:1;color:rgb(203 213 225 / var(--tw-text-opacity, 1))}.text-slate-400{--tw-text-opacity:1;color:rgb(148 163 184 / var(--tw-text-opacity, 1))}.text-slate-500{--tw-text-opacity:1;color:rgb(100 116 139 / var(--tw-text-opacity, 1))}.text-slate-600{--tw-text-opacity:1;color:rgb(71 85 105 / var(--tw-text-opacity, 1))}.text-slate-900{--tw-text-opacity:1;color:rgb(15 23 42 / var(--tw-text-opacity, 1))}.text-white{--tw-text-opacity:1;color:rgb(255 255 255 / var(--tw-text-opacity, 1))}.blur-3xl{--tw-blur:blur(64px);filter:var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow)}.backdrop-blur-xl{--tw-backdrop-blur:blur(24px);-webkit-backdrop-filter:var(--tw-backdrop-blur) var(--tw-backdrop-brightness) var(--tw-backdrop-contrast) var(--tw-backdrop-grayscale) var(--tw-backdrop-hue-rotate) var(--tw-backdrop-invert) var(--tw-backdrop-opacity) var(--tw-backdrop-saturate) var(--tw-backdrop-sepia);backdrop-filter:var(--tw-backdrop-blur) var(--tw-backdrop-brightness) var(--tw-backdrop-contrast) var(--tw-backdrop-grayscale) var(--tw-backdrop-hue-rotate) var(--tw-backdrop-invert) var(--tw-backdrop-opacity) var(--tw-backdrop-saturate) var(--tw-backdrop-sepia)}.transition-all{transition-property:all;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms}.transition-colors{transition-property:color, background-color, border-color, fill, stroke, -webkit-text-decoration-color;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, -webkit-text-decoration-color;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms}.duration-300{transition-duration:300ms}.hover\:text-green-500:hover{--tw-text-opacity:1;color:rgb(34 197 94 / var(--tw-text-opacity, 1))}.hover\:text-slate-900:hover{--tw-text-opacity:1;color:rgb(15 23 42 / var(--tw-text-opacity, 1))}@media (min-width: 640px){.sm\:text-4xl{font-size:2.25rem;line-height:2.5rem}.sm\:text-5xl{font-size:3rem;line-height:1}.sm\:text-xl{font-size:1.25rem;line-height:1.75rem}}@media (min-width: 768px){.md\:block{display:block}.md\:flex{display:flex}.md\:hidden{display:none}.md\:grid-cols-2{grid-template-columns:repeat(2, minmax(0, 1fr))}.md\:grid-cols-3{grid-template-columns:repeat(3, minmax(0, 1fr))}.md\:flex-row{flex-direction:row}}@media (min-width: 1024px){.lg\:h-48{height:12rem}.lg\:h-64{height:16rem}.lg\:w-48{width:12rem}.lg\:w-64{width:16rem}.lg\:grid-cols-2{grid-template-columns:repeat(2, minmax(0, 1fr))}.lg\:grid-cols-3{grid-template-columns:repeat(3, minmax(0, 1fr))}.lg\:justify-end{justify-content:flex-end}.lg\:gap-12{gap:3rem}.lg\:gap-20{gap:5rem}.lg\:px-12{padding-left:3rem;padding-right:3rem}.lg\:py-32{padding-top:8rem;padding-bottom:8rem}.lg\:text-5xl{font-size:3rem;line-height:1}.lg\:text-6xl{font-size:3.75rem;line-height:1}.lg\:text-7xl{font-size:4.5rem;line-height:1}}@media (min-width: 1280px){.xl\:text-7xl{font-size:4.5rem;line-height:1}}</style></head>
+<body style="">
+    <!-- Background layers -->
+    <div class="gradient-mesh"></div>
+    <div class="noise-overlay"></div>
+
+    <!-- Navbar -->
+    <nav id="navbar" class="fixed top-0 left-0 right-0 z-50 transition-all duration-300 py-4 px-6 lg:px-12">
+        <div class="max-w-7xl mx-auto flex items-center justify-between">
+            <a href="#" class="flex items-center">
+                <img src="/logo-horizontal-bicolor.png" alt="Bresca" style="height:36px;width:auto;">
+            </a>
+            <div class="hidden md:flex items-center gap-8">
+                <a href="#funciones" class="text-sm text-slate-600 hover:text-slate-900 transition-colors">Funciones</a>
+                <a href="#como-funciona" class="text-sm text-slate-600 hover:text-slate-900 transition-colors">Cómo funciona</a>
+                <a href="#privacidad" class="text-sm text-slate-600 hover:text-slate-900 transition-colors">Privacidad</a>
+                <a href="#signup" class="cta-primary text-sm py-3 px-6">Crear cuenta gratis</a>
+            </div>
+            <button id="mobile-menu-btn" class="md:hidden text-slate-900 p-2">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                </svg>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Mobile Menu -->
+    <div id="mobile-menu" class="mobile-menu fixed inset-0 z-40 bg-white/95 backdrop-blur-xl md:hidden">
+        <div class="flex flex-col items-center justify-center h-full gap-8">
+            <a href="#funciones" class="text-xl text-slate-900 hover:text-green-500 transition-colors mobile-link">Funciones</a>
+            <a href="#como-funciona" class="text-xl text-slate-900 hover:text-green-500 transition-colors mobile-link">Cómo funciona</a>
+            <a href="#privacidad" class="text-xl text-slate-900 hover:text-green-500 transition-colors mobile-link">Privacidad</a>
+            <a href="#signup" class="cta-primary text-lg mt-4 mobile-link">Crear cuenta gratis</a>
+        </div>
+        <button id="mobile-menu-close" class="absolute top-6 right-6 text-slate-900 p-2">
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+        </button>
+    </div>
+
+    <!-- Hero Section -->
+    <section class="min-h-screen flex items-center pt-20 pb-16 px-6 lg:px-12 relative overflow-hidden">
+        <div class="max-w-7xl mx-auto w-full">
+            <div class="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
+                <!-- Left: Copy -->
+                <div class="space-y-8 z-10">
+                    <div class="space-y-6">
+                        <h1 class="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-bold leading-tight">
+                            <span class="gradient-text">Tu historial médico,</span><br>
+                            <span class="text-slate-900">siempre con vos.</span>
+                        </h1>
+                        <p class="text-lg sm:text-xl text-slate-500 max-w-xl leading-relaxed">
+                            Guardá todos tus estudios en un lugar seguro. Accedé desde donde estés. Compartí con tu médico en segundos.
+                        </p>
+                    </div>
+
+                    <div class="flex flex-wrap gap-4">
+                        <a href="#signup" class="cta-primary text-base">
+                            Crear cuenta gratis
+                        </a>
+                        <a href="#como-funciona" class="cta-secondary text-base py-3">
+                            Ver cómo funciona
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path>
+                            </svg>
+                        </a>
+                    </div>
+
+                    <div class="flex flex-wrap gap-3 pt-4">
+                        <span class="trust-pill">Cifrado end-to-end</span>
+                        <span class="trust-pill">Sin publicidad</span>
+                        <span class="trust-pill">Para toda la familia</span>
+                        <span class="trust-pill">Gratis para empezar</span>
+                    </div>
+                </div>
+
+                <!-- Right: Floating Phone Mockup -->
+                <div class="flex justify-center lg:justify-end relative">
+                    <!-- Decorative elements -->
+                    <div class="absolute -top-10 -left-10 w-64 h-64 bg-green-500/10 rounded-full blur-3xl"></div>
+                    <div class="absolute -bottom-10 -right-10 w-48 h-48 bg-blue-500/10 rounded-full blur-3xl"></div>
+
+                    <div class="phone-mockup float-element" style="translate: none; rotate: none; scale: none; transform: translate(0px, 0px);">
+                        <div class="phone-notch"></div>
+                        <div class="phone-screen">
+                            <div class="text-center mb-6">
+                                <h3 class="text-lg font-semibold text-white mb-1">Mi Vault</h3>
+                                <p class="text-xs text-gray-500">3 estudios guardados</p>
+                            </div>
+
+                            <div class="study-card visible" id="hero-card-1">
+                                <div class="flex items-start gap-3">
+                                    <span class="text-2xl">🩸</span>
+                                    <div class="flex-1 min-w-0">
+                                        <h4 class="text-sm font-medium text-white truncate">Hemograma completo</h4>
+                                        <p class="text-xs text-gray-500 mt-0.5">Lab. Central · 14/04/2026</p>
+                                    </div>
+                                    <span class="badge-ok text-xs px-2 py-1 rounded-full font-medium">OK</span>
+                                </div>
+                            </div>
+
+                            <div class="study-card visible" id="hero-card-2">
+                                <div class="flex items-start gap-3">
+                                    <span class="text-2xl">💊</span>
+                                    <div class="flex-1 min-w-0">
+                                        <h4 class="text-sm font-medium text-white truncate">Glucemia en ayunas</h4>
+                                        <p class="text-xs text-gray-500 mt-0.5">Lab. Rivadavia · 02/03/2026</p>
+                                    </div>
+                                    <span class="badge-rev text-xs px-2 py-1 rounded-full font-medium">Rev.</span>
+                                </div>
+                            </div>
+
+                            <div class="study-card visible" id="hero-card-3">
+                                <div class="flex items-start gap-3">
+                                    <span class="text-2xl">🫀</span>
+                                    <div class="flex-1 min-w-0">
+                                        <h4 class="text-sm font-medium text-white truncate">Ecocardiograma</h4>
+                                        <p class="text-xs text-gray-500 mt-0.5">Clínica San Martín · 18/01/2026</p>
+                                    </div>
+                                    <span class="badge-pdf text-xs px-2 py-1 rounded-full font-medium">PDF</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Vault Section -->
+    <section id="vault" class="py-24 lg:py-32 px-6 lg:px-12">
+        <div class="max-w-7xl mx-auto">
+            <div class="grid lg:grid-cols-2 gap-16 items-center">
+                <!-- Left: Text -->
+                <div class="space-y-6 reveal-on-scroll revealed">
+                    <span class="text-green-500 text-sm font-semibold tracking-wider uppercase">Mi Vault</span>
+                    <h2 class="text-3xl sm:text-4xl lg:text-5xl font-bold text-slate-900 leading-tight">
+                        Tu historial médico,<br>organizado y seguro.
+                    </h2>
+                    <p class="text-lg text-slate-500 leading-relaxed max-w-lg">
+                        Todos tus estudios en un solo lugar. Accedé desde cualquier dispositivo. Compartí solo lo que querés, cuando querés.
+                    </p>
+                    <a href="#signup" class="cta-primary inline-block mt-4">Crear cuenta gratis</a>
+                </div>
+
+                <!-- Right: Phone with scroll-triggered cards -->
+                <div class="flex justify-center lg:justify-end">
+                    <div class="phone-mockup" id="vault-phone" style="translate: none; rotate: none; scale: none; transform: translate(0px, 0px);">
+                        <div class="phone-notch"></div>
+                        <div class="phone-screen">
+                            <div class="text-center mb-6">
+                                <h3 class="text-lg font-semibold text-white mb-1">Mi Vault</h3>
+                                <p class="text-xs text-gray-500">3 estudios guardados</p>
+                            </div>
+
+                            <div class="vault-study-card" data-delay="0" style="opacity: 1; transform: translateY(0px); filter: blur(0px); transition: 0.7s cubic-bezier(0.4, 0, 0.2, 1);">
+                                <div class="flex items-start gap-3">
+                                    <span class="text-2xl">🩸</span>
+                                    <div class="flex-1 min-w-0">
+                                        <h4 class="text-sm font-medium text-white truncate">Hemograma completo</h4>
+                                        <p class="text-xs text-gray-500 mt-0.5">Lab. Central · 14/04/2026</p>
+                                    </div>
+                                    <span class="badge-ok text-xs px-2 py-1 rounded-full font-medium">OK</span>
+                                </div>
+                            </div>
+
+                            <div class="vault-study-card" data-delay="200" style="opacity: 1; transform: translateY(0px); filter: blur(0px); transition: 0.7s cubic-bezier(0.4, 0, 0.2, 1);">
+                                <div class="flex items-start gap-3">
+                                    <span class="text-2xl">💊</span>
+                                    <div class="flex-1 min-w-0">
+                                        <h4 class="text-sm font-medium text-white truncate">Glucemia en ayunas</h4>
+                                        <p class="text-xs text-gray-500 mt-0.5">Lab. Rivadavia · 02/03/2026</p>
+                                    </div>
+                                    <span class="badge-rev text-xs px-2 py-1 rounded-full font-medium">Rev.</span>
+                                </div>
+                            </div>
+
+                            <div class="vault-study-card" data-delay="400" style="opacity: 1; transform: translateY(0px); filter: blur(0px); transition: 0.7s cubic-bezier(0.4, 0, 0.2, 1);">
+                                <div class="flex items-start gap-3">
+                                    <span class="text-2xl">🫀</span>
+                                    <div class="flex-1 min-w-0">
+                                        <h4 class="text-sm font-medium text-white truncate">Ecocardiograma</h4>
+                                        <p class="text-xs text-gray-500 mt-0.5">Clínica San Martín · 18/01/2026</p>
+                                    </div>
+                                    <span class="badge-pdf text-xs px-2 py-1 rounded-full font-medium">PDF</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Grid -->
+    <section id="funciones" class="py-24 lg:py-32 px-6 lg:px-12">
+        <div class="max-w-7xl mx-auto">
+            <div class="text-center max-w-3xl mx-auto mb-16 space-y-4 reveal-on-scroll revealed">
+                <h2 class="text-3xl sm:text-4xl lg:text-5xl font-bold text-slate-900">
+                    Todo lo que necesitás para tu salud, en un lugar.
+                </h2>
+                <p class="text-lg text-slate-500">
+                    Diseñado para que no dependas de ningún sistema de salud, laboratorio o médico en particular.
+                </p>
+            </div>
+
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Card 1 -->
+                <div class="glass-card rounded-2xl p-8 reveal-on-scroll stagger-1 revealed" style="translate: none; rotate: none; scale: none; opacity: 0; transform: translate(0px, 30px);">
+                    <div class="w-12 h-12 rounded-xl bg-green-500/10 flex items-center justify-center text-2xl mb-6">
+                        🗂️
+                    </div>
+                    <h3 class="text-xl font-semibold text-slate-900 mb-3">Vault digital</h3>
+                    <p class="text-slate-500 leading-relaxed">
+                        Todos tus estudios organizados automáticamente. Por tipo, categoría y fecha. Sin carpetas, sin escáneres.
+                    </p>
+                </div>
+
+                <!-- Card 2 -->
+                <div class="glass-card rounded-2xl p-8 reveal-on-scroll stagger-2 revealed" style="translate: none; rotate: none; scale: none; opacity: 0; transform: translate(0px, 30px);">
+                    <div class="w-12 h-12 rounded-xl bg-green-500/10 flex items-center justify-center text-2xl mb-6">
+                        🤖
+                    </div>
+                    <h3 class="text-xl font-semibold text-slate-900 mb-3">OCR con IA</h3>
+                    <p class="text-slate-500 leading-relaxed">
+                        Fotografiá o subí tu estudio y la IA extrae los valores automáticamente. Revisás y confirmás antes de guardar.
+                    </p>
+                </div>
+
+                <!-- Card 3 -->
+                <div class="glass-card rounded-2xl p-8 reveal-on-scroll stagger-3 revealed" style="translate: none; rotate: none; scale: none; opacity: 0; transform: translate(0px, 30px);">
+                    <div class="w-12 h-12 rounded-xl bg-green-500/10 flex items-center justify-center text-2xl mb-6">
+                        📲
+                    </div>
+                    <h3 class="text-xl font-semibold text-slate-900 mb-3">QR para tu médico</h3>
+                    <p class="text-slate-500 leading-relaxed">
+                        Generá un código QR temporal y mostráselo a tu médico. Ve lo que autorizás, sin que tenga que registrarse.
+                    </p>
+                </div>
+
+                <!-- Card 4 -->
+                <div class="glass-card rounded-2xl p-8 reveal-on-scroll stagger-4 revealed" style="translate: none; rotate: none; scale: none; opacity: 0; transform: translate(0px, 30px);">
+                    <div class="w-12 h-12 rounded-xl bg-green-500/10 flex items-center justify-center text-2xl mb-6">
+                        💬
+                    </div>
+                    <h3 class="text-xl font-semibold text-slate-900 mb-3">Asistente IA</h3>
+                    <p class="text-slate-500 leading-relaxed">
+                        Preguntale a tu asistente: "¿Cuál fue mi última glucemia?" o "¿Tomé algún antibiótico este año?" Responde con tus datos reales.
+                    </p>
+                </div>
+
+                <!-- Card 5 -->
+                <div class="glass-card rounded-2xl p-8 reveal-on-scroll stagger-5 revealed" style="translate: none; rotate: none; scale: none; opacity: 0; transform: translate(0px, 30px);">
+                    <div class="w-12 h-12 rounded-xl bg-green-500/10 flex items-center justify-center text-2xl mb-6">
+                        👨‍👩‍👧
+                    </div>
+                    <h3 class="text-xl font-semibold text-slate-900 mb-3">Gestión familiar</h3>
+                    <p class="text-slate-500 leading-relaxed">
+                        Administrá los estudios de toda tu familia desde una sola cuenta. Cada perfil es independiente y privado.
+                    </p>
+                </div>
+
+                <!-- Card 6 -->
+                <div class="glass-card rounded-2xl p-8 reveal-on-scroll stagger-6 revealed" style="translate: none; rotate: none; scale: none; opacity: 0; transform: translate(0px, 30px);">
+                    <div class="w-12 h-12 rounded-xl bg-green-500/10 flex items-center justify-center text-2xl mb-6">
+                        🔒
+                    </div>
+                    <h3 class="text-xl font-semibold text-slate-900 mb-3">Privacidad total</h3>
+                    <p class="text-slate-500 leading-relaxed">
+                        Tus datos son tuyos. Nunca los vendemos. Nunca los compartimos sin tu permiso explícito. Siempre.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works -->
+    <section id="como-funciona" class="py-24 lg:py-32 px-6 lg:px-12">
+        <div class="max-w-7xl mx-auto">
+            <div class="text-center max-w-3xl mx-auto mb-20 space-y-4 reveal-on-scroll">
+                <h2 class="text-3xl sm:text-4xl lg:text-5xl font-bold text-slate-900">
+                    Tres pasos, y listo.
+                </h2>
+                <p class="text-lg text-slate-500">
+                    Sin complicaciones. Sin formularios interminables. Sin dependencia del sistema.
+                </p>
+            </div>
+
+            <div class="grid md:grid-cols-3 gap-8 lg:gap-12 relative">
+                <!-- Step 1 -->
+                <div class="relative reveal-on-scroll stagger-1">
+                    <div class="text-6xl lg:text-7xl font-bold text-green-500/20 mb-4">01</div>
+                    <h3 class="text-xl font-semibold text-slate-900 mb-3">Subí o fotografiá</h3>
+                    <p class="text-slate-500 leading-relaxed">
+                        Sacá fotos directamente desde la app o subí el PDF. Funciona con cualquier laboratorio o clínica.
+                    </p>
+                    <div class="hidden md:block step-connector"></div>
+                </div>
+
+                <!-- Step 2 -->
+                <div class="relative reveal-on-scroll stagger-2">
+                    <div class="text-6xl lg:text-7xl font-bold text-green-500/20 mb-4">02</div>
+                    <h3 class="text-xl font-semibold text-slate-900 mb-3">La IA extrae los datos</h3>
+                    <p class="text-slate-500 leading-relaxed">
+                        En segundos, tu asistente identifica tipo de estudio, fecha, laboratorio y todos los valores relevantes.
+                    </p>
+                    <div class="hidden md:block step-connector"></div>
+                </div>
+
+                <!-- Step 3 -->
+                <div class="relative reveal-on-scroll stagger-3">
+                    <div class="text-6xl lg:text-7xl font-bold text-green-500/20 mb-4">03</div>
+                    <h3 class="text-xl font-semibold text-slate-900 mb-3">Accedé y compartí</h3>
+                    <p class="text-slate-500 leading-relaxed">
+                        Tu historial siempre disponible, desde cualquier dispositivo. Compartí solo lo que querés, cuando querés.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Privacy Section -->
+    <section id="privacidad" class="py-24 lg:py-32 px-6 lg:px-12 relative overflow-hidden privacy-bg">
+
+        <div class="max-w-7xl mx-auto relative z-10">
+            <div class="grid lg:grid-cols-2 gap-16 items-center">
+                <!-- Left: Content -->
+                <div class="space-y-8 reveal-on-scroll">
+                    <div class="space-y-4">
+                        <h2 class="text-3xl sm:text-4xl lg:text-5xl font-bold text-slate-900 leading-tight">
+                            Tus datos son tuyos.<br>Sin letra chica.
+                        </h2>
+                        <p class="text-lg text-slate-500 leading-relaxed">
+                            No vendemos datos. No hacemos publicidad médica. No compartimos nada sin tu consentimiento explícito.
+                        </p>
+                        <p class="text-slate-500 leading-relaxed">
+                            Y si decidís participar en investigación médica de forma anónima — es opcional, siempre reversible, y vos controlás todo.
+                        </p>
+                    </div>
+
+                    <div class="flex flex-wrap gap-3">
+                        <span class="trust-pill">Cifrado AES-256</span>
+                        <span class="trust-pill">Sin publicidad</span>
+                        <span class="trust-pill">Consentimiento granular</span>
+                        <span class="trust-pill">Revocación en un tap</span>
+                        <span class="trust-pill">Datos nunca vendidos</span>
+                    </div>
+                </div>
+
+                <!-- Right: Shield Icon -->
+                <div class="flex justify-center lg:justify-end reveal-on-scroll">
+                    <div class="relative">
+                        <div class="absolute inset-0 bg-green-500/20 rounded-full blur-3xl scale-150"></div>
+                        <div class="shield-glow relative w-48 h-48 lg:w-64 lg:h-64 flex items-center justify-center">
+                            <svg class="w-32 h-32 lg:w-48 lg:h-48 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"></path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Research Section -->
+    <section class="py-24 lg:py-32 px-6 lg:px-12">
+        <div class="max-w-4xl mx-auto text-center space-y-8 reveal-on-scroll">
+            <span class="text-green-500 text-sm font-semibold tracking-wider uppercase">Para investigadores</span>
+            <h2 class="text-3xl sm:text-4xl lg:text-5xl font-bold text-slate-900 leading-tight">
+                Tus datos pueden avanzar la medicina.<br>Vos decidís cuándo.
+            </h2>
+            <p class="text-lg text-slate-500 leading-relaxed max-w-2xl mx-auto">
+                Si querés participar en investigación clínica de forma anónima, Bresca te conecta con estudios donde tus datos pueden ser útiles. Sin intermediarios. Sin perder la privacidad.
+            </p>
+            <a href="#privacidad" class="cta-secondary text-lg inline-flex items-center gap-2 mt-4">
+                Conocer más sobre privacidad
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path>
+                </svg>
+            </a>
+        </div>
+    </section>
+
+    <!-- Final CTA Section -->
+    <section id="signup" class="py-24 lg:py-32 px-6 lg:px-12 relative overflow-hidden cta-bg cta-bg-radial">
+
+        <div class="max-w-4xl mx-auto text-center relative z-10 space-y-8 reveal-on-scroll">
+            <h2 class="text-4xl sm:text-5xl lg:text-6xl font-bold text-slate-900">
+                Empezá hoy. Es gratis.
+            </h2>
+            <p class="text-xl text-slate-500 max-w-2xl mx-auto">
+                Tu historial médico organizado, siempre con vos, desde el primer día.
+            </p>
+            <div class="pt-4">
+                <a href="#signup" class="cta-primary text-lg px-10 py-4 inline-block">
+                    Crear cuenta gratis
+                </a>
+            </div>
+            <p class="text-sm text-slate-400 pt-4">
+                Gratis · Sin tarjeta de crédito · Sin compromiso
+            </p>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="py-12 px-6 lg:px-12 border-t border-slate-200/60">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
+            <div class="flex items-center gap-2">
+                <img src="/logo-horizontal-bicolor.png" alt="Bresca" style="height:28px;width:auto;">
+                <span class="text-slate-300">·</span>
+                <span class="text-sm text-slate-500">© 2026 Bresca. Todos los derechos reservados.</span>
+            </div>
+            <div class="flex items-center gap-8">
+                <a href="#" class="text-sm text-slate-500 hover:text-slate-900 transition-colors">Privacidad</a>
+                <a href="#" class="text-sm text-slate-500 hover:text-slate-900 transition-colors">Términos</a>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Register GSAP ScrollTrigger
+        gsap.registerPlugin(ScrollTrigger);
+
+        // Navbar scroll effect
+        const navbar = document.getElementById('navbar');
+        let lastScroll = 0;
+
+        window.addEventListener('scroll', () => {
+            const currentScroll = window.pageYOffset;
+            if (currentScroll > 50) {
+                navbar.classList.add('navbar-scrolled');
+            } else {
+                navbar.classList.remove('navbar-scrolled');
+            }
+            lastScroll = currentScroll;
+        }, { passive: true });
+
+        // Mobile menu
+        const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+        const mobileMenuClose = document.getElementById('mobile-menu-close');
+        const mobileMenu = document.getElementById('mobile-menu');
+        const mobileLinks = document.querySelectorAll('.mobile-link');
+
+        mobileMenuBtn.addEventListener('click', () => {
+            mobileMenu.classList.add('open');
+            document.body.style.overflow = 'hidden';
+        });
+
+        mobileMenuClose.addEventListener('click', () => {
+            mobileMenu.classList.remove('open');
+            document.body.style.overflow = '';
+        });
+
+        mobileLinks.forEach(link => {
+            link.addEventListener('click', () => {
+                mobileMenu.classList.remove('open');
+                document.body.style.overflow = '';
+            });
+        });
+
+        // Intersection Observer for reveal animations
+        const revealObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('revealed');
+                    revealObserver.unobserve(entry.target);
+                }
+            });
+        }, {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        });
+
+        document.querySelectorAll('.reveal-on-scroll').forEach(el => {
+            revealObserver.observe(el);
+        });
+
+        // Vault section - scroll triggered card reveals with blur
+        const vaultCards = document.querySelectorAll('.vault-study-card');
+        const vaultPhone = document.getElementById('vault-phone');
+
+        const vaultObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    vaultCards.forEach((card, index) => {
+                        const delay = parseInt(card.dataset.delay) || 0;
+                        setTimeout(() => {
+                            card.style.opacity = '1';
+                            card.style.transform = 'translateY(0)';
+                            card.style.filter = 'blur(0)';
+                        }, delay);
+                    });
+                    vaultObserver.unobserve(entry.target);
+                }
+            });
+        }, {
+            threshold: 0.3
+        });
+
+        if (vaultPhone) {
+            vaultObserver.observe(vaultPhone);
+        }
+
+        // Initialize vault cards
+        vaultCards.forEach(card => {
+            card.style.opacity = '0';
+            card.style.transform = 'translateY(20px)';
+            card.style.filter = 'blur(8px)';
+            card.style.transition = 'all 0.7s cubic-bezier(0.4, 0, 0.2, 1)';
+        });
+
+        // Hero cards auto-animate on load
+        window.addEventListener('load', () => {
+            const heroCards = [
+                document.getElementById('hero-card-1'),
+                document.getElementById('hero-card-2'),
+                document.getElementById('hero-card-3')
+            ];
+
+            heroCards.forEach((card, index) => {
+                if (card) {
+                    setTimeout(() => {
+                        card.classList.add('visible');
+                    }, 500 + (index * 200));
+                }
+            });
+        });
+
+        // GSAP ScrollTrigger for additional polish
+        gsap.utils.toArray('.glass-card').forEach((card, i) => {
+            gsap.from(card, {
+                scrollTrigger: {
+                    trigger: card,
+                    start: 'top 85%',
+                    toggleActions: 'play none none none'
+                },
+                y: 40,
+                opacity: 0,
+                duration: 0.6,
+                delay: i * 0.1,
+                ease: 'power2.out'
+            });
+        });
+
+        // Parallax effect for hero phone
+        gsap.to('.phone-mockup', {
+            scrollTrigger: {
+                trigger: 'section',
+                start: 'top top',
+                end: 'bottom top',
+                scrub: 1
+            },
+            y: 100,
+            ease: 'none'
+        });
+
+        // Smooth scroll for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function(e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+    </script>
+
+</body></html>
