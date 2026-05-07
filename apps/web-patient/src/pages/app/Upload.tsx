@@ -8,6 +8,7 @@ import { CATEGORIES } from '../../lib/vault';
 import { enqueueExtract } from '../../lib/api';
 import { CategoryChip } from '../../components/CategoryChip';
 import { Spinner } from '../../components/Spinner';
+import FeedbackSheet from '../../components/FeedbackSheet';
 import type { Database } from '@bresca/shared';
 
 type Step = 'source' | 'review';
@@ -73,6 +74,8 @@ export default function Upload() {
   const [saveError, setSaveError]     = useState('');
   const [extractError, setExtractError] = useState('');
   const [uploadPct, setUploadPct]     = useState<number | null>(null);
+  const [showFeedback, setShowFeedback] = useState(false);
+  const [savedVaultPath, setSavedVaultPath] = useState('/app/vault');
 
   useEffect(() => {
     if (!familyProfileId) return;
@@ -210,7 +213,8 @@ export default function Upload() {
       await supabase.from('study_drafts').delete().eq('id', draft.draftId);
     }
     const vaultPath = familyProfileId ? `/app/vault?p=${familyProfileId}` : '/app/vault';
-    nav(vaultPath, { replace: true });
+    setSavedVaultPath(vaultPath);
+    setShowFeedback(true);
   }
 
   const pageLabel = files.length === 1 ? '1 página' : `${files.length} páginas`;
@@ -451,6 +455,15 @@ export default function Upload() {
             {saving ? <><Spinner /> Guardando…</> : 'Guardar en mi Vault'}
           </button>
         </div>
+      )}
+
+      {showFeedback && user && draft && (
+        <FeedbackSheet
+          userId={user.id}
+          studyType={draft.study_type}
+          category={draft.category}
+          onDone={() => nav(savedVaultPath, { replace: true })}
+        />
       )}
     </div>
   );

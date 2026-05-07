@@ -6,6 +6,7 @@ import { supabase } from '../../lib/supabase';
 import { useProfile } from '../../lib/useProfile';
 import { useSession } from '../../lib/session';
 import { StudyCard, StudyCardSkeleton } from '../../components/StudyCard';
+import RetentionModal from '../../components/RetentionModal';
 import type { Database } from '@bresca/shared';
 
 type Study = Database['public']['Tables']['studies']['Row'];
@@ -69,6 +70,7 @@ export default function Home() {
   const [recent, setRecent] = useState<Study[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
   const [showInvite, setShowInvite] = useState(true);
+  const [showRetention, setShowRetention] = useState(false);
 
   useEffect(() => {
     if (!profile) return;
@@ -78,6 +80,18 @@ export default function Home() {
       setDataLoading(false);
     });
   }, [profile?.id]);
+
+  // Capa B: modal de retención a los 7 días (Sean Ellis Test)
+  useEffect(() => {
+    if (!user) return;
+    const alreadyShown = localStorage.getItem('bresca_retention_v1');
+    if (alreadyShown) return;
+    const accountAge = Date.now() - new Date(user.created_at).getTime();
+    const sevenDays = 7 * 24 * 60 * 60 * 1000;
+    if (accountAge < sevenDays) return;
+    const timer = setTimeout(() => setShowRetention(true), 2500);
+    return () => clearTimeout(timer);
+  }, [user?.id]);
 
   const displayName = profile?.display_name ?? user?.email?.split('@')[0] ?? 'vos';
   const firstName = displayName.split(' ')[0];
@@ -226,6 +240,16 @@ export default function Home() {
         </div>
 
       </div>
+
+      {showRetention && user && (
+        <RetentionModal
+          userId={user.id}
+          onDone={() => {
+            setShowRetention(false);
+            localStorage.setItem('bresca_retention_v1', 'shown');
+          }}
+        />
+      )}
     </div>
   );
 }
