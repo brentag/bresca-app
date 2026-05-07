@@ -16,44 +16,86 @@ export type Database = {
     Tables: {
       consent_audit: {
         Row: {
+          action: Database["public"]["Enums"]["consent_action"] | null
           area_id: string | null
           created_at: string
+          document_id: string | null
           granted: boolean
           id: string
+          integrity_hash: string | null
+          ip_address: unknown
           layer: string
           profile_id: string
           revoked_at: string | null
           study_id: string | null
+          user_agent: string | null
         }
         Insert: {
+          action?: Database["public"]["Enums"]["consent_action"] | null
           area_id?: string | null
           created_at?: string
+          document_id?: string | null
           granted: boolean
           id?: string
+          integrity_hash?: string | null
+          ip_address?: unknown
           layer: string
           profile_id: string
           revoked_at?: string | null
           study_id?: string | null
+          user_agent?: string | null
         }
         Update: {
+          action?: Database["public"]["Enums"]["consent_action"] | null
           area_id?: string | null
           created_at?: string
+          document_id?: string | null
           granted?: boolean
           id?: string
+          integrity_hash?: string | null
+          ip_address?: unknown
           layer?: string
           profile_id?: string
           revoked_at?: string | null
           study_id?: string | null
+          user_agent?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "consent_audit_profile_id_fkey"
-            columns: ["profile_id"]
+            foreignKeyName: "consent_audit_document_id_fkey"
+            columns: ["document_id"]
             isOneToOne: false
-            referencedRelation: "profiles"
+            referencedRelation: "legal_documents"
             referencedColumns: ["id"]
           },
         ]
+      }
+      legal_documents: {
+        Row: {
+          content_url: string
+          created_at: string
+          id: string
+          is_active: boolean
+          type: string
+          version: string
+        }
+        Insert: {
+          content_url: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          type: string
+          version: string
+        }
+        Update: {
+          content_url?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          type?: string
+          version?: string
+        }
+        Relationships: []
       }
       profiles: {
         Row: {
@@ -247,6 +289,71 @@ export type Database = {
           },
         ]
       }
+      user_consent_state: {
+        Row: {
+          cro_research_allowed: boolean
+          has_accepted_tc: boolean
+          last_updated: string
+          specific_studies_allowed: string[]
+          tc_document_id: string | null
+          user_id: string
+        }
+        Insert: {
+          cro_research_allowed?: boolean
+          has_accepted_tc?: boolean
+          last_updated?: string
+          specific_studies_allowed?: string[]
+          tc_document_id?: string | null
+          user_id: string
+        }
+        Update: {
+          cro_research_allowed?: boolean
+          has_accepted_tc?: boolean
+          last_updated?: string
+          specific_studies_allowed?: string[]
+          tc_document_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_consent_state_tc_document_id_fkey"
+            columns: ["tc_document_id"]
+            isOneToOne: false
+            referencedRelation: "legal_documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_feedback: {
+        Row: {
+          comment: string | null
+          context: Database["public"]["Enums"]["feedback_context"]
+          created_at: string
+          id: string
+          metadata: Json
+          rating: number | null
+          user_id: string | null
+        }
+        Insert: {
+          comment?: string | null
+          context: Database["public"]["Enums"]["feedback_context"]
+          created_at?: string
+          id?: string
+          metadata?: Json
+          rating?: number | null
+          user_id?: string | null
+        }
+        Update: {
+          comment?: string | null
+          context?: Database["public"]["Enums"]["feedback_context"]
+          created_at?: string
+          id?: string
+          metadata?: Json
+          rating?: number | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       cro_anonymous_patients: {
@@ -261,10 +368,23 @@ export type Database = {
       }
     }
     Functions: {
-      [_ in never]: never
+      record_consent: {
+        Args: {
+          p_action: Database["public"]["Enums"]["consent_action"]
+          p_area_id?: string
+          p_document_id?: string
+          p_ip_address?: unknown
+          p_layer: string
+          p_profile_id: string
+          p_study_id?: string
+          p_user_agent?: string
+        }
+        Returns: string
+      }
     }
     Enums: {
-      [_ in never]: never
+      consent_action: "grant" | "revoke"
+      feedback_context: "post_ocr" | "retention_check" | "fake_door_click"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -391,6 +511,9 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      consent_action: ["grant", "revoke"],
+      feedback_context: ["post_ocr", "retention_check", "fake_door_click"],
+    },
   },
 } as const
