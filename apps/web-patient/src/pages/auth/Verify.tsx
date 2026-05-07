@@ -8,7 +8,10 @@ async function redirectAfterLogin(
   mode: 'login' | 'register',
   setError: (msg: string) => void,
 ) {
-  // Usar limit(1) evita errores con usuarios que tienen múltiples perfiles (test data, etc.)
+  // Flush explícito de la sesión: garantiza que el cliente Supabase tiene los headers
+  // de auth listos antes de hacer la query (crítico cuando se llega por magic link)
+  await supabase.auth.getSession();
+
   const { data } = await supabase.from('profiles').select('id').limit(1);
   const hasProfile = (data?.length ?? 0) > 0;
 
@@ -25,7 +28,10 @@ export default function Verify() {
   const nav = useNavigate();
   const { state } = useLocation();
   const email = (state as { email?: string; mode?: string })?.email ?? '';
-  const mode: 'login' | 'register' = (state as { mode?: 'login' | 'register' })?.mode ?? 'login';
+  // Leer mode desde query params (fallback cuando el magic link abre en browser fresco)
+  const searchParams = new URLSearchParams(window.location.search);
+  const modeFromUrl = searchParams.get('mode') as 'login' | 'register' | null;
+  const mode: 'login' | 'register' = (state as { mode?: 'login' | 'register' })?.mode ?? modeFromUrl ?? 'login';
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');

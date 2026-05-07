@@ -17,6 +17,9 @@ export default function Layout() {
         <Outlet />
       </main>
       <nav style={navStyle}>
+        <span style={{ position: 'absolute', top: 3, right: 6, fontSize: 8, color: '#E2E8F0', fontFamily: 'monospace', userSelect: 'none', pointerEvents: 'none', zIndex: 1 }}>
+          {__BUILD_VERSION__}
+        </span>
         {NAV.map(({ to, label, Icon }) => (
           <NavLink key={to} to={to} style={{ flex: 1, textDecoration: 'none' }}>
             {({ isActive }) => (

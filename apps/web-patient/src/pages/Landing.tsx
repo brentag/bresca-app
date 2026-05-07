@@ -366,7 +366,7 @@ export default function Landing() {
             </div>
             <div className="footer-bottom">
               <p>© 2026 Bresca. Todos los derechos reservados.</p>
-              <p>Hecho con cuidado en LATAM</p>
+              <p>Hecho con cuidado en LATAM <span style={{ fontSize: 9, color: '#CBD5E1', fontFamily: 'monospace', marginLeft: 8, userSelect: 'none' }}>{__BUILD_VERSION__}</span></p>
             </div>
           </div>
         </footer>

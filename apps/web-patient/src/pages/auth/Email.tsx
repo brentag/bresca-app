@@ -19,7 +19,8 @@ export default function Email() {
       email,
       options: {
         shouldCreateUser: mode === 'register',
-        emailRedirectTo: `${window.location.origin}/auth/verify`,
+        // Codificar mode en la URL para preservarlo cuando el link se abre desde email
+        emailRedirectTo: `${window.location.origin}/auth/verify?mode=${mode}`,
       },
     });
     setLoading(false);

@@ -586,5 +586,13 @@
 
   </div>
 
+  <p style="text-align:center;font-size:9px;color:#E2E8F0;font-family:monospace;margin-top:32px;padding-bottom:16px;user-select:none;" id="build-ver">—</p>
+  <script>
+    // Leer el hash del build desde la app React del mismo dominio
+    fetch('/version.json').then(r => r.json()).then(d => {
+      document.getElementById('build-ver').textContent = d.v ?? '—';
+    }).catch(() => {});
+  </script>
+
 </body>
 </html>
