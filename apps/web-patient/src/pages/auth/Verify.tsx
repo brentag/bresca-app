@@ -3,15 +3,33 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { Spinner, FullPageSpinner } from '../../components/Spinner';
 
-async function redirectAfterLogin(nav: ReturnType<typeof useNavigate>) {
+async function redirectAfterLogin(
+  nav: ReturnType<typeof useNavigate>,
+  mode: 'login' | 'register',
+  setError: (msg: string) => void,
+) {
   const { data: profile } = await supabase.from('profiles').select('id').maybeSingle();
-  nav(profile ? '/app/home' : '/onboarding/name', { replace: true });
+
+  if (profile) {
+    nav('/app/home', { replace: true });
+    return;
+  }
+
+  if (mode === 'register') {
+    nav('/onboarding/name', { replace: true });
+    return;
+  }
+
+  // Modo login pero sin perfil: la cuenta no está completa — mandamos a terminar el registro
+  nav('/onboarding/name', { replace: true });
+  setError('');
 }
 
 export default function Verify() {
   const nav = useNavigate();
   const { state } = useLocation();
-  const email = (state as { email?: string })?.email ?? '';
+  const email = (state as { email?: string; mode?: string })?.email ?? '';
+  const mode: 'login' | 'register' = (state as { mode?: 'login' | 'register' })?.mode ?? 'login';
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -23,12 +41,12 @@ export default function Verify() {
     // Supabase detecta automáticamente el token en el hash — esperamos el evento
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN' && session) {
-        redirectAfterLogin(nav);
+        redirectAfterLogin(nav, mode, setError);
       }
     });
     // Fallback: si ya hay sesión activa al montar
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) { redirectAfterLogin(nav); }
+      if (session) { redirectAfterLogin(nav, mode, setError); }
       else { setCheckingLink(false); }
     });
     return () => subscription.unsubscribe();
@@ -39,14 +57,16 @@ export default function Verify() {
     const { error: err } = await supabase.auth.verifyOtp({ email, token: otp, type: 'email' });
     setLoading(false);
     if (err) { setError('Código incorrecto o vencido. Intentá de nuevo.'); return; }
-    await redirectAfterLogin(nav);
+    await redirectAfterLogin(nav, mode, setError);
   }
 
   if (checkingLink) return <FullPageSpinner />;
 
+  const heading = mode === 'register' ? 'Verificá tu email' : 'Revisá tu email';
+
   return (
     <div style={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column', padding: '60px 24px 32px', background: '#fff' }}>
-      <h1 style={{ fontSize: 26, fontWeight: 700, color: '#0F172A', marginBottom: 8 }}>Revisá tu email</h1>
+      <h1 style={{ fontSize: 26, fontWeight: 700, color: '#0F172A', marginBottom: 8 }}>{heading}</h1>
       <p style={{ fontSize: 15, color: '#64748B', marginBottom: 32 }}>
         Enviamos un código a <strong>{email}</strong>.
       </p>

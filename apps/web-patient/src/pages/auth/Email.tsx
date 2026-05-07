@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { Spinner } from '../../components/Spinner';
 
 export default function Email() {
   const nav = useNavigate();
+  const { state } = useLocation();
+  const mode: 'login' | 'register' = (state as { mode?: 'login' | 'register' })?.mode ?? 'login';
+
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -15,19 +18,24 @@ export default function Email() {
     const { error: err } = await supabase.auth.signInWithOtp({
       email,
       options: {
-        shouldCreateUser: true,
+        shouldCreateUser: mode === 'register',
         emailRedirectTo: `${window.location.origin}/auth/verify`,
       },
     });
     setLoading(false);
     if (err) { setError('No pudimos enviar el código. Intentá de nuevo.'); return; }
-    nav('/auth/verify', { state: { email } });
+    nav('/auth/verify', { state: { email, mode } });
   }
+
+  const heading  = mode === 'register' ? 'Creá tu cuenta' : 'Accedé a tu cuenta';
+  const subtext  = mode === 'register'
+    ? 'Ingresá tu email para crear tu cuenta en Bresca.'
+    : 'Ingresá tu email y te mandamos un código para entrar.';
 
   return (
     <div style={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column', padding: '60px 24px 32px', background: '#fff' }}>
-      <h1 style={{ fontSize: 26, fontWeight: 700, color: '#0F172A', marginBottom: 8 }}>Ingresá tu email</h1>
-      <p style={{ fontSize: 15, color: '#64748B', marginBottom: 32 }}>Te enviamos un código de verificación.</p>
+      <h1 style={{ fontSize: 26, fontWeight: 700, color: '#0F172A', marginBottom: 8 }}>{heading}</h1>
+      <p style={{ fontSize: 15, color: '#64748B', marginBottom: 32 }}>{subtext}</p>
 
       <label style={labelStyle}>EMAIL</label>
       <input
@@ -49,6 +57,12 @@ export default function Email() {
         style={{ ...btnStyle, marginTop: 24, opacity: loading || !email ? 0.5 : 1 }}
       >
         {loading ? <Spinner /> : 'Continuar →'}
+      </button>
+      <button
+        onClick={() => nav('/welcome')}
+        style={{ marginTop: 12, background: 'none', border: 'none', color: '#64748B', fontSize: 14, cursor: 'pointer', minHeight: 44 }}
+      >
+        ← Volver
       </button>
     </div>
   );
