@@ -59,7 +59,7 @@ export default function Asistente() {
           </p>
         </div>
 
-        <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div style={{ flex: 1, overflowY: 'auto', minHeight: 0, padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
           {messages.length === 0 && (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, gap: 12, textAlign: 'center', padding: '40px 0' }}>
               <div style={{ width: 64, height: 64, borderRadius: 20, background: 'linear-gradient(135deg,#00C87A,#4B6EF5)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -110,9 +110,10 @@ export default function Asistente() {
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
+            onFocus={() => setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 300)}
             placeholder="Preguntá sobre tus estudios…"
             rows={1}
-            style={{ flex: 1, border: '1.5px solid #E2E8F0', borderRadius: 14, padding: '12px 14px', fontSize: 15, fontFamily: "'Space Grotesk',sans-serif", resize: 'none', outline: 'none', maxHeight: 120, color: '#0F172A' }}
+            style={{ flex: 1, border: '1.5px solid #E2E8F0', borderRadius: 14, padding: '12px 14px', fontSize: 16, fontFamily: "'Space Grotesk',sans-serif", resize: 'none', outline: 'none', maxHeight: 120, color: '#0F172A' }}
           />
           <button
             onClick={send}

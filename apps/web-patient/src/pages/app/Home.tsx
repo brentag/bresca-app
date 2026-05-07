@@ -203,7 +203,7 @@ export default function Home() {
           <p style={sectionLabel}>Estudios recientes</p>
           <button
             onClick={() => nav('/app/vault')}
-            style={{ background: 'none', border: 'none', fontSize: 12, color: '#00C87A', cursor: 'pointer', fontWeight: 600, padding: '4px 0' }}
+            style={{ background: 'none', border: 'none', fontSize: 12, color: '#00C87A', cursor: 'pointer', fontWeight: 600, padding: '4px 8px', minHeight: 44, display: 'flex', alignItems: 'center' }}
           >
             Ver todos
           </button>

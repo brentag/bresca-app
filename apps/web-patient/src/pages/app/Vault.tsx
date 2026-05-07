@@ -127,7 +127,7 @@ export default function Vault() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <button
               onClick={() => nav('/app/family')}
-              style={{ background: 'none', border: 'none', color: '#64748B', cursor: 'pointer', padding: '4px 0', fontSize: 14, display: 'flex', alignItems: 'center', gap: 4 }}
+              style={{ background: 'none', border: 'none', color: '#64748B', cursor: 'pointer', padding: '4px 0', fontSize: 14, display: 'flex', alignItems: 'center', gap: 4, minHeight: 44, minWidth: 44 }}
             >
               ← Familia
             </button>

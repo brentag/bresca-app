@@ -82,7 +82,7 @@ export default function RetentionModal({ userId, onDone }: Props) {
           rows={2}
           style={{
             width: '100%', borderRadius: 12, border: '1px solid #E2E8F0',
-            padding: '10px 14px', fontSize: 13, color: '#0F172A',
+            padding: '10px 14px', fontSize: 16, color: '#0F172A',
             resize: 'none', outline: 'none', boxSizing: 'border-box',
             fontFamily: 'inherit', marginBottom: 16,
           }}
