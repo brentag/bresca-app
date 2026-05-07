@@ -11,6 +11,7 @@ import Year from './pages/onboarding/Year';
 import Conditions from './pages/onboarding/Conditions';
 import ConsentIntro from './pages/onboarding/ConsentIntro';
 import Layout from './components/Layout';
+import ConsentGateway from './components/ConsentGateway';
 import Home from './pages/app/Home';
 import Vault from './pages/app/Vault';
 import Upload from './pages/app/Upload';
@@ -42,7 +43,7 @@ export default function App() {
           <Route path="/onboarding/conditions" element={<ProtectedRoute><Conditions /></ProtectedRoute>} />
           <Route path="/onboarding/consent"    element={<ProtectedRoute><ConsentIntro /></ProtectedRoute>} />
           <Route path="/qr/:token" element={<QRView />} />
-          <Route path="/app" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+          <Route path="/app" element={<ProtectedRoute><ConsentGateway /></ProtectedRoute>}>
             <Route index element={<Navigate to="/app/home" replace />} />
             <Route path="home"         element={<Home />} />
             <Route path="vault"        element={<Vault />} />
