@@ -36,7 +36,7 @@ export default function TermsAcceptance({ onAccepted }: Props) {
   }, []);
 
   async function handleAccept() {
-    if (!profile || !tcDoc || !checked || saving) return;
+    if (!profile || !checked || saving) return;
 
     setSaving(true);
     setError('');
@@ -45,7 +45,7 @@ export default function TermsAcceptance({ onAccepted }: Props) {
       p_profile_id:  profile.id,
       p_layer:       'tc',
       p_action:      'grant',
-      p_document_id: tcDoc.id,
+      p_document_id: tcDoc?.id ?? null,
       p_user_agent:  navigator.userAgent,
     });
 
@@ -179,7 +179,7 @@ export default function TermsAcceptance({ onAccepted }: Props) {
       <div style={{ padding: '12px 20px 20px', background: '#fff', borderTop: '1px solid #F1F5F9' }}>
         <button
           onClick={handleAccept}
-          disabled={!checked || saving || !profile || !tcDoc}
+          disabled={!checked || saving || !profile}
           style={{
             width: '100%', height: 52, borderRadius: 14, border: 'none',
             background: checked ? '#00C87A' : '#E2E8F0',

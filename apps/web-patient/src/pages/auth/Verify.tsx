@@ -8,19 +8,15 @@ async function redirectAfterLogin(
   mode: 'login' | 'register',
   setError: (msg: string) => void,
 ) {
-  const { data: profile } = await supabase.from('profiles').select('id').maybeSingle();
+  // Usar limit(1) evita errores con usuarios que tienen múltiples perfiles (test data, etc.)
+  const { data } = await supabase.from('profiles').select('id').limit(1);
+  const hasProfile = (data?.length ?? 0) > 0;
 
-  if (profile) {
+  if (hasProfile) {
     nav('/app/home', { replace: true });
     return;
   }
 
-  if (mode === 'register') {
-    nav('/onboarding/name', { replace: true });
-    return;
-  }
-
-  // Modo login pero sin perfil: la cuenta no está completa — mandamos a terminar el registro
   nav('/onboarding/name', { replace: true });
   setError('');
 }

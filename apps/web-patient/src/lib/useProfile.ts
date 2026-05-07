@@ -16,8 +16,9 @@ export function useProfile() {
       .from('profiles')
       .select('*')
       .eq('user_id', user.id)
-      .maybeSingle()
-      .then(({ data }) => { setProfile(data); setLoading(false); });
+      .order('created_at', { ascending: true })
+      .limit(1)
+      .then(({ data }) => { setProfile(data?.[0] ?? null); setLoading(false); });
   }, [user?.id]);
 
   return { profile, loading };
