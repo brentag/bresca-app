@@ -659,8 +659,7 @@
   }
   function handleRegister(e) {
     e.preventDefault();
-    document.getElementById('reg-form').style.display = 'none';
-    document.getElementById('upload-state').classList.add('active');
+    window.location.href = '/welcome';
   }
   function toggleFaq(btn) {
     const answer = btn.nextElementSibling;

@@ -398,6 +398,11 @@ function checkViewport() {
 }
 checkViewport();
 window.addEventListener('resize', checkViewport);
+
+// Conectar botones CTA a la app real
+document.querySelectorAll('.btn-primary, .btn-primary-lg').forEach(function(btn) {
+  btn.addEventListener('click', function() { window.location.href = '/welcome'; });
+});
 </script>
 
 </body>
