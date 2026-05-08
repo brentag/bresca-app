@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, Shield, LogOut, ChevronRight, Lock } from 'lucide-react';
+import { User, Shield, LogOut, ChevronRight, Lock, Settings } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useProfile } from '../../lib/useProfile';
 import { useSession } from '../../lib/session';
@@ -26,8 +26,9 @@ export default function Menu() {
   }
 
   const items = [
-    { icon: <User size={20} color="#64748B" />, label: 'Mi perfil',               sub: profile?.display_name ?? '',       action: () => {} },
-    { icon: <Shield size={20} color="#64748B" />, label: 'Centro de privacidad', sub: 'Gestioná tus permisos',            action: () => nav('/app/consent') },
+    { icon: <User size={20} color="#64748B" />,     label: 'Mi perfil',              sub: profile?.display_name ?? '',  action: () => {} },
+    { icon: <Shield size={20} color="#64748B" />,   label: 'Centro de privacidad',   sub: 'Gestioná tus permisos',      action: () => nav('/app/consent') },
+    { icon: <Settings size={20} color="#64748B" />, label: 'Configuración',           sub: 'Asistente y preferencias',   action: () => nav('/app/settings') },
   ];
 
   return (

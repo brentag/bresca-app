@@ -50,6 +50,16 @@ async function buildVaultContext(userId: string): Promise<string> {
   }).join('\n');
 }
 
+router.post('/context-card', requireAuth, async (req, res) => {
+  const userId: string = res.locals.userId;
+  const vaultContext = await buildVaultContext(userId);
+  const noStudies = vaultContext === 'Sin estudios registrados.';
+  const context = noStudies
+    ? 'No tengo estudios registrados en Bresca aún.'
+    : `Mis estudios médicos registrados en Bresca:\n\n${vaultContext}`;
+  res.json({ context });
+});
+
 router.post('/chat', requireAuth, async (req, res) => {
   const parse = ChatSchema.safeParse(req.body);
   if (!parse.success) { res.status(400).json({ error: 'Invalid body', issues: parse.error.issues }); return; }

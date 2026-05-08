@@ -1,13 +1,14 @@
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import Layout from './components/Layout';
 import Login from './pages/Login';
 import LandingCRO from './pages/LandingCRO';
-import Dashboard from './pages/Dashboard';
-import Patients from './pages/Patients';
-import Studies from './pages/Studies';
-import Matching from './pages/Matching';
 import { supabase } from './lib/supabase';
+
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Patients   = lazy(() => import('./pages/Patients'));
+const Studies    = lazy(() => import('./pages/Studies'));
+const Matching   = lazy(() => import('./pages/Matching'));
 
 type Tab = 'dashboard' | 'patients' | 'studies' | 'matching';
 
@@ -46,7 +47,9 @@ export default function App() {
 
   return (
     <Layout tab={tab} onTab={setTab}>
-      <Page />
+      <Suspense fallback={<div style={{ padding: 40, color: '#94A3B8', fontSize: 14 }}>Cargando…</div>}>
+        <Page />
+      </Suspense>
     </Layout>
   );
 }

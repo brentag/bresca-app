@@ -1,10 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { Send, ExternalLink, X } from 'lucide-react';
-import { sendCopilotMessage } from '../../lib/api';
+import { sendCopilotMessage, fetchContextCard } from '../../lib/api';
 import { Spinner } from '../../components/Spinner';
 
 type Message = { role: 'user' | 'assistant'; content: string };
 type GPTContext = { userMsg: string; assistantMsg: string };
+
+function showGptCta() {
+  return localStorage.getItem('bresca_show_gpt_cta') !== 'false';
+}
 
 export default function Asistente() {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -40,9 +44,19 @@ export default function Asistente() {
     setGptModal({ userMsg, assistantMsg });
   }
 
-  function confirmGPT() {
+  async function confirmGPT() {
     if (!gptModal) return;
-    const context = `Mi consulta de salud:\n${gptModal.userMsg}\n\nRespuesta recibida:\n${gptModal.assistantMsg}\n\nQuiero profundizar sobre este tema.`;
+    let vaultSummary = '';
+    try {
+      const { context } = await fetchContextCard();
+      vaultSummary = context;
+    } catch { /* si falla, usa solo el contexto de la conversación */ }
+    const context = [
+      vaultSummary,
+      `Mi consulta: ${gptModal.userMsg}`,
+      `Respuesta de mi asistente de salud: ${gptModal.assistantMsg}`,
+      'Quiero profundizar sobre este tema.',
+    ].filter(Boolean).join('\n\n');
     navigator.clipboard.writeText(context).catch(() => {});
     window.open('https://chatgpt.com', '_blank', 'noopener,noreferrer');
     setGptModal(null);
@@ -82,7 +96,7 @@ export default function Asistente() {
               }}>
                 {m.content}
               </div>
-              {m.role === 'assistant' && (
+              {m.role === 'assistant' && showGptCta() && (
                 <button
                   onClick={() => openGPTModal(i)}
                   style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: '#4B6EF5', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px', fontFamily: "'Space Grotesk', sans-serif" }}

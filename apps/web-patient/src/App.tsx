@@ -22,6 +22,7 @@ import Asistente from './pages/app/Copilot';
 import Family from './pages/app/Family';
 import Menu from './pages/app/Menu';
 import ConsentCenter from './pages/app/ConsentCenter';
+import Settings from './pages/app/Settings';
 
 function RootRedirect() {
   const { session, loading } = useSession();
@@ -54,6 +55,7 @@ export default function App() {
             <Route path="family"       element={<Family />} />
             <Route path="menu"         element={<Menu />} />
             <Route path="consent"      element={<ConsentCenter />} />
+            <Route path="settings"     element={<Settings />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

@@ -23,6 +23,15 @@ export async function sendCopilotMessage(
   return res.json() as Promise<{ reply: string; remaining: number }>;
 }
 
+export async function fetchContextCard(): Promise<{ context: string }> {
+  const res = await fetch(`${BASE}/copilot/context-card`, {
+    method: 'POST',
+    headers: await authHeaders(),
+  });
+  if (!res.ok) throw new Error(`context-card error ${res.status}`);
+  return res.json();
+}
+
 export async function generateQR(study_ids: string[], ttl_hours: number) {
   const res = await fetch(`${BASE}/qr/generate`, {
     method: 'POST',

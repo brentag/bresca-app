@@ -45,7 +45,7 @@ export default function TermsAcceptance({ onAccepted }: Props) {
       p_profile_id:  profile.id,
       p_layer:       'tc',
       p_action:      'grant',
-      p_document_id: tcDoc?.id ?? null,
+      p_document_id: tcDoc?.id ?? undefined,
       p_user_agent:  navigator.userAgent,
     });
 
