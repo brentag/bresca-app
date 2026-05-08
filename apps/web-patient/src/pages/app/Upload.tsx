@@ -21,6 +21,8 @@ type Draft = {
   extracted_fields: Record<string, string>;
   storagePaths: string[];
   draftId?: string;
+  ocr_score?: number | null;
+  needs_review?: boolean;
 };
 type SelectedFile = { id: string; file: File; preview: string };
 
@@ -111,6 +113,8 @@ export default function Upload() {
           study_date:       d.study_date ?? today,
           extracted_fields: (d.extracted_fields ?? {}) as Record<string, string>,
           storagePaths:     (d.storage_paths as string[]) ?? [],
+          ocr_score:        d.ocr_score ?? null,
+          needs_review:     d.needs_review ?? false,
         });
         setStep('review');
       });
@@ -206,6 +210,8 @@ export default function Upload() {
       confirmed:        true,
       storage_path:     draft.storagePaths[0] ?? null,
       storage_paths:    draft.storagePaths,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ...(draft.ocr_score != null ? { ocr_score: draft.ocr_score } as any : {}),
     });
     setSaving(false);
     if (error) { setSaveError('No pudimos guardar el estudio. Intentá de nuevo.'); return; }
@@ -413,8 +419,22 @@ export default function Upload() {
       {/* ── PASO: review ── */}
       {step === 'review' && draft && (
         <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
-          <h2 style={{ fontSize: 18, fontWeight: 700, color: '#0F172A', marginBottom: 4 }}>Revisá los datos extraídos</h2>
-          <p style={{ fontSize: 14, color: '#64748B', marginBottom: 20 }}>Podés corregir cualquier campo antes de guardar.</p>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+            <h2 style={{ fontSize: 18, fontWeight: 700, color: '#0F172A' }}>Revisá los datos extraídos</h2>
+            {draft.ocr_score != null && (
+              <OcrScoreBadge score={draft.ocr_score} />
+            )}
+          </div>
+          <p style={{ fontSize: 14, color: '#64748B', marginBottom: draft.needs_review ? 12 : 20 }}>Podés corregir cualquier campo antes de guardar.</p>
+
+          {draft.needs_review && (
+            <div style={{ background: '#FFF7ED', border: '1px solid #FED7AA', borderRadius: 12, padding: '12px 16px', marginBottom: 16 }}>
+              <p style={{ fontSize: 13, fontWeight: 600, color: '#92400E', margin: '0 0 4px' }}>Calidad del documento baja</p>
+              <p style={{ fontSize: 12, color: '#B45309', margin: 0, lineHeight: 1.55 }}>
+                No pudimos leer el estudio con suficiente precisión. Revisá los campos antes de guardar o resubí el documento con mejor calidad.
+              </p>
+            </div>
+          )}
 
           <div style={fieldGroupStyle}>
             <FieldRow label="Tipo de estudio"    value={draft.study_type}  onChange={v => setDraft({ ...draft, study_type: v })} />
@@ -465,6 +485,19 @@ export default function Upload() {
           onDone={() => nav(savedVaultPath, { replace: true })}
         />
       )}
+    </div>
+  );
+}
+
+function OcrScoreBadge({ score }: { score: number }) {
+  const pct   = Math.round(score);
+  const color = pct < 80 ? '#EF4444' : pct <= 95 ? '#F59E0B' : '#22C55E';
+  const bg    = pct < 80 ? '#FEF2F2' : pct <= 95 ? '#FFFBEB' : '#F0FDF4';
+  const label = pct < 80 ? 'Baja' : pct <= 95 ? 'Media' : 'Alta';
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '3px 10px', borderRadius: 20, background: bg, border: `1px solid ${color}30` }}>
+      <span style={{ width: 7, height: 7, borderRadius: '50%', background: color, flexShrink: 0 }} />
+      <span style={{ fontSize: 12, fontWeight: 600, color }}>{pct}% {label}</span>
     </div>
   );
 }

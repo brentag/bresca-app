@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, QrCode, FileText, X } from 'lucide-react';
+import { ArrowLeft, QrCode, FileText, X, RefreshCw } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { categoryColor, formatStudyDate } from '../../lib/vault';
 import { FullPageSpinner } from '../../components/Spinner';
@@ -55,6 +55,9 @@ export default function StudyDetail() {
   if (!study) return <div style={{ padding: 24, color: '#64748B' }}>Estudio no encontrado.</div>;
 
   const color = categoryColor(study.category);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const ocrScore: number | null | undefined = (study as any).ocr_score;
+  const needsReview = ocrScore != null && ocrScore < 80;
 
   return (
     <div style={{ minHeight: '100dvh', background: '#F7F9FC' }}>
@@ -74,9 +77,29 @@ export default function StudyDetail() {
         <div style={{ background: '#fff', borderRadius: 16, overflow: 'hidden', border: '1px solid #E2E8F0', marginBottom: 16 }}>
           <div style={{ height: 4, background: color }} />
           <div style={{ padding: '16px 20px' }}>
-            <h1 style={{ fontSize: 20, fontWeight: 700, color: '#0F172A', marginBottom: 4 }}>{study.study_type}</h1>
-            <p style={{ fontSize: 14, color: '#64748B' }}>{formatStudyDate(study.study_date)}</p>
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, marginBottom: 4 }}>
+              <h1 style={{ fontSize: 20, fontWeight: 700, color: '#0F172A', margin: 0 }}>{study.study_type}</h1>
+              {ocrScore != null && <OcrScoreBadge score={ocrScore} />}
+            </div>
+            <p style={{ fontSize: 14, color: '#64748B', marginTop: 4 }}>{formatStudyDate(study.study_date)}</p>
             {study.lab_name && <p style={{ fontSize: 13, color: '#94A3B8' }}>{study.lab_name}</p>}
+
+            {needsReview && (
+              <div style={{ background: '#FFF7ED', border: '1px solid #FED7AA', borderRadius: 10, padding: '10px 14px', marginTop: 12, display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontSize: 13, fontWeight: 600, color: '#92400E', margin: '0 0 2px' }}>Calidad de lectura baja</p>
+                  <p style={{ fontSize: 12, color: '#B45309', margin: 0, lineHeight: 1.5 }}>
+                    El análisis automático tuvo dificultades con este documento. Verificá los valores o resubí con mejor calidad.
+                  </p>
+                </div>
+                <button
+                  onClick={() => nav('/app/vault/upload')}
+                  style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 10px', borderRadius: 8, border: 'none', background: '#F97316', color: '#fff', fontSize: 11, fontWeight: 600, cursor: 'pointer', flexShrink: 0, whiteSpace: 'nowrap' }}
+                >
+                  <RefreshCw size={11} /> Resubir
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
@@ -160,6 +183,19 @@ export default function StudyDetail() {
           />
         </div>
       )}
+    </div>
+  );
+}
+
+function OcrScoreBadge({ score }: { score: number }) {
+  const pct   = Math.round(score);
+  const color = pct < 80 ? '#EF4444' : pct <= 95 ? '#F59E0B' : '#22C55E';
+  const bg    = pct < 80 ? '#FEF2F2' : pct <= 95 ? '#FFFBEB' : '#F0FDF4';
+  const label = pct < 80 ? 'Baja' : pct <= 95 ? 'Media' : 'Alta';
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '3px 10px', borderRadius: 20, background: bg, border: `1px solid ${color}30`, flexShrink: 0 }}>
+      <span style={{ width: 7, height: 7, borderRadius: '50%', background: color }} />
+      <span style={{ fontSize: 11, fontWeight: 600, color }}>OCR {pct}% · {label}</span>
     </div>
   );
 }

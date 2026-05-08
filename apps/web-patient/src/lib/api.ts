@@ -69,6 +69,8 @@ export type DraftRealtimeRow = {
   study_date: string | null;
   extracted_fields: Record<string, string> | null;
   error_log: string | null;
+  ocr_score: number | null;
+  needs_review: boolean;
 };
 
 export async function enqueueExtract(
@@ -130,17 +132,18 @@ export function waitForDraft(jobId: string, timeoutMs: number): Promise<DraftRea
 
     // Fallback polling cada 4s — cubre cold starts de Realtime o jobs ya completos
     const poll = setInterval(async () => {
-      const { data } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data } = await (supabase as any)
         .from('study_drafts')
-        .select('id,status,study_type,lab_name,study_date,extracted_fields,error_log')
+        .select('id,status,study_type,lab_name,study_date,extracted_fields,error_log,ocr_score,needs_review')
         .eq('id', jobId)
-        .single();
+        .single() as { data: DraftRealtimeRow | null };
       if (data && (data.status === 'completed' || data.status === 'failed')) {
         finish(() => {
           clearTimeout(timer);
           clearInterval(poll);
           supabase.removeChannel(channel);
-          resolve(data as DraftRealtimeRow);
+          resolve(data);
         });
       }
     }, 4000);

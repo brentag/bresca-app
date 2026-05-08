@@ -21,8 +21,15 @@ export function StudyCard({
   onWhatsApp: () => void;
   onDicomView?: () => void;
 }) {
-  const color  = categoryColor(study.category);
+  const color   = categoryColor(study.category);
   const isDicom = isDicomStudy(study);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const ocrScore: number | null | undefined = (study as any).ocr_score;
+  const dotColor = ocrScore == null ? null
+    : ocrScore < 80  ? '#EF4444'
+    : ocrScore <= 95 ? '#F59E0B'
+    : '#22C55E';
+
   return (
     <div style={{ background: '#fff', border: '1px solid #E2E8F0', borderRadius: 14, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
       {/* Fila principal — navega al detalle */}
@@ -34,9 +41,17 @@ export function StudyCard({
         <div style={{ flex: 1, padding: '12px 14px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginBottom: 4 }}>
             <span style={{ fontSize: 15, fontWeight: 600, color: '#0F172A', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{study.study_type}</span>
-            <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 6, background: study.confirmed ? '#DCFCE7' : '#FEF3C7', color: study.confirmed ? '#16A34A' : '#D97706' }}>
-              {study.confirmed ? 'Confirmado' : 'Pendiente'}
-            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+              {dotColor && (
+                <span
+                  title={`Calidad OCR: ${Math.round(ocrScore!)}%`}
+                  style={{ width: 8, height: 8, borderRadius: '50%', background: dotColor, flexShrink: 0 }}
+                />
+              )}
+              <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 6, background: study.confirmed ? '#DCFCE7' : '#FEF3C7', color: study.confirmed ? '#16A34A' : '#D97706' }}>
+                {study.confirmed ? 'Confirmado' : 'Pendiente'}
+              </span>
+            </div>
           </div>
           <span style={{ fontSize: 13, color: '#64748B' }}>{formatStudyDate(study.study_date)}</span>
           {study.lab_name && <span style={{ fontSize: 12, color: '#94A3B8', display: 'block' }}>{study.lab_name}</span>}

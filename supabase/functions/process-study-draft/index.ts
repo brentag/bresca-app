@@ -8,6 +8,7 @@ const SUPABASE_URL      = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_ROLE_KEY  = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const WEBHOOK_SECRET    = Deno.env.get('EDGE_WEBHOOK_SECRET')!;
 const DEEPSEEK_API_KEY  = Deno.env.get('DEEPSEEK_API_KEY')!;
+const MISTRAL_API_KEY   = Deno.env.get('MISTRAL_API_KEY') ?? '';
 
 const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
   auth: { persistSession: false },
@@ -18,14 +19,22 @@ const deepseek = new OpenAI({
   baseURL: 'https://api.deepseek.com',
 });
 
+// Mistral Pixtral — usado solo si MISTRAL_API_KEY está configurado
+const mistral = MISTRAL_API_KEY
+  ? new OpenAI({ apiKey: MISTRAL_API_KEY, baseURL: 'https://api.mistral.ai/v1' })
+  : null;
+
+// confidence_score: el modelo reporta su confianza (0=ilegible, 100=perfectamente legible y completo)
 const SYSTEM_PROMPT = `Sos un experto en análisis de estudios médicos latinoamericanos.
 Respondé SIEMPRE con JSON válido, sin markdown, sin explicaciones:
 {
   "study_type": "nombre del estudio",
   "lab_name": "laboratorio o centro médico" | null,
   "study_date": "YYYY-MM-DD" | null,
-  "extracted_fields": { "Campo en español": "valor con unidad" }
+  "extracted_fields": { "Campo en español": "valor con unidad" },
+  "confidence_score": 85
 }
+confidence_score: tu nivel de confianza en la extracción (0=documento ilegible, 100=todo perfectamente legible y completo).
 Reglas: solo campos con valores concretos del documento, nunca inventes,
 si no hay año tomá el actual, extracted_fields vacío si el texto es ilegible.`;
 
@@ -43,12 +52,15 @@ type Structured = {
   study_date: string;
   extracted_fields: Record<string, string>;
   raw_text: string;
+  ocr_score: number;
 };
 
-type PageResult = Omit<Structured, 'raw_text'> & { raw_text?: string };
+type PageResult = Omit<Structured, 'raw_text' | 'ocr_score'> & {
+  raw_text?: string;
+  confidence_score?: number;
+};
 
 Deno.serve(async (req) => {
-  // ── Auth: shared secret del webhook ─────────────────────────
   const auth = req.headers.get('authorization') ?? '';
   if (auth !== `Bearer ${WEBHOOK_SECRET}`) {
     return new Response('unauthorized', { status: 401 });
@@ -58,7 +70,6 @@ Deno.serve(async (req) => {
   const draft_id: string | undefined = body.draft_id;
   if (!draft_id) return new Response('missing draft_id', { status: 400 });
 
-  // ── Claim idempotente: solo si sigue en pending ──────────────
   const { data: draft, error: claimErr } = await supabase
     .from('study_drafts')
     .update({ status: 'processing', started_at: new Date().toISOString() })
@@ -71,9 +82,6 @@ Deno.serve(async (req) => {
     return new Response('already-claimed', { status: 200 });
   }
 
-  // Retornar 202 inmediatamente — pg_net no espera el OCR y no hace timeout.
-  // EdgeRuntime.waitUntil extiende el tiempo de vida de la función hasta que
-  // la promesa se resuelve, aunque el response ya fue enviado.
   EdgeRuntime.waitUntil(processAndSave(draft));
   return new Response(null, { status: 202 });
 });
@@ -81,6 +89,7 @@ Deno.serve(async (req) => {
 async function processAndSave(draft: DraftRow): Promise<void> {
   try {
     const result = await process(draft);
+
     await supabase
       .from('study_drafts')
       .update({
@@ -90,9 +99,24 @@ async function processAndSave(draft: DraftRow): Promise<void> {
         study_date:       result.study_date,
         extracted_fields: result.extracted_fields,
         raw_text:         result.raw_text,
+        ocr_score:        result.ocr_score,
+        ocr_pass:         1,
+        needs_review:     false,
         completed_at:     new Date().toISOString(),
       })
       .eq('id', draft.id);
+
+    // Segundo pass si score < 80 y es imagen (PDFs y DICOM no aplican)
+    const isImage = draft.mime_type.startsWith('image/');
+    if (result.ocr_score < 80 && isImage && mistral) {
+      await runSecondPass(draft, result);
+    } else if (result.ocr_score < 80 && !isImage) {
+      // PDFs/DICOM con score bajo: marcar directamente sin segundo pass
+      await supabase
+        .from('study_drafts')
+        .update({ needs_review: true })
+        .eq('id', draft.id);
+    }
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error('[process-study-draft] failed', draft.id, msg);
@@ -107,6 +131,84 @@ async function processAndSave(draft: DraftRow): Promise<void> {
   }
 }
 
+async function runSecondPass(draft: DraftRow, pass1: Structured): Promise<void> {
+  try {
+    const paths = draft.storage_paths ?? [draft.storage_path];
+    const results: PageResult[] = [];
+
+    for (const path of paths) {
+      const mime = mimeFromPath(path);
+      if (!mime.startsWith('image/')) continue;
+
+      const { data: file } = await supabase.storage.from('studies').download(path);
+      if (!file) continue;
+
+      const buffer  = new Uint8Array(await file.arrayBuffer());
+      const base64  = encodeBase64(buffer);
+      const dataUrl = `data:${mime};base64,${base64}`;
+      const today   = new Date().toISOString().slice(0, 10);
+
+      const resp = await mistral!.chat.completions.create({
+        model: 'pixtral-12b-2409',
+        max_tokens: 1024,
+        temperature: 0,
+        messages: [
+          { role: 'system', content: SYSTEM_PROMPT },
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: `Categoría: ${draft.category}. Hoy: ${today}. Analizá este estudio médico con máxima atención al detalle. Extraé TODOS los valores numéricos y referencias que puedas identificar.`,
+              },
+              { type: 'image_url', image_url: { url: dataUrl } },
+            ] as never,
+          },
+        ],
+      });
+
+      const parsed = parseStructured(resp.choices[0]?.message?.content ?? '{}', today);
+      results.push(parsed);
+    }
+
+    if (results.length === 0) {
+      await supabase.from('study_drafts').update({ needs_review: true, ocr_pass: 2 }).eq('id', draft.id);
+      return;
+    }
+
+    // Mergear resultados del segundo pass
+    const merged = mergePageResults(results);
+    const score2 = computeImageScore(merged);
+
+    // Tomar la mejor extracción: si Pass 2 mejoró, actualizar campos
+    const finalScore  = Math.max(pass1.ocr_score, score2);
+    const betterPass  = score2 > pass1.ocr_score ? merged : pass1;
+    const mergedFields = { ...pass1.extracted_fields, ...merged.extracted_fields };
+
+    await supabase
+      .from('study_drafts')
+      .update({
+        study_type:       betterPass.study_type || pass1.study_type,
+        lab_name:         betterPass.lab_name   ?? pass1.lab_name,
+        study_date:       betterPass.study_date || pass1.study_date,
+        extracted_fields: mergedFields,
+        ocr_score:        finalScore,
+        ocr_pass:         2,
+        needs_review:     finalScore < 80,
+      })
+      .eq('id', draft.id);
+  } catch (err) {
+    console.error('[process-study-draft] second-pass failed:', err instanceof Error ? err.message : String(err));
+    // Segundo pass falló — mantener Pass 1 pero marcar revisión si score era bajo
+    await supabase
+      .from('study_drafts')
+      .update({ needs_review: pass1.ocr_score < 80, ocr_pass: 2 })
+      .eq('id', draft.id);
+  }
+}
+
+// ── Procesamiento principal ──────────────────────────────────────────────────
+
 async function process(draft: DraftRow): Promise<Structured> {
   const today = new Date().toISOString().slice(0, 10);
   const paths = draft.storage_paths ?? [draft.storage_path];
@@ -115,14 +217,14 @@ async function process(draft: DraftRow): Promise<Structured> {
     return processSinglePath(paths[0], draft.mime_type, draft.category, today);
   }
 
-  // Multi-página: procesar cada una y mergear resultados
   const results: PageResult[] = [];
   for (const path of paths) {
     const mime = mimeFromPath(path);
     const r = await processSinglePath(path, mime, draft.category, today);
-    results.push(r);
+    results.push({ ...r, confidence_score: r.ocr_score });
   }
-  return mergeResults(results);
+  const merged = mergeResults(results);
+  return merged;
 }
 
 async function processSinglePath(
@@ -145,48 +247,56 @@ async function processSinglePath(
     const { text } = await extractText(buffer, { mergePages: true });
     const rawText = (Array.isArray(text) ? text.join('\n') : text).trim();
     const structured = await structureFromText(rawText, category, today);
-    return { ...structured, raw_text: rawText };
+    const ocr_score  = computePdfScore(structured, rawText);
+    return { ...structured, raw_text: rawText, ocr_score };
   }
 
   if (mime === 'application/dicom') {
     const structured = await processDicom(buffer, today);
-    return { ...structured, raw_text: '' };
+    return { ...structured, raw_text: '', ocr_score: 95 };
   }
 
   // Imagen: DeepSeek Vision
   const base64  = encodeBase64(buffer);
   const dataUrl = `data:${mime};base64,${base64}`;
   const structured = await structureFromImage(dataUrl, category, today);
-  return { ...structured, raw_text: '' };
+  const ocr_score  = computeImageScore(structured);
+  return { ...structured, raw_text: '', ocr_score };
 }
 
-function mergeResults(pages: PageResult[]): Structured {
-  const merged: Structured = {
-    study_type:       '',
-    lab_name:         null,
-    study_date:       '',
-    extracted_fields: {},
-    raw_text:         '',
-  };
+// ── Score helpers ────────────────────────────────────────────────────────────
 
-  for (const page of pages) {
-    if (!merged.study_type && page.study_type) merged.study_type = page.study_type;
-    if (!merged.lab_name   && page.lab_name)   merged.lab_name   = page.lab_name;
-    if (!merged.study_date && page.study_date) merged.study_date = page.study_date;
-    // Páginas posteriores pueden sobreescribir campos de páginas anteriores (más completas)
-    Object.assign(merged.extracted_fields, page.extracted_fields);
-    if (page.raw_text) merged.raw_text += (merged.raw_text ? '\n' : '') + page.raw_text;
-  }
-
-  merged.study_type = merged.study_type || 'Estudio clínico';
-  return merged;
+function computePdfScore(
+  result: Omit<Structured, 'raw_text' | 'ocr_score'>,
+  rawText: string,
+): number {
+  if (!rawText || rawText.length < 30) return 20;
+  let score = 50;
+  if (rawText.length > 200) score += 10;
+  if (rawText.length > 800) score += 5;
+  if (result.study_type && result.study_type !== 'Estudio clínico') score += 15;
+  if (result.study_date) score += 10;
+  score += Math.min(Object.keys(result.extracted_fields).length * 2, 10);
+  return Math.min(score, 100);
 }
+
+function computeImageScore(
+  result: Omit<Structured, 'raw_text' | 'ocr_score'> & { confidence_score?: number },
+): number {
+  const llmConf   = typeof result.confidence_score === 'number' ? result.confidence_score : 50;
+  const fieldCount = Object.keys(result.extracted_fields).length;
+  // Si el modelo dice alta confianza pero no extrajo nada, no confiamos
+  if (llmConf > 70 && fieldCount === 0 && !result.study_type) return 40;
+  return Math.min(Math.round(llmConf), 100);
+}
+
+// ── LLM wrappers ─────────────────────────────────────────────────────────────
 
 async function structureFromText(
   text: string,
   category: string,
   today: string,
-): Promise<Omit<Structured, 'raw_text'>> {
+): Promise<Omit<Structured, 'raw_text' | 'ocr_score'> & { confidence_score?: number }> {
   const resp = await deepseek.chat.completions.create({
     model: 'deepseek-chat',
     max_tokens: 1024,
@@ -206,7 +316,7 @@ async function structureFromImage(
   dataUrl: string,
   category: string,
   today: string,
-): Promise<Omit<Structured, 'raw_text'>> {
+): Promise<Omit<Structured, 'raw_text' | 'ocr_score'> & { confidence_score?: number }> {
   const resp = await deepseek.chat.completions.create({
     model: 'deepseek-vl2',
     max_tokens: 1024,
@@ -228,25 +338,78 @@ async function structureFromImage(
   return parseStructured(resp.choices[0]?.message?.content ?? '{}', today);
 }
 
-function parseStructured(content: string, today: string): Omit<Structured, 'raw_text'> {
+function parseStructured(
+  content: string,
+  today: string,
+): Omit<Structured, 'raw_text' | 'ocr_score'> & { confidence_score?: number } {
   const clean = content.replace(/```json\n?|\n?```/g, '').trim();
   const parsed = JSON.parse(clean);
   return {
     study_type:       parsed.study_type ?? 'Estudio clínico',
-    lab_name:         parsed.lab_name ?? null,
+    lab_name:         parsed.lab_name   ?? null,
     study_date:       parsed.study_date ?? today,
     extracted_fields: parsed.extracted_fields ?? {},
+    confidence_score: typeof parsed.confidence_score === 'number' ? parsed.confidence_score : undefined,
   };
 }
 
-function mimeFromPath(path: string): string {
-  const ext = path.split('.').pop()?.toLowerCase() ?? '';
-  if (ext === 'pdf')  return 'application/pdf';
-  if (ext === 'png')  return 'image/png';
-  if (ext === 'webp') return 'image/webp';
-  if (ext === 'dcm')  return 'application/dicom';
-  return 'image/jpeg';
+// ── Merge multi-page ─────────────────────────────────────────────────────────
+
+function mergePageResults(
+  pages: (Omit<Structured, 'raw_text' | 'ocr_score'> & { confidence_score?: number })[],
+): Omit<Structured, 'raw_text' | 'ocr_score'> & { confidence_score?: number } {
+  const merged: Omit<Structured, 'raw_text' | 'ocr_score'> & { confidence_score?: number } = {
+    study_type:       '',
+    lab_name:         null,
+    study_date:       '',
+    extracted_fields: {},
+    confidence_score: undefined,
+  };
+  const scores: number[] = [];
+
+  for (const page of pages) {
+    if (!merged.study_type && page.study_type) merged.study_type = page.study_type;
+    if (!merged.lab_name   && page.lab_name)   merged.lab_name   = page.lab_name;
+    if (!merged.study_date && page.study_date) merged.study_date = page.study_date;
+    Object.assign(merged.extracted_fields, page.extracted_fields);
+    if (typeof page.confidence_score === 'number') scores.push(page.confidence_score);
+  }
+
+  merged.study_type       = merged.study_type || 'Estudio clínico';
+  if (scores.length > 0) merged.confidence_score = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
+
+  return merged;
 }
+
+function mergeResults(pages: PageResult[]): Structured {
+  const merged: Structured = {
+    study_type:       '',
+    lab_name:         null,
+    study_date:       '',
+    extracted_fields: {},
+    raw_text:         '',
+    ocr_score:        0,
+  };
+  const scores: number[] = [];
+
+  for (const page of pages) {
+    if (!merged.study_type && page.study_type) merged.study_type = page.study_type;
+    if (!merged.lab_name   && page.lab_name)   merged.lab_name   = page.lab_name;
+    if (!merged.study_date && page.study_date) merged.study_date = page.study_date;
+    Object.assign(merged.extracted_fields, page.extracted_fields);
+    if (page.raw_text) merged.raw_text += (merged.raw_text ? '\n' : '') + page.raw_text;
+    if (typeof page.confidence_score === 'number') scores.push(page.confidence_score);
+  }
+
+  merged.study_type = merged.study_type || 'Estudio clínico';
+  merged.ocr_score  = scores.length > 0
+    ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length)
+    : 50;
+
+  return merged;
+}
+
+// ── DICOM ────────────────────────────────────────────────────────────────────
 
 const MODALITY_NAMES: Record<string, string> = {
   CR: 'Radiografía', CT: 'Tomografía Computada', MR: 'Resonancia Magnética',
@@ -256,8 +419,7 @@ const MODALITY_NAMES: Record<string, string> = {
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function processDicom(buffer: Uint8Array, today: string): Promise<Omit<Structured, 'raw_text'>> {
-  // Validate DICM magic at byte offset 128
+async function processDicom(buffer: Uint8Array, today: string): Promise<Omit<Structured, 'raw_text' | 'ocr_score'>> {
   const magic = String.fromCharCode(buffer[128], buffer[129], buffer[130], buffer[131]);
   if (magic !== 'DICM') throw new Error('invalid DICOM: missing DICM preamble');
 
@@ -286,10 +448,10 @@ async function processDicom(buffer: Uint8Array, today: string): Promise<Omit<Str
   const study_type    = [modalityName, bodyPartLabel].filter(Boolean).join(' · ');
 
   const extracted_fields: Record<string, string> = {};
-  if (modalityRaw)  extracted_fields['Modalidad']       = modalityRaw;
+  if (modalityRaw)   extracted_fields['Modalidad']        = modalityRaw;
   if (bodyPartLabel) extracted_fields['Parte del cuerpo'] = bodyPartLabel;
-  if (studyDesc)    extracted_fields['Descripción']     = studyDesc;
-  if (rows && cols) extracted_fields['Resolución']      = `${cols} × ${rows} px`;
+  if (studyDesc)     extracted_fields['Descripción']      = studyDesc;
+  if (rows && cols)  extracted_fields['Resolución']       = `${cols} × ${rows} px`;
 
   return {
     study_type: study_type || 'Imagen DICOM',
@@ -299,6 +461,8 @@ async function processDicom(buffer: Uint8Array, today: string): Promise<Omit<Str
   };
 }
 
+// ── Utils ────────────────────────────────────────────────────────────────────
+
 function parseDicomDate(raw?: string): string | undefined {
   if (!raw || raw.length !== 8) return undefined;
   return `${raw.slice(0, 4)}-${raw.slice(4, 6)}-${raw.slice(6, 8)}`;
@@ -306,6 +470,15 @@ function parseDicomDate(raw?: string): string | undefined {
 
 function capitalizeFirst(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+function mimeFromPath(path: string): string {
+  const ext = path.split('.').pop()?.toLowerCase() ?? '';
+  if (ext === 'pdf')  return 'application/pdf';
+  if (ext === 'png')  return 'image/png';
+  if (ext === 'webp') return 'image/webp';
+  if (ext === 'dcm')  return 'application/dicom';
+  return 'image/jpeg';
 }
 
 function encodeBase64(buf: Uint8Array): string {
