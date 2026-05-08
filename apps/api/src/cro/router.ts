@@ -22,8 +22,8 @@ async function requireCro(req: Parameters<typeof requireAuth>[0], res: Parameter
 
   const allowlist = (process.env.CRO_ALLOWED_EMAILS ?? '').split(',').map((e) => e.trim().toLowerCase()).filter(Boolean);
   if (allowlist.length === 0) {
-    if (process.env.NODE_ENV !== 'production') { next(); return; }
-    res.status(403).json({ error: 'CRO access not configured' });
+    console.error('[cro] CRO_ALLOWED_EMAILS no configurado — acceso denegado');
+    res.status(503).json({ error: 'Panel CRO no configurado' });
     return;
   }
 

@@ -10,8 +10,20 @@ import extractRouter from './extract/router';
 const app = express();
 const PORT = process.env.PORT ?? 3000;
 
+const corsOrigins = (process.env.CORS_ORIGIN ?? '')
+  .split(',').map(s => s.trim()).filter(Boolean);
+
+if (corsOrigins.length === 0) {
+  if (process.env.NODE_ENV === 'production') {
+    console.error('[FATAL] CORS_ORIGIN no configurado — deteniendo servidor');
+    process.exit(1);
+  }
+  console.warn('[security] CORS_ORIGIN no configurado — usando defaults de desarrollo');
+  corsOrigins.push('http://localhost:5173', 'http://localhost:5174');
+}
+
 app.use(helmet());
-app.use(cors({ origin: process.env.CORS_ORIGIN ?? '*' }));
+app.use(cors({ origin: corsOrigins, credentials: true }));
 app.use(express.json({ limit: '10mb' }));
 
 app.get('/health', (_req, res) => {

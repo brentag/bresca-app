@@ -89,7 +89,7 @@ router.post('/chat', requireAuth, async (req, res) => {
     });
     text = response.choices[0]?.message?.content ?? '';
   } catch (err) {
-    console.error('DeepSeek API error:', err);
+    console.error('DeepSeek API error:', err instanceof Error ? err.message : String(err));
     res.status(503).json({ error: 'Servicio temporalmente no disponible. Intentá en unos minutos.' });
     return;
   }

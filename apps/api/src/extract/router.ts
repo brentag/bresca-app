@@ -20,7 +20,7 @@ router.post('/', requireAuth, async (req, res) => {
     return;
   }
 
-  const userId = (req as unknown as { user: { id: string } }).user.id;
+  const userId: string = res.locals.userId;
 
   // Todos los paths deben pertenecer al usuario autenticado
   if (!parse.data.storage_paths.every(p => p.startsWith(`${userId}/`))) {
@@ -73,7 +73,7 @@ router.post('/', requireAuth, async (req, res) => {
     .single();
 
   if (insErr || !draft) {
-    console.error('[extract] insert draft failed', insErr);
+    console.error('[extract] insert draft failed:', insErr?.code ?? 'unknown');
     res.status(500).json({ error: 'enqueue_failed' });
     return;
   }

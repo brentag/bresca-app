@@ -2,6 +2,9 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { requireAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
+import { checkRateLimit } from '../copilot/rate-limit';
+
+const QR_MAX_PER_HOUR = 10;
 
 const router = Router();
 
@@ -16,6 +19,12 @@ router.post('/generate', requireAuth, async (req, res) => {
   if (!parse.success) { res.status(400).json({ error: 'Invalid body' }); return; }
 
   const userId: string = res.locals.userId;
+
+  const { allowed } = checkRateLimit(`qr:${userId}`, QR_MAX_PER_HOUR);
+  if (!allowed) {
+    res.status(429).json({ error: 'Demasiados QR generados. Intentá de nuevo en una hora.' });
+    return;
+  }
   const { study_ids, ttl_hours } = parse.data;
 
   // Verify all studies belong to this user
