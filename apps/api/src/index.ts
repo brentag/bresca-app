@@ -23,7 +23,16 @@ if (corsOrigins.length === 0) {
   corsOrigins.push('http://localhost:5173', 'http://localhost:5174');
 }
 
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc:    ["'none'"],
+      frameAncestors:["'none'"],
+    },
+  },
+  frameguard:    { action: 'deny' },
+  referrerPolicy:{ policy: 'no-referrer' },
+}));
 app.use(cors({ origin: corsOrigins, credentials: true }));
 app.use(express.json({ limit: '10mb' }));
 

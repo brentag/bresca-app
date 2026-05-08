@@ -243,6 +243,8 @@ async function processSinglePath(
 
   const buffer = new Uint8Array(await file.arrayBuffer());
 
+  validateMagicBytes(buffer, mime);
+
   if (mime === 'application/pdf') {
     const { text } = await extractText(buffer, { mergePages: true });
     const rawText = (Array.isArray(text) ? text.join('\n') : text).trim();
@@ -462,6 +464,28 @@ async function processDicom(buffer: Uint8Array, today: string): Promise<Omit<Str
 }
 
 // ── Utils ────────────────────────────────────────────────────────────────────
+
+function validateMagicBytes(buf: Uint8Array, claimedMime: string): void {
+  const isPdf  = buf[0] === 0x25 && buf[1] === 0x50 && buf[2] === 0x44 && buf[3] === 0x46; // %PDF
+  const isJpeg = buf[0] === 0xFF && buf[1] === 0xD8 && buf[2] === 0xFF;
+  const isPng  = buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4E && buf[3] === 0x47; // \x89PNG
+  const isWebP = buf[0] === 0x52 && buf[1] === 0x49 && buf[2] === 0x46 && buf[3] === 0x46  // RIFF
+              && buf.length > 11
+              && buf[8] === 0x57 && buf[9] === 0x45 && buf[10] === 0x42 && buf[11] === 0x50; // WEBP
+  const isDicom = buf.length > 131
+              && buf[128] === 0x44 && buf[129] === 0x49 && buf[130] === 0x43 && buf[131] === 0x4D; // DICM
+
+  const valid =
+    (claimedMime === 'application/pdf'   && isPdf)  ||
+    (claimedMime === 'image/jpeg'        && isJpeg) ||
+    (claimedMime === 'image/png'         && isPng)  ||
+    (claimedMime === 'image/webp'        && isWebP) ||
+    (claimedMime === 'application/dicom' && isDicom);
+
+  if (!valid) {
+    throw new Error(`mime_mismatch: claimed=${claimedMime} actual_bytes=[${buf[0]},${buf[1]},${buf[2]},${buf[3]}]`);
+  }
+}
 
 function parseDicomDate(raw?: string): string | undefined {
   if (!raw || raw.length !== 8) return undefined;
