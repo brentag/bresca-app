@@ -36,6 +36,27 @@ app.use(helmet({
 app.use(cors({ origin: corsOrigins, credentials: true }));
 app.use(express.json({ limit: '10mb' }));
 
+// S-14 — access log de requests autenticados (sin body, sin tokens en path)
+function sanitizePath(p: string): string {
+  return p
+    .replace(/\/qr\/[^/]+/, '/qr/:token')
+    .replace(/\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/g, '/:id');
+}
+app.use((req, res, next) => {
+  res.on('finish', () => {
+    const userId = res.locals.userId as string | undefined;
+    if (!userId) return;
+    console.log(JSON.stringify({
+      t: new Date().toISOString(),
+      m: req.method,
+      p: sanitizePath(req.path),
+      s: res.statusCode,
+      u: userId,
+    }));
+  });
+  next();
+});
+
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', ts: new Date().toISOString() });
 });

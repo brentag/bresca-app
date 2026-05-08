@@ -110,18 +110,50 @@ router.get('/:token', async (req, res) => {
     .eq('confirmed', true);
 
   const SAFE_FIELDS = new Set([
-    'Hemoglobina','Hematocrito','Leucocitos','Plaquetas','VCM','Glucosa','Creatinina',
-    'Colesterol total','Triglicéridos','Ácido úrico','TSH','T4L','T3L','CVF','VEF1',
-    'Relación VEF1/CVF','Ritmo','FC','QRS','Conclusión','Hallazgo','Técnica',
+    // Hemograma
+    'Hemoglobina','Hematocrito','Leucocitos','Plaquetas','VCM','HCM','CHCM','RDW',
+    'Neutrófilos','Linfocitos','Monocitos','Eosinófilos','Basófilos','Eritrocitos',
+    // Bioquímica
+    'Glucosa','Creatinina','Urea','Ácido úrico','Proteínas totales','Albúmina',
+    'Bilirrubina total','Bilirrubina directa','Bilirrubina indirecta',
+    // Lípidos
+    'Colesterol total','Triglicéridos','HDL','LDL','VLDL','Colesterol/HDL',
+    // Función hepática
+    'TGO','TGP','AST','ALT','GGT','FAL','Fosfatasa alcalina',
+    // Tiroides
+    'TSH','T4L','T3L','T4 total','T3 total',
+    // Electrolitos
+    'Sodio','Potasio','Cloro','Calcio','Fósforo','Magnesio',
+    // Coagulación
+    'KPTT','Tiempo de protrombina','INR','Fibrinógeno',
+    // Orina
+    'Densidad','pH','Proteinuria','Glucosuria','Leucocituria',
+    // Ferrocinética
+    'Hierro sérico','Ferritina','Transferrina','TIBC','Saturación de transferrina',
+    // Hormonas
+    'FSH','LH','Estradiol','Testosterona','Prolactina','Cortisol','Insulina','HOMA',
+    // Marcadores inflamación
+    'PCR','VSG','Factor reumatoideo',
+    // Función renal
+    'Clearance de creatinina','Microalbuminuria',
+    // Imágenes / ECG / Informes
+    'Ritmo','FC','QRS','Conclusión','Hallazgo','Técnica',
+    'Diagnóstico','Impresión diagnóstica','Modalidad','Parte del cuerpo','Resolución','Descripción',
   ]);
 
-  const safeStudies = (studies ?? []).map(s => ({
-    ...s,
-    extracted_fields: Object.fromEntries(
-      Object.entries((s.extracted_fields as Record<string, unknown>) ?? {})
-        .filter(([k]) => SAFE_FIELDS.has(k))
-    ),
-  }));
+  const safeStudies = (studies ?? []).map(s => {
+    const raw = (s.extracted_fields as Record<string, unknown>) ?? {};
+    const discarded = Object.keys(raw).filter(k => !SAFE_FIELDS.has(k));
+    if (discarded.length > 0) {
+      console.warn('[QR] campos descartados por SAFE_FIELDS', { study_id: s.id, discarded });
+    }
+    return {
+      ...s,
+      extracted_fields: Object.fromEntries(
+        Object.entries(raw).filter(([k]) => SAFE_FIELDS.has(k)),
+      ),
+    };
+  });
 
   res.json({ studies: safeStudies, expires_at: qrToken.expires_at });
 });
