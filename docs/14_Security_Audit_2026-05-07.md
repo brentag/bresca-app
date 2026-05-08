@@ -19,21 +19,23 @@ Las fortalezas más importantes del sistema son: RLS activo en todas las tablas 
 
 | ID | Severidad | Área | Título | Estado |
 |----|-----------|------|--------|--------|
-| S-01 | CRÍTICO | API | CORS con fallback `*` en producción | Abierto |
-| S-02 | CRÍTICO | API | Rate limiting del Copilot en memoria — no distribuido | Abierto |
+| S-01 | CRÍTICO | API | CORS con fallback `*` en producción | ✅ Resuelto `1651d9b` |
+| S-02 | CRÍTICO | API | Rate limiting del Copilot en memoria — no distribuido | ✅ Resuelto `1651d9b` |
 | S-03 | ALTO | Edge Function | Sin validación de propietario en `process-study-draft` | Abierto |
-| S-04 | ALTO | API | Sin rate limiting en endpoints QR (GET + POST) | Abierto |
-| S-05 | ALTO | API | Bypass de autorización CRO en entornos non-production | Abierto |
+| S-04 | ALTO | API | Sin rate limiting en endpoints QR (GET + POST) | ✅ Resuelto `1651d9b` |
+| S-05 | ALTO | API | Bypass de autorización CRO en entornos non-production | ✅ Resuelto `1651d9b` |
 | S-06 | ALTO | API | Allowlist `SAFE_FIELDS` incompleta en GET /qr/:token | Abierto |
 | S-07 | ALTO | DB | `edge_secret` en `current_setting()` de BD (no en Vault) | Abierto |
 | S-08 | MEDIO | DB | MD5 para anonimización de `profile_id` en borrado de cuenta | Abierto |
-| S-09 | MEDIO | API | Información sensible potencial en `console.error()` | Abierto |
+| S-09 | MEDIO | API | Información sensible potencial en `console.error()` | ✅ Resuelto `1651d9b` |
 | S-10 | MEDIO | DB | QR tokens expirados sin limpieza automática | Abierto |
 | S-11 | MEDIO | DB | `integrity_hash` calculado pero nunca validado | Abierto |
 | S-12 | MEDIO | API | Validación de `categories` sin whitelist en CRO /match | Abierto |
 | S-13 | BAJO | API | Prompt injection a través de `{{VAULT_CONTEXT}}` | Abierto |
 | S-14 | BAJO | API | Sin logging de accesos autenticados | Abierto |
 | S-15 | BAJO | DB | Vistas SQL sin RLS (protección solo por GRANT/REVOKE) | Aceptado |
+
+> **Fix extra aplicado:** `extract/router.ts` usaba `(req as unknown as { user: { id: string } }).user.id` (cast inseguro no tipado) en lugar de `res.locals.userId` establecido por `requireAuth`. Corregido en `1651d9b`.
 
 ---
 
