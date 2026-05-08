@@ -122,6 +122,12 @@ export default function StudyDetail() {
         {Object.entries((study.extracted_fields as Record<string, string>) ?? {}).length > 0 && (
           <>
             <p style={{ fontSize: 11, fontWeight: 600, color: '#94A3B8', letterSpacing: '0.08em', marginBottom: 10 }}>RESULTADOS</p>
+            <div style={{ background: '#FFF7ED', border: '1px solid #FED7AA', borderRadius: 12, padding: '10px 14px', marginBottom: 10, display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+              <span style={{ fontSize: 14, flexShrink: 0, marginTop: 1 }}>⚕️</span>
+              <p style={{ fontSize: 12, color: '#92400E', lineHeight: 1.55, margin: 0 }}>
+                Este resumen es <strong>asistivo, no diagnóstico</strong>. Siempre verificá los valores con tu médico antes de tomar decisiones de salud.
+              </p>
+            </div>
             <div style={{ background: '#fff', borderRadius: 14, overflow: 'hidden', border: '1px solid #E2E8F0' }}>
               {Object.entries(study.extracted_fields as Record<string, string>).map(([key, val], i, arr) => (
                 <div key={key} style={{ padding: '12px 16px', borderBottom: i < arr.length - 1 ? '1px solid #F1F5F9' : 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

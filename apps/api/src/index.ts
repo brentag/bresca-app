@@ -6,6 +6,7 @@ import copilotRouter from './copilot/router';
 import qrRouter from './qr/router';
 import croRouter from './cro/router';
 import extractRouter from './extract/router';
+import accountRouter from './account/router';
 
 const app = express();
 const PORT = process.env.PORT ?? 3000;
@@ -34,6 +35,7 @@ app.use('/copilot', copilotRouter);
 app.use('/qr', qrRouter);
 app.use('/cro', croRouter);
 app.use('/extract', extractRouter);
+app.use('/account', accountRouter);
 
 app.listen(PORT, () => {
   console.log(`API running on port ${PORT}`);

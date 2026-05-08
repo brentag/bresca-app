@@ -23,6 +23,7 @@ import Family from './pages/app/Family';
 import Menu from './pages/app/Menu';
 import ConsentCenter from './pages/app/ConsentCenter';
 import Settings from './pages/app/Settings';
+import Privacidad from './pages/Privacidad';
 
 function RootRedirect() {
   const { session, loading } = useSession();
@@ -43,6 +44,7 @@ export default function App() {
           <Route path="/onboarding/year"       element={<ProtectedRoute><Year /></ProtectedRoute>} />
           <Route path="/onboarding/conditions" element={<ProtectedRoute><Conditions /></ProtectedRoute>} />
           <Route path="/onboarding/consent"    element={<ProtectedRoute><ConsentIntro /></ProtectedRoute>} />
+          <Route path="/privacidad" element={<Privacidad />} />
           <Route path="/qr/:token" element={<QRView />} />
           <Route path="/app" element={<ProtectedRoute><ConsentGateway /></ProtectedRoute>}>
             <Route index element={<Navigate to="/app/home" replace />} />

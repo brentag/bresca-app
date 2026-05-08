@@ -42,6 +42,14 @@ export async function generateQR(study_ids: string[], ttl_hours: number) {
   return res.json() as Promise<{ token: string; expires_at: string }>;
 }
 
+export async function deleteAccount(): Promise<void> {
+  const res = await fetch(`${BASE}/account`, {
+    method: 'DELETE',
+    headers: await authHeaders(),
+  });
+  if (!res.ok) throw new Error(`delete_account error ${res.status}`);
+}
+
 export async function revokeQR(token: string) {
   const res = await fetch(`${BASE}/qr/${token}`, { method: 'DELETE', headers: await authHeaders() });
   if (!res.ok) throw new Error(`revoke error ${res.status}`);
