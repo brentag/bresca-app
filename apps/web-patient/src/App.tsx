@@ -1,5 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { SessionProvider, useSession } from './lib/session';
+import { ThemeProvider } from './lib/theme';
+import { NotificationsProvider } from './lib/notifications';
 import ProtectedRoute from './components/ProtectedRoute';
 import { FullPageSpinner } from './components/Spinner';
 import Landing from './pages/Landing';
@@ -23,6 +25,8 @@ import Family from './pages/app/Family';
 import Menu from './pages/app/Menu';
 import ConsentCenter from './pages/app/ConsentCenter';
 import Settings from './pages/app/Settings';
+import Notifications from './pages/app/Notifications';
+import InvitationCenter from './pages/app/InvitationCenter';
 import Privacidad from './pages/Privacidad';
 
 function RootRedirect() {
@@ -33,6 +37,7 @@ function RootRedirect() {
 
 export default function App() {
   return (
+    <ThemeProvider>
     <SessionProvider>
       <BrowserRouter>
         <Routes>
@@ -46,7 +51,7 @@ export default function App() {
           <Route path="/onboarding/consent"    element={<ProtectedRoute><ConsentIntro /></ProtectedRoute>} />
           <Route path="/privacidad" element={<Privacidad />} />
           <Route path="/qr/:token" element={<QRView />} />
-          <Route path="/app" element={<ProtectedRoute><ConsentGateway /></ProtectedRoute>}>
+          <Route path="/app" element={<ProtectedRoute><NotificationsProvider><ConsentGateway /></NotificationsProvider></ProtectedRoute>}>
             <Route index element={<Navigate to="/app/home" replace />} />
             <Route path="home"         element={<Home />} />
             <Route path="vault"        element={<Vault />} />
@@ -56,12 +61,15 @@ export default function App() {
             <Route path="copilot"      element={<Asistente />} />
             <Route path="family"       element={<Family />} />
             <Route path="menu"         element={<Menu />} />
-            <Route path="consent"      element={<ConsentCenter />} />
-            <Route path="settings"     element={<Settings />} />
+            <Route path="consent"       element={<ConsentCenter />} />
+            <Route path="settings"      element={<Settings />} />
+            <Route path="notifications" element={<Notifications />} />
+            <Route path="invitations"   element={<InvitationCenter />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
     </SessionProvider>
+    </ThemeProvider>
   );
 }

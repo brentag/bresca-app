@@ -95,9 +95,13 @@ export async function enqueueExtract(
   try {
     return await attempt();
   } catch (err) {
-    // Render.com free tier cold-start: reintento único tras 4s
-    if (err instanceof TypeError) {
-      await new Promise(r => setTimeout(r, 4000));
+    // Render.com free tier cold-start: puede fallar con TypeError (red) o 502/503 (proxy).
+    // El servidor se mantiene caliente ~30s — esperamos y reintentamos una vez.
+    const isColdStart =
+      err instanceof TypeError ||
+      (err instanceof Error && /extract enqueue error (502|503|504)/.test(err.message));
+    if (isColdStart) {
+      await new Promise(r => setTimeout(r, 32_000));
       return attempt();
     }
     throw err;
