@@ -22,6 +22,18 @@ const ChatSchema = z.object({
     .default([]),
 });
 
+// S-13 — strip prompt-injection patterns before inserting vault data into system prompt
+function sanitizeForPrompt(text: string): string {
+  return text
+    .replace(/\[\[.*?\]\]/gs, '')              // wiki-links / Obsidian-style refs
+    .replace(/ignor[ae]\b/gi, '***')           // ignore / ignora / ignorar
+    .replace(/instruc(ci[oó]n|tion)s?/gi, '***')  // instrucción / instructions
+    .replace(/olvid[ae]\b/gi, '***')           // olvidar / olvida / forget
+    .replace(/system\s*prompt/gi, '***')       // system prompt leakage
+    .replace(/jailbreak/gi, '***')
+    .slice(0, 4000);
+}
+
 async function buildVaultContext(userId: string): Promise<string> {
   const { data: profile } = await supabase
     .from('profiles')
@@ -74,7 +86,7 @@ router.post('/chat', requireAuth, async (req, res) => {
 
   const { message, history } = parse.data;
   const vaultContext = await buildVaultContext(userId);
-  const systemPrompt = COPILOT_SYSTEM_PROMPT_V1.replace('{{VAULT_CONTEXT}}', vaultContext);
+  const systemPrompt = COPILOT_SYSTEM_PROMPT_V1.replace('{{VAULT_CONTEXT}}', sanitizeForPrompt(vaultContext));
 
   let text: string;
   try {

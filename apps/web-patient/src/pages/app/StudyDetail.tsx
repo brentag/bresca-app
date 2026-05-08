@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, QrCode, FileText, X, RefreshCw } from 'lucide-react';
+import { ArrowLeft, QrCode, FileText, X, RefreshCw, Printer } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { categoryColor, formatStudyDate } from '../../lib/vault';
 import { FullPageSpinner } from '../../components/Spinner';
+import { exportStudyPDF } from '../../lib/export-pdf';
 import type { Database } from '@bresca/shared';
 
 type Study = Database['public']['Tables']['studies']['Row'];
@@ -65,12 +66,21 @@ export default function StudyDetail() {
         <button onClick={() => nav(-1)} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: '#64748B', fontSize: 15, cursor: 'pointer', minHeight: 44 }}>
           <ArrowLeft size={18} /> Vault
         </button>
-        <button
-          onClick={() => nav('/app/vault/qr', { state: { study_id: study.id } })}
-          style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: '#00C87A', fontSize: 14, fontWeight: 600, cursor: 'pointer', minHeight: 44 }}
-        >
-          <QrCode size={18} /> Compartir QR
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <button
+            onClick={() => exportStudyPDF(study)}
+            style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'none', border: 'none', color: '#64748B', fontSize: 13, fontWeight: 500, cursor: 'pointer', minHeight: 44, padding: '0 8px' }}
+            title="Exportar para médico"
+          >
+            <Printer size={17} /> Para médico
+          </button>
+          <button
+            onClick={() => nav('/app/vault/qr', { state: { study_id: study.id } })}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: '#00C87A', fontSize: 14, fontWeight: 600, cursor: 'pointer', minHeight: 44 }}
+          >
+            <QrCode size={18} /> Compartir QR
+          </button>
+        </div>
       </div>
 
       <div style={{ padding: '20px' }}>
