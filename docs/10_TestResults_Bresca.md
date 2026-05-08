@@ -7,7 +7,7 @@
 | **Estado** | `COMPLETE` |
 | **Ejecutado por** | Claude Haiku 4.5 (agente Orange) |
 | **Fecha** | Mayo 2026 |
-| **Plan de pruebas** | `docs/09_TestPlan_Bresca.md` |
+| **Plan de pruebas** | [[09_TestPlan_Bresca|docs/09_TestPlan_Bresca.md]] |
 
 ---
 
@@ -194,6 +194,15 @@ Soy Laura, investigadora del CRO. El sistema me devuelve `patient_hash` (md5 del
 **CRO (TS-019 a TS-022):** Dashboard carga sin errores; empty states claros con "sin datos". k-anonimato `HAVING count >= 5` forzado en SQL. Matching retorna `patient_hash` (md5), nunca `profile_id` real.
 
 **Seguridad (TS-024, TS-025, TS-026):** `SUPABASE_SERVICE_ROLE_KEY` solo en `apps/api/src/lib/supabase.ts`. `extracted_fields` filtrado por allowlist antes de responder al cliente. RLS habilitado en `profiles`, `studies`, `study_drafts`, `consent_audit`, `qr_tokens` y storage.
+
+---
+
+## Links relacionados
+
+- [[09_TestPlan_Bresca|Test Plan — Escenarios de prueba]]
+- [[03_PRD_Bresca|PRD — Product Requirements Document]]
+- [[04_TechSpec_Bresca|Tech Spec — Technical Specification]]
+- [[06_Runbook_Bresca|Runbook — Procedimientos de deploy y QA]]
 
 ---
 

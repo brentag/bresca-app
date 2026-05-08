@@ -12,7 +12,7 @@
 
 ## 1. Resumen ejecutivo
 
-Este RFC define el problema técnico central de Bresca: los pacientes no tienen control real sobre sus datos médicos dispersos, y los investigadores clínicos no pueden acceder a cohortes calificadas sin violar privacidad. Bresca resuelve ambos lados con una arquitectura two-sided basada en consentimiento auditado y anonimización estructural.
+Este RFC define el problema técnico central de Bresca: los pacientes no tienen control real sobre sus datos médicos dispersos, y los investigadores clínicos no pueden acceder a cohortes calificadas sin violar privacidad. Bresca resuelve ambos lados con una arquitectura two-sided basada en consentimiento auditado y anonimización estructural. Ver [[03_PRD_Bresca|PRD]] para features del MVP y [[02_ADR_Bresca|ADR]] para decisiones técnicas derivadas.
 
 ---
 
@@ -48,9 +48,9 @@ Este RFC define el problema técnico central de Bresca: los pacientes no tienen 
 
 > **Two-Sided Network:** el valor para el paciente (organizar su historial) genera el activo para el CRO (cohortes calificadas anónimas). Ninguno de los dos lados funciona sin el otro.
 
-- **Lado B2C — Health Vault:** repositorio personal de estudios médicos con OCR + extracción automática de campos clínicos.
-- **Lado B2B — CRO Panel:** acceso anonimizado a cohortes con fit score por criterio clínico. El CRO nunca ve nombre, DNI ni ningún identificador.
-- **Puente — Sistema de consentimiento:** 3 capas (producto / investigación / área terapéutica) con auditoría en DB. Revocable en cualquier momento.
+- **Lado B2C — Health Vault:** repositorio personal de estudios médicos con OCR + extracción automática de campos clínicos (F-002 en [[03_PRD_Bresca|PRD]]).
+- **Lado B2B — CRO Panel:** acceso anonimizado a cohortes con fit score por criterio clínico. El CRO nunca ve nombre, DNI ni ningún identificador (F-007, F-008 en [[03_PRD_Bresca|PRD]]).
+- **Puente — Sistema de consentimiento:** 3 capas (producto / investigación / área terapéutica) con auditoría en DB. Revocable en cualquier momento (F-006 en [[03_PRD_Bresca|PRD]]).
 
 ### 3.2 Decisiones de diseño que define este RFC
 
@@ -61,6 +61,8 @@ Este RFC define el problema técnico central de Bresca: los pacientes no tienen 
 | Consentimiento | 3 capas granulares con auditoría en DB | Requisito LGPD Art. 7 + estándar ICH GCP para investigación clínica |
 | OCR | Google Document AI + confirmación manual obligatoria | Extracción automática siempre pasa por validación humana — no auto-commit |
 | Copilot IA | Claude API con contexto del vault del usuario | Disclaimer no-diagnóstico. Nunca procesa datos de otros usuarios. |
+
+Detalle de cada decisión en [[02_ADR_Bresca|ADR-001 a ADR-005]].
 
 ---
 
@@ -79,10 +81,10 @@ Este RFC define el problema técnico central de Bresca: los pacientes no tienen 
 
 | Riesgo | Probabilidad | Impacto | Mitigación |
 |---|---|---|---|
-| OCR inconsistente según tipo de documento | Alta | Alto | Confirmación manual obligatoria. Never auto-commit. |
-| Brecha en RLS con multi-perfil familiar | Media | Crítico | Test suite dedicado. Auditoría en Fase 5. |
-| Context window del Copilot excede límites | Media | Medio | Chunking + selección semántica de estudios relevantes. |
-| Normalización OCR inconsistente con criterios CRO | Alta | Alto | Definir schema de campos en Fase 1 antes del matching. |
+| OCR inconsistente según tipo de documento | Alta | Alto | Confirmación manual obligatoria. Never auto-commit. (ver [[03_PRD_Bresca|PRD F-002]]) |
+| Brecha en RLS con multi-perfil familiar | Media | Crítico | Test suite dedicado. Auditoría en Fase 5. (Testear en [[09_TestPlan_Bresca|TestPlan TS-015, TS-016]]) |
+| Context window del Copilot excede límites | Media | Medio | Chunking + selección semántica de estudios relevantes. (Ver [[02_ADR_Bresca|ADR-005]]) |
+| Normalización OCR inconsistente con criterios CRO | Alta | Alto | Definir schema de campos en Fase 1 antes del matching. (Schema en [[04_TechSpec_Bresca|TechSpec]]) |
 
 ---
 
@@ -91,7 +93,7 @@ Este RFC define el problema técnico central de Bresca: los pacientes no tienen 
 - [ ] El equipo de ingeniería ha revisado y no tiene objeciones bloqueantes.
 - [ ] El schema de consentimiento auditado está aprobado por el asesor legal.
 - [ ] El modelo de anonimización (vistas SQL sin PII) está validado por el DPO o responsable de privacidad.
-- [ ] Las decisiones técnicas del RFC-001 están reflejadas en ADR-001 a ADR-005.
+- [ ] Las decisiones técnicas del RFC-001 están reflejadas en [[02_ADR_Bresca|ADR-001 a ADR-005]].
 
 ---
 
@@ -101,6 +103,15 @@ Este RFC define el problema técnico central de Bresca: los pacientes no tienen 
 - Incorporar feedback en versión 1.1.
 - Mover estado a `ACCEPTED` e iniciar implementación Fase 1.
 - Crear ADRs derivados para cada decisión técnica listada en sección 3.2.
+
+---
+
+## Links relacionados
+
+- [[02_ADR_Bresca|ADR — Architecture Decision Records]]
+- [[03_PRD_Bresca|PRD — Product Requirements Document]]
+- [[04_TechSpec_Bresca|Tech Spec — Technical Specification]]
+- [[05_SystemDesign_Bresca|System Design Document]]
 
 ---
 

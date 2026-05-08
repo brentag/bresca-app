@@ -1,6 +1,8 @@
 # Checkpoint — 2026-05-07
 **Estado general:** ✅ Todos los servicios en producción — QA 12/14 (T01c+T11 cold-start únicamente).
 
+**Documentación relacionada:** [[04_TechSpec_Bresca|TechSpec]] | [[05_SystemDesign_Bresca|SystemDesign]] | [[06_Runbook_Bresca|Runbook]] | [[09_TestPlan_Bresca|TestPlan]] | [[10_TestResults_Bresca|TestResults]]
+
 ---
 
 ## Estado de servicios
@@ -18,7 +20,7 @@
 
 | Hash | Descripción |
 |---|---|
-| `a10f0bd` | fix(auth): separar flujo Acceder / Crear cuenta en Welcome |
+| `a10f0bd` | fix(auth): separar flujo Acceder / Crear cuenta en Welcome (ver [[03_PRD_Bresca|PRD F-001]]) |
 | `d525d0e` | feat(landing): agregar variante B2C UI Kit (Hostinger) al hub de landing |
 
 ---
@@ -150,7 +152,7 @@ Supabase ignora `emailRedirectTo` si la URL no está en la allowlist. Hay que ag
 
 | Item | Prioridad | Detalle |
 |---|---|---|
-| **⚠️ Supabase Allowed Redirect URLs** | 🔴 Alta | Dashboard → Auth → URL Configuration → agregar `https://bresca-app-api.vercel.app/**`. Sin esto el magic link ignora `?mode=` y redirige al root. |
+| ~~Supabase Allowed Redirect URLs~~ | ✅ Hecho | `https://bresca-app-api.vercel.app/**` agregado — magic link ya redirige correctamente |
 | **Deploy Edge Function** | 🔴 Alta | `supabase functions deploy process-study-draft --project-ref mkacuagcvwxoduhdthwg` — el fix de `EdgeRuntime.waitUntil` (`55e8577`) no está activo en producción hasta correr esto |
 | **Elegir 2 variantes finalistas** | 🟡 Media | De las 8 en `/landing/`, elegir 2 para A/B. Luego implementar split + tracking |
 | **A/B testing landing** | 🟡 Media | Vercel Middleware para split aleatorio + propagar variant tag al signup event en Supabase |
@@ -192,3 +194,4 @@ Hub accesible en: `bresca-app-api.vercel.app/landing/`
 | `554e114` | 17:07 | fix(auth): corregir maybeSingle() con perfiles duplicados + desbloquear T&C |
 | `0129e65` | 17:19 | fix(landing): CTAs de variantes redirigen a /welcome en vez de simular registro |
 | `a3a7f52` | 18:17 | feat(build): version badge + fix magic link auth redirect |
+| `0542290` | 18:24 | docs: checkpoint 2026-05-07 completo — perfiles duplicados, CTAs landing, magic link, version badge |

@@ -140,3 +140,4 @@
 | `28a1720` | 13:29 | feat(landing): hub de diseño accesible en /landing desde bresca-app-api.vercel.app |
 | `f34ff73` | 14:22 | feat(landing): agregar V1 Clinical Trust, V2 Human Warm, V3 Tech Forward al selector |
 | `55e8577` | 14:53 | feat(upload): progress bar real + Edge Function async no bloqueante |
+| `ccaa6ff` | 16:34 | docs: checkpoint 2026-05-06 final — upload async + landing hub + GPT Salud |

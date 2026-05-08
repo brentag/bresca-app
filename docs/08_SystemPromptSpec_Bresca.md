@@ -8,7 +8,7 @@
 | **Modelos** | `claude-sonnet-4-5` / `claude-opus-4-6` |
 | **Fecha** | Abril 2026 |
 | **Estado** | `APPROVED` |
-| **Relacionado con** | ADR-005, Tech Spec v1.0 |
+| **Relacionado con** | [[02_ADR_Bresca|ADR-005]], [[04_TechSpec_Bresca|Tech Spec v1.0]], [[03_PRD_Bresca|PRD F-003]] |
 
 ---
 
@@ -253,6 +253,16 @@ npm run test:integration --filter=@bresca/api -- --testPathPattern=copilot-rules
   "¿Tengo algún estudio pendiente de revisar?"
 ]
 ```
+
+---
+
+## Links relacionados
+
+- [[02_ADR_Bresca|ADR-005 — Claude API como motor del Copilot]]
+- [[03_PRD_Bresca|PRD — F-003 AI Copilot]]
+- [[04_TechSpec_Bresca|Tech Spec — Technical Specification]]
+- [[09_TestPlan_Bresca|Test Plan — Escenarios Copilot TS-008 a TS-010]]
+- [[10_TestResults_Bresca|Test Results — Resultados Copilot]]
 
 ---
 

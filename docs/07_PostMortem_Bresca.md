@@ -7,6 +7,7 @@
 | **Filosofía** | Blameless. Los sistemas fallan, no las personas. |
 | **Dueño** | Engineering Lead |
 | **Fecha** | Abril 2026 |
+| **Relacionado con** | [[06_Runbook_Bresca|Runbook — Procedimientos de incidente]] |
 
 ---
 
@@ -175,6 +176,13 @@ Los Post-Mortems en Bresca son **blameless** por diseño. El objetivo no es enco
 | — | — | — | — | — |
 
 *Agregar cada PM aquí cuando se crea.*
+
+---
+
+## Links relacionados
+
+- [[06_Runbook_Bresca|Runbook — Operational Guide]]
+- [[05_SystemDesign_Bresca|System Design Document]]
 
 ---
 

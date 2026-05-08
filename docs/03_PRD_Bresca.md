@@ -7,7 +7,7 @@
 | **Estado** | `APPROVED` |
 | **PM** | Product Lead |
 | **Fecha target** | Q3 2026 |
-| **Relacionado con** | RFC-001, ADR-001 a ADR-005 |
+| **Relacionado con** | [[01_RFC-001_Bresca|RFC-001]], [[02_ADR_Bresca|ADR-001 a ADR-005]], [[04_TechSpec_Bresca|Tech Spec]] |
 
 ---
 
@@ -56,9 +56,10 @@ Para el investigador clínico, Bresca es la plataforma de reclutamiento más efi
 #### F-003: AI Copilot
 
 - Chat en lenguaje natural sobre el historial médico del usuario.
-- Contexto: top-K estudios relevantes del vault (retrieval semántico — ver ADR-005).
+- Contexto: top-K estudios relevantes del vault (retrieval semántico — ver [[02_ADR_Bresca|ADR-005]]).
 - Disclaimer permanente visible: *"No soy un médico. Esta información no reemplaza la consulta con tu médico."*
 - Sugerencia de preguntas frecuentes para reducir fricción de primer uso.
+- Especificación técnica del system prompt en [[08_SystemPromptSpec_Bresca|System Prompt Spec]].
 - **Criterio de éxito:** CSAT de respuestas > 4.0/5.0 en primeras 100 sesiones.
 
 #### F-004: QR Sharing
@@ -143,6 +144,17 @@ Para el investigador clínico, Bresca es la plataforma de reclutamiento más efi
 - **Aprobación del schema de consentimiento por asesor legal** — requerido antes de Fase 3.
 - **API key de Google Document AI** — requerida antes del inicio de Fase 1.
 - **Cuenta de desarrollador Apple + Google Play** — requerida antes de Fase 5 para TestFlight y Play Internal.
+
+---
+
+## Links relacionados
+
+- [[01_RFC-001_Bresca|RFC-001 — Bresca Patient Data Network]]
+- [[02_ADR_Bresca|ADR — Architecture Decision Records]]
+- [[04_TechSpec_Bresca|Tech Spec — Technical Specification]]
+- [[08_SystemPromptSpec_Bresca|System Prompt Spec — Copilot IA]]
+- [[09_TestPlan_Bresca|Test Plan — Escenarios de prueba]]
+- [[10_TestResults_Bresca|Test Results — QA del MVP]]
 
 ---
 

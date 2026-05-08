@@ -2,12 +2,12 @@
 
 ## Contexto
 
-El MVP de Bresca está 100% en producción (2026-05-06) con QA 14/14. Todos los features del PRD original están implementados:
+El MVP de Bresca está 100% en producción (2026-05-06) con QA 14/14. Todos los features del [[03_PRD_Bresca|PRD]] original están implementados:
 - ✅ F-001 Onboarding, F-002 Health Vault + OCR, F-003 AI Copilot
 - ✅ F-004 QR Sharing (+ WhatsApp inline), F-005 Familia, F-006 Consentimiento 3 capas
 - ✅ F-007/F-008/F-009 Panel CRO (dashboard, matching anónimo, invitaciones)
 
-Este plan reorganiza el backlog existente más los 4 items nuevos (DICOM, Email-to-Vault, ChatGPT Health handoff, P2P Vault) en un roadmap por fases con orden de dependencias correcto.
+Este plan reorganiza el backlog existente más los 4 items nuevos (DICOM, Email-to-Vault, ChatGPT Health handoff, P2P Vault) en un roadmap por fases con orden de dependencias correcto. Ver [[00_bresca_mvp_plan|Plan MVP]] para el timeline original de las 5 fases del MVP.
 
 ---
 
@@ -252,12 +252,15 @@ F1 y F2 pueden ejecutarse en paralelo si se decide acelerar.
 
 ## Reglas que aplican a todas las fases
 
+Basadas en las decisiones de [[01_RFC-001_Bresca|RFC-001]], [[02_ADR_Bresca|ADR]], y [[04_TechSpec_Bresca|TechSpec]]:
+
 - Toda migración nueva va en `supabase/migrations/` con formato `YYYYMMDDHHMMSS_*.sql`
-- RLS policies en la misma migración que la tabla nueva
+- RLS policies en la misma migración que la tabla nueva (ver [[04_TechSpec_Bresca|TechSpec RLS Policies]])
 - Nunca auto-commit de datos extraídos (OCR, DICOM metadata) — siempre `confirmed=true` del usuario
-- Ningún dato del vault fluye a CRO sin `consent_audit` verificable
-- `MINIMUM_COHORT_SIZE = 5` en todas las vistas CRO
-- Post-deploy QA (`node scripts/post-deploy-qa.mjs`) antes de cerrar cada fase
+- Ningún dato del vault fluye a CRO sin `consent_audit` verificable (ver [[03_PRD_Bresca|PRD F-006]])
+- `MINIMUM_COHORT_SIZE = 5` en todas las vistas CRO ([[02_ADR_Bresca|ADR-002]] anonimización)
+- Post-deploy QA (`node scripts/post-deploy-qa.mjs`) antes de cerrar cada fase (ver [[06_Runbook_Bresca|Runbook deploy]])
+- Seguir checklist de [[08_SystemPromptSpec_Bresca|System Prompt]] si se agreguen cambios al Copilot
 
 ---
 
@@ -268,3 +271,17 @@ F1 y F2 pueden ejecutarse en paralelo si se decide acelerar.
 - **F3:** subir `.dcm` de prueba → StudyCard muestra metadata → click abre viewer con windowing ✅
 - **F4:** usuario A envía estudio a usuario B → B ve notificación → acepta → estudio aparece en vault de B → `consent_audit` tiene entry
 - **F5:** hacer pregunta al Copilot → aparecer CTA → click copia texto al clipboard y abre chat.openai.com
+
+---
+
+## Links relacionados
+
+- [[00_bresca_mvp_plan|Bresca App — Plan de Desarrollo MVP]]
+- [[01_RFC-001_Bresca|RFC-001 — Bresca Patient Data Network]]
+- [[03_PRD_Bresca|PRD — Product Requirements Document]]
+- [[04_TechSpec_Bresca|Tech Spec — Technical Specification]]
+- [[06_Runbook_Bresca|Runbook — Operational Guide]]
+
+---
+
+*Relacionado: [[00_bresca_mvp_plan|MVP Plan]] | [[01_RFC-001_Bresca|RFC-001]] | [[03_PRD_Bresca|PRD]].*

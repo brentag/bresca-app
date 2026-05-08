@@ -7,7 +7,7 @@
 | **Dueño** | Engineering Lead |
 | **Fecha** | Mayo 2026 |
 | **Audiencia** | Dev + Oncall |
-| **Relacionado con** | System Design v1.0, Post-Mortem template |
+| **Relacionado con** | [[05_SystemDesign_Bresca|System Design v1.0]], [[07_PostMortem_Bresca|Post-Mortem template]] |
 
 ---
 
@@ -81,6 +81,7 @@ curl http://localhost:3000/health
 
 4. Correr QA post-deploy:
    node scripts/post-deploy-qa.mjs
+   → Resultados documentados en [[10_TestResults_Bresca|Test Results]]
    → 12/14 tests deben pasar (2 SKIP por configuración pendiente es aceptable)
 
 5. Mobile (cuando corresponda)
@@ -252,6 +253,16 @@ node scripts/post-deploy-qa.mjs --no-issues
 # WHERE status = 'error' AND created_at > now() - interval '24h'
 # ORDER BY created_at DESC;
 ```
+
+---
+
+## Links relacionados
+
+- [[04_TechSpec_Bresca|Tech Spec — Technical Specification]]
+- [[05_SystemDesign_Bresca|System Design Document]]
+- [[07_PostMortem_Bresca|Post-Mortem Template]]
+- [[09_TestPlan_Bresca|Test Plan — Escenarios de prueba]]
+- [[10_TestResults_Bresca|Test Results — QA del MVP]]
 
 ---
 

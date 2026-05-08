@@ -7,7 +7,7 @@
 | **Estado** | `ACTIVE` |
 | **Autor** | Claude Sonnet 4.6 |
 | **Fecha** | Mayo 2026 |
-| **Relacionado con** | PRD v1.0, Tech Spec v1.0 |
+| **Relacionado con** | [[03_PRD_Bresca|PRD v1.0]], [[04_TechSpec_Bresca|Tech Spec v1.0]] |
 
 ---
 
@@ -289,6 +289,15 @@ apps/web-patient/src/  → app web paciente React
 apps/mobile/           → app mobile React Native
 supabase/migrations/   → SQL + RLS
 ```
+
+---
+
+## Links relacionados
+
+- [[03_PRD_Bresca|PRD — Product Requirements Document]]
+- [[04_TechSpec_Bresca|Tech Spec — Technical Specification]]
+- [[02_ADR_Bresca|ADR — Architecture Decision Records]]
+- [[10_TestResults_Bresca|Test Results — QA del MVP]]
 
 ---
 

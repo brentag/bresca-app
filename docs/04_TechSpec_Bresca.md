@@ -7,7 +7,7 @@
 | **Estado** | `APPROVED` |
 | **Autor** | Engineering Lead |
 | **Fecha** | Abril 2026 |
-| **Relacionado con** | ADR-001 a ADR-005, PRD v1.0 |
+| **Relacionado con** | [[02_ADR_Bresca|ADR-001 a ADR-005]], [[03_PRD_Bresca|PRD v1.0]] |
 
 ---
 
@@ -46,7 +46,7 @@ bresca/
 │   └── functions/
 │       └── process-study-draft/   # Edge Function OCR async
 ├── scripts/
-│   └── post-deploy-qa.mjs         # QA runner post-deploy
+│   └── post-deploy-qa.mjs         # QA runner post-deploy — ver [[06_Runbook_Bresca|Runbook]]
 ├── .claude/
 │   ├── CLAUDE.md        # Contexto base para Claude Code (< 200 líneas)
 │   ├── skills/          # Skills on-demand (supabase-rls, ocr-pipeline, etc.)
@@ -355,6 +355,16 @@ pnpm dev  # turbo: todos en paralelo
 # 5. Mobile (pendiente — no iniciado aún)
 # cd apps/mobile && npx expo start
 ```
+
+---
+
+## Links relacionados
+
+- [[01_RFC-001_Bresca|RFC-001 — Bresca Patient Data Network]]
+- [[02_ADR_Bresca|ADR — Architecture Decision Records]]
+- [[03_PRD_Bresca|PRD — Product Requirements Document]]
+- [[05_SystemDesign_Bresca|System Design Document]]
+- [[06_Runbook_Bresca|Runbook — Operational Guide]]
 
 ---
 

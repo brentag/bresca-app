@@ -2,6 +2,8 @@
 **UX/UI Prototype → MVP Funcional**  
 Fecha: Abril 2026 | Equipo: 1 dev + Claude Code | Stack: React Native + React Web + Node.js + Supabase
 
+**Relacionado con:** [[01_RFC-001_Bresca|RFC-001]] | [[02_ADR_Bresca|ADR]] | [[03_PRD_Bresca|PRD]] | [[04_TechSpec_Bresca|TechSpec]]
+
 ---
 
 ## Resumen ejecutivo
@@ -147,6 +149,16 @@ MVP en producción. URLs del panel CRO activas. App distribuida a testers intern
 ## Dónde va el tiempo real (lo que no se acelera con diseño)
 
 Estas 5 piezas son lógica de backend pura. El diseño no las acelera. Acortarlas es riesgo directo de bugs en producción con datos médicos.
+
+---
+
+## Links relacionados
+
+- [[01_RFC-001_Bresca|RFC-001 — Bresca Patient Data Network]]
+- [[02_ADR_Bresca|ADR — Architecture Decision Records]]
+- [[03_PRD_Bresca|PRD — Product Requirements Document]]
+- [[04_TechSpec_Bresca|Tech Spec — Technical Specification]]
+- [[11_Roadmap_PostMVP|Roadmap post-MVP v2.0]]
 
 | Componente | Por qué es complejo |
 |---|---|

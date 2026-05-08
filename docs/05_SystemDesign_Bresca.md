@@ -7,14 +7,14 @@
 | **Autor** | Engineering Lead |
 | **Fecha** | Mayo 2026 |
 | **Horizonte de diseño** | MVP → 100K usuarios |
-| **Relacionado con** | ADR-001 a ADR-006, Tech Spec v1.1 |
+| **Relacionado con** | [[02_ADR_Bresca|ADR-001 a ADR-006]], [[04_TechSpec_Bresca|Tech Spec v1.1]] |
 
 ---
 
 ## 1. Principios de diseño del sistema
 
-- **Privacy by design:** los datos PII nunca viajan fuera del contexto del usuario dueño.
-- **Consent as first-class citizen:** ningún dato del vault puede fluir hacia CRO sin `consent_audit` verificable.
+- **Privacy by design:** los datos PII nunca viajan fuera del contexto del usuario dueño. Ver detalle en [[04_TechSpec_Bresca|Tech Spec]] RLS policies.
+- **Consent as first-class citizen:** ningún dato del vault puede fluir hacia CRO sin `consent_audit` verificable (ver [[03_PRD_Bresca|PRD F-006]]).
 - **Fail secure:** si un componente falla, el default es acceso denegado. El sistema nunca falla abierto.
 - **Horizontal scalability:** API stateless. El estado vive en Supabase. La API escala en réplicas sin cambios de código.
 - **Separation of concerns:** el auth B2C y el auth CRO son sistemas separados. No comparten tokens ni sesiones.
@@ -176,6 +176,16 @@ GET /health → {
 | Mínimo de cohorte en CRO | `HAVING count(*) >= 5` en vista anónima. Hardcodeado en migración, no configurable por CRO. |
 | patient_hash solo como output | Ningún endpoint `/cro/` acepta `patient_hash` como parámetro de entrada (TS-023). |
 | CORS en API | Solo dominios de Vercel configurados + `localhost:*` en desarrollo. |
+
+---
+
+## Links relacionados
+
+- [[01_RFC-001_Bresca|RFC-001 — Bresca Patient Data Network]]
+- [[02_ADR_Bresca|ADR — Architecture Decision Records]]
+- [[03_PRD_Bresca|PRD — Product Requirements Document]]
+- [[04_TechSpec_Bresca|Tech Spec — Technical Specification]]
+- [[06_Runbook_Bresca|Runbook — Operational Guide]]
 
 ---
 

@@ -7,6 +7,8 @@
 
 **Formato de estado:** `PROPOSED` → `ACCEPTED` → `DEPRECATED` / `SUPERSEDED BY ADR-NNN`
 
+**Contexto:** Estas decisiones derivan del problema y propuesta definidos en [[01_RFC-001_Bresca|RFC-001]]. La implementación técnica se detalla en [[04_TechSpec_Bresca|Tech Spec]] y [[05_SystemDesign_Bresca|System Design]].
+
 ---
 
 ## ADR-001 — Supabase como plataforma de auth, DB y storage
@@ -42,7 +44,7 @@ Se necesita una plataforma que provea auth (incluyendo anon sign-in), PostgreSQL
 
 **Negativas:**
 - Vendor lock-in en auth y storage. **Mitigación:** la lógica de negocio no toca Supabase directamente — pasa por `packages/shared/src/supabase.ts` singleton.
-- HIPAA no está cubierto en plan gratuito/pro. Para usuarios en USA en producción requiere plan Enterprise. En LATAM, LGPD se cubre con RLS + auditoría en DB.
+- HIPAA no está cubierto en plan gratuito/pro. Para usuarios en USA en producción requiere plan Enterprise. En LATAM, LGPD se cubre con RLS + auditoría en DB (ver [[05_SystemDesign_Bresca|System Design - Decisiones de seguridad]]).
 
 ---
 
@@ -115,7 +117,7 @@ La app B2C debe correr en iOS y Android. Equipo de 1 desarrollador. Se necesita 
 - EAS Build maneja signing y distribución a ambas stores.
 
 **Negativas:**
-- Expo managed workflow limita algunos módulos nativos custom. **Decisión de escalado:** si en v2 se necesita integración con HealthKit / Google Fit, evaluar eject a bare workflow (proceso documentado por Expo, no destructivo).
+- Expo managed workflow limita algunos módulos nativos custom. **Decisión de escalado:** si en v2 se necesita integración con HealthKit / Google Fit, evaluar eject a bare workflow (proceso documentado por Expo, no destructivo). Ver [[11_Roadmap_PostMVP|Roadmap Fase 6]] para mobile planning.
 
 ---
 
@@ -188,7 +190,7 @@ Estrategia de chunking en dos pasos:
 **Configuración:**
 - Modelo: `claude-sonnet-4-5` por defecto. `claude-opus-4-6` solo para queries marcadas explícitamente como complejas.
 - `max_tokens` en respuesta del Copilot: `1024`.
-- System prompt incluye disclaimer no-diagnóstico y restricción de no recomendar medicamentos.
+- System prompt incluye disclaimer no-diagnóstico y restricción de no recomendar medicamentos. (Ver [[08_SystemPromptSpec_Bresca|System Prompt Spec]] para detalles)
 - Rate limit: 20 queries/usuario/hora en MVP.
 
 ### Consecuencias
@@ -211,5 +213,12 @@ Estrategia de chunking en dos pasos:
 | ADR-003 | React Native (Expo managed workflow) para mobile B2C | `ACCEPTED` | Abril 2026 |
 | ADR-004 | Sistema de consentimiento con auditoría append-only en DB | `ACCEPTED` | Abril 2026 |
 | ADR-005 | Claude API como motor del Copilot con chunking semántico | `ACCEPTED` | Abril 2026 |
+
+## Links relacionados
+
+- [[01_RFC-001_Bresca|RFC-001 — Bresca Patient Data Network]]
+- [[03_PRD_Bresca|PRD — Product Requirements Document]]
+- [[04_TechSpec_Bresca|Tech Spec — Technical Specification]]
+- [[05_SystemDesign_Bresca|System Design Document]]
 
 *Para agregar un nuevo ADR: copiar el template, asignar el siguiente ID, y hacer PR contra `main`.*
