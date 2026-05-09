@@ -31,31 +31,21 @@ const MIME_MAP: Record<string, string> = {
   pdf: 'application/pdf', dcm: 'application/dicom',
 };
 
-function uploadFileXHR(
+async function uploadFileStorage(
   file: File,
   path: string,
   mime: string,
-  token: string,
-  supabaseUrl: string,
   onProgress: (pct: number) => void,
 ): Promise<void> {
-  const url = `${supabaseUrl}/storage/v1/object/studies/${path}`;
-  return new Promise((resolve, reject) => {
-    const xhr = new XMLHttpRequest();
-    xhr.open('POST', url);
-    xhr.setRequestHeader('Authorization', `Bearer ${token}`);
-    xhr.setRequestHeader('Content-Type', mime);
-    xhr.setRequestHeader('x-upsert', 'false');
-    xhr.upload.addEventListener('progress', (e) => {
-      if (e.lengthComputable) onProgress((e.loaded / e.total) * 100);
-    });
-    xhr.addEventListener('load', () => {
-      if (xhr.status >= 200 && xhr.status < 300) resolve();
-      else reject(new Error(`storage_upload_failed: ${xhr.status}`));
-    });
-    xhr.addEventListener('error', () => reject(new Error('storage_upload_failed: network')));
-    xhr.send(file);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (supabase.storage.from('studies') as any).upload(path, file, {
+    contentType: mime,
+    upsert: false,
+    onUploadProgress: (p: { loaded: number; total: number }) => {
+      if (p.total > 0) onProgress((p.loaded / p.total) * 100);
+    },
   });
+  if (error) throw new Error(`storage_upload_failed: ${(error as Error).message}`);
 }
 
 export default function Upload() {
@@ -146,9 +136,6 @@ export default function Upload() {
     setUploadPct(0);
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const token       = session?.access_token ?? '';
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
       const totalBytes  = files.reduce((acc, f) => acc + f.file.size, 0) || 1;
       const fileProgress = files.map(() => 0);
 
@@ -158,7 +145,7 @@ export default function Upload() {
           const mime = MIME_MAP[ext] ?? 'image/jpeg';
           const path = `${user!.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
 
-          await uploadFileXHR(file, path, mime, token, supabaseUrl, (pct) => {
+          await uploadFileStorage(file, path, mime, (pct) => {
             fileProgress[idx] = pct;
             const loaded = fileProgress.reduce((acc, p, i) => acc + (p / 100) * files[i].file.size, 0);
             setUploadPct(Math.min(99, Math.round((loaded / totalBytes) * 100)));
