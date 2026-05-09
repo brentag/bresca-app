@@ -177,18 +177,17 @@ export default function Upload() {
       const vaultPath = familyProfileId ? `/app/vault?p=${familyProfileId}` : '/app/vault';
       nav(vaultPath, { replace: true, state: { pendingDraftId: job_id } });
     } catch (err) {
-      console.error('Processing error:', err);
+      const errMsg = err instanceof Error ? err.message : String(err);
+      console.error('Processing error:', errMsg);
       let msg: string;
-      if (err instanceof Error) {
-        if (err.message.startsWith('extract enqueue') || err.message.startsWith('storage_upload_failed')) {
-          msg = 'Hubo un problema al procesar el archivo. Intentá de nuevo en unos segundos.';
-        } else if (err.name === 'TypeError' || err.message.toLowerCase().includes('fetch') || err.message.toLowerCase().includes('network')) {
-          msg = 'No se pudo conectar con el servidor. Esperá unos segundos e intentá de nuevo.';
-        } else {
-          msg = 'No pudimos procesar el archivo. Revisá que sea un PDF o imagen y volvé a intentar.';
-        }
+      if (errMsg.startsWith('storage_upload_failed')) {
+        msg = `Error al subir el archivo (${errMsg.replace('storage_upload_failed: ', '')}). Intentá de nuevo o usá una imagen en lugar de PDF.`;
+      } else if (errMsg.startsWith('extract enqueue')) {
+        msg = `Error al enviar a analizar (${errMsg.replace('extract enqueue error ', '')}). Intentá de nuevo en unos segundos.`;
+      } else if (err instanceof TypeError || errMsg.toLowerCase().includes('network')) {
+        msg = `Sin conexión con el servidor (${errMsg}). Revisá tu conexión e intentá de nuevo.`;
       } else {
-        msg = 'No pudimos procesar el archivo. Revisá que sea un PDF o imagen y volvé a intentar.';
+        msg = `Error inesperado: ${errMsg}. Intentá de nuevo o contactá soporte.`;
       }
       setExtractError(msg);
       setUploading(false);
