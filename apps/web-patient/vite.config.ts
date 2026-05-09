@@ -26,11 +26,19 @@ export default defineConfig({
       manifest: false, // usamos public/manifest.json
       workbox: {
         globPatterns: ['**/*.{js,css,html,png,svg,ico}'],
-        runtimeCaching: [{
-          urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
-          handler: 'CacheFirst',
-          options: { cacheName: 'google-fonts', expiration: { maxEntries: 10, maxAgeSeconds: 60*60*24*365 } },
-        }],
+        runtimeCaching: [
+          {
+            // POST/PUT/DELETE nunca van a cache — pasan directo a la red
+            // Esto evita que el SW interfiera con uploads binarios al Storage
+            urlPattern: ({ request }) => request.method !== 'GET',
+            handler: 'NetworkOnly',
+          },
+          {
+            urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
+            handler: 'CacheFirst',
+            options: { cacheName: 'google-fonts', expiration: { maxEntries: 10, maxAgeSeconds: 60*60*24*365 } },
+          },
+        ],
       },
     }),
   ],
