@@ -1,4 +1,5 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useSearchParams } from 'react-router-dom';
 import { SessionProvider, useSession } from './lib/session';
 import { ThemeProvider } from './lib/theme';
 import { NotificationsProvider } from './lib/notifications';
@@ -31,6 +32,13 @@ import Privacidad from './pages/Privacidad';
 
 function RootRedirect() {
   const { session, loading } = useSession();
+  const [searchParams] = useSearchParams();
+
+  useEffect(() => {
+    const ref = searchParams.get('ref');
+    if (ref) localStorage.setItem('bresca_ref', ref);
+  }, []);
+
   if (loading) return <FullPageSpinner />;
   return session ? <Navigate to="/app/home" replace /> : <Landing />;
 }
