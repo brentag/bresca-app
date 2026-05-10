@@ -182,9 +182,10 @@ export default function TermsAcceptance({ onAccepted }: Props) {
           disabled={!checked || saving || !profile}
           style={{
             width: '100%', height: 52, borderRadius: 14, border: 'none',
-            background: checked ? '#00C87A' : '#E2E8F0',
-            color: checked ? '#fff' : '#94A3B8',
-            fontSize: 16, fontWeight: 700, cursor: checked ? 'pointer' : 'default',
+            background: (checked && !!profile && !saving) ? '#00C87A' : '#E2E8F0',
+            color: (checked && !!profile && !saving) ? '#fff' : '#94A3B8',
+            fontSize: 16, fontWeight: 700,
+            cursor: (checked && !!profile && !saving) ? 'pointer' : 'default',
             transition: 'all 200ms ease',
           }}
         >
