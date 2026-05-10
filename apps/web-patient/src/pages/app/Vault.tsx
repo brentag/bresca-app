@@ -5,6 +5,7 @@ import { generateQR } from '../../lib/api';
 import { supabase } from '../../lib/supabase';
 import { useProfile } from '../../lib/useProfile';
 import { useTrackNode } from '../../lib/useTrackNode';
+import { useTheme, themeColors } from '../../lib/theme';
 import { CATEGORIES, type CategoryFilter } from '../../lib/vault';
 import { StudyCard, StudyCardSkeleton, DraftStudyCard } from '../../components/StudyCard';
 import { CategoryChip } from '../../components/CategoryChip';
@@ -22,6 +23,8 @@ const FAILED: DraftStatus[] = ['error', 'failed'];
 
 export default function Vault() {
   useTrackNode('vault');
+  const { isDark } = useTheme();
+  const c = themeColors(isDark);
   const nav = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
@@ -40,7 +43,6 @@ export default function Vault() {
 
   useEffect(() => { isMounted.current = true; return () => { isMounted.current = false; }; }, []);
 
-  // Si se está viendo un perfil familiar, cargar su nombre
   useEffect(() => {
     if (!familyProfileId) { setFamilyName(null); return; }
     supabase
@@ -51,7 +53,6 @@ export default function Vault() {
       .then(({ data }) => { if (isMounted.current) setFamilyName(data?.display_name ?? null); });
   }, [familyProfileId]);
 
-  // Carga estudios
   useEffect(() => {
     if (!activeProfileId) return;
     setLoading(true);
@@ -60,7 +61,6 @@ export default function Vault() {
     q.then(({ data }) => { if (isMounted.current) { setStudies(data ?? []); setLoading(false); } });
   }, [activeProfileId, filter]);
 
-  // Carga drafts pendientes + se suscribe a actualizaciones (perfil propio o familiar)
   useEffect(() => {
     if (!activeProfileId) return;
 
@@ -129,16 +129,16 @@ export default function Vault() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <button
               onClick={() => nav('/app/family')}
-              style={{ background: 'none', border: 'none', color: '#64748B', cursor: 'pointer', padding: '4px 0', fontSize: 14, display: 'flex', alignItems: 'center', gap: 4, minHeight: 44, minWidth: 44 }}
+              style={{ background: 'none', border: 'none', color: c.textSub, cursor: 'pointer', padding: '4px 0', fontSize: 14, display: 'flex', alignItems: 'center', gap: 4, minHeight: 44, minWidth: 44 }}
             >
               ← Familia
             </button>
-            <h1 style={{ fontSize: 20, fontWeight: 700, color: '#0F172A' }}>
+            <h1 style={{ fontSize: 20, fontWeight: 700, color: c.text }}>
               {familyName ?? 'Cargando…'}
             </h1>
           </div>
         ) : (
-          <h1 style={{ fontSize: 24, fontWeight: 700, color: '#0F172A' }}>Mi Vault</h1>
+          <h1 style={{ fontSize: 24, fontWeight: 700, color: c.text }}>Mi Vault</h1>
         )}
 
         <button
@@ -156,7 +156,7 @@ export default function Vault() {
         ))}
       </div>
 
-      {/* Lista unificada: drafts en proceso al tope, luego estudios confirmados */}
+      {/* Lista unificada */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '0 20px 32px' }}>
         {profileLoading || loading
           ? Array.from({ length: 4 }).map((_, i) => <StudyCardSkeleton key={i} />)
@@ -201,13 +201,15 @@ export default function Vault() {
 
 
 function EmptyState({ message, onUpload }: { message?: string; onUpload?: () => void }) {
+  const { isDark } = useTheme();
+  const c = themeColors(isDark);
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '60px 24px', gap: 12, textAlign: 'center' }}>
       <span style={{ fontSize: 48 }}>🗂</span>
-      <h3 style={{ fontSize: 18, fontWeight: 700, color: '#0F172A' }}>
+      <h3 style={{ fontSize: 18, fontWeight: 700, color: c.text }}>
         {message ? 'Sin estudios' : 'Tu vault está vacío'}
       </h3>
-      <p style={{ fontSize: 14, color: '#64748B', lineHeight: 1.6 }}>
+      <p style={{ fontSize: 14, color: c.textSub, lineHeight: 1.6 }}>
         {message ?? 'Subí tu primer estudio médico y quedará guardado de forma segura.'}
       </p>
       {onUpload && (

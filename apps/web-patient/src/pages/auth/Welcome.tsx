@@ -1,9 +1,16 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Heart } from 'lucide-react';
 
 export default function Welcome() {
   const nav = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  useEffect(() => {
+    const ref = searchParams.get('ref');
+    if (ref) localStorage.setItem('bresca_ref', ref);
+  }, []);
+
   const go = (mode: 'login' | 'register') => nav('/auth/email', { state: { mode } });
 
   return (

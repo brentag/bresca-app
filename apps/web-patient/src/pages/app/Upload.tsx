@@ -7,6 +7,7 @@ import { useSession } from '../../lib/session';
 import { CATEGORIES } from '../../lib/vault';
 import { enqueueExtract } from '../../lib/api';
 import { useTrackNode } from '../../lib/useTrackNode';
+import { useTheme, themeColors } from '../../lib/theme';
 import { CategoryChip } from '../../components/CategoryChip';
 import { Spinner } from '../../components/Spinner';
 import FeedbackSheet from '../../components/FeedbackSheet';
@@ -51,12 +52,13 @@ async function uploadFileStorage(
 
 export default function Upload() {
   useTrackNode('upload');
+  const { isDark } = useTheme();
+  const c = themeColors(isDark);
   const nav = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const { user } = useSession();
   const { profile } = useProfile();
-  // ?p= indica un perfil familiar como destino del estudio
   const familyProfileId = searchParams.get('p') ?? undefined;
   const [familyName, setFamilyName]   = useState<string | null>(null);
   const [step, setStep]               = useState<Step>('source');
@@ -81,7 +83,6 @@ export default function Upload() {
       .then(({ data }) => { if (data) setFamilyName(data.display_name); });
   }, [familyProfileId]);
 
-  // Modo review: viene desde Vault cuando el OCR terminó
   useEffect(() => {
     const state = location.state as { mode?: string; draftId?: string } | null;
     if (state?.mode !== 'review' || !state.draftId) return;
@@ -162,7 +163,6 @@ export default function Upload() {
       const primaryMime  = uploads[0].mime;
       const { job_id }   = await enqueueExtract(storagePaths, primaryMime, category, familyProfileId);
 
-      // No esperamos el OCR — navegamos al Vault con el draft pendiente
       const vaultPath = familyProfileId ? `/app/vault?p=${familyProfileId}` : '/app/vault';
       nav(vaultPath, { replace: true, state: { pendingDraftId: job_id } });
     } catch (err) {
@@ -213,17 +213,27 @@ export default function Upload() {
 
   const pageLabel = files.length === 1 ? '1 página' : `${files.length} páginas`;
 
+  const sourceCardStyle: React.CSSProperties = {
+    flex: 1, background: c.card, borderRadius: 16, padding: '20px 16px',
+    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
+    border: `1.5px solid ${c.border}`, cursor: 'pointer', minHeight: 90,
+  };
+
+  const fieldGroupStyle: React.CSSProperties = {
+    background: c.card, borderRadius: 14, overflow: 'hidden', border: `1px solid ${c.border}`,
+  };
+
   return (
-    <div style={{ minHeight: '100dvh', background: '#F7F9FC', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ minHeight: '100dvh', background: c.bg, display: 'flex', flexDirection: 'column' }}>
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', background: '#fff', borderBottom: '1px solid #E2E8F0' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', background: c.card, borderBottom: `1px solid ${c.border}` }}>
         <button
           onClick={() => step === 'source' ? nav(-1) : setStep('source')}
-          style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: '#64748B', fontSize: 15, cursor: 'pointer', minHeight: 44, minWidth: 60 }}
+          style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: c.textSub, fontSize: 15, cursor: 'pointer', minHeight: 44, minWidth: 60 }}
         >
           <ArrowLeft size={18} /> {step === 'source' ? 'Vault' : 'Atrás'}
         </button>
-        <span style={{ fontSize: 16, fontWeight: 600, color: '#0F172A' }}>Subir estudio</span>
+        <span style={{ fontSize: 16, fontWeight: 600, color: c.text }}>Subir estudio</span>
         <div style={{ width: 60 }} />
       </div>
 
@@ -248,9 +258,9 @@ export default function Upload() {
 
           {/* Selector de categoría */}
           <div>
-            <h2 style={{ fontSize: 17, fontWeight: 700, color: '#0F172A', marginBottom: 12 }}>¿Qué tipo de estudio es?</h2>
+            <h2 style={{ fontSize: 17, fontWeight: 700, color: c.text, marginBottom: 12 }}>¿Qué tipo de estudio es?</h2>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-              {CATEGORIES.filter(c => c.id !== 'all').map(cat => (
+              {CATEGORIES.filter(cat => cat.id !== 'all').map(cat => (
                 <CategoryChip key={cat.id} label={cat.label} color={cat.color} active={category === cat.id} onClick={() => setCategory(cat.id)} />
               ))}
             </div>
@@ -258,56 +268,36 @@ export default function Upload() {
 
           {/* Selector de origen */}
           <div>
-            <h2 style={{ fontSize: 17, fontWeight: 700, color: '#0F172A', marginBottom: 12 }}>
+            <h2 style={{ fontSize: 17, fontWeight: 700, color: c.text, marginBottom: 12 }}>
               {files.length === 0 ? '¿Cómo querés subir el archivo?' : 'Agregar más páginas'}
             </h2>
             <div style={{ display: 'flex', gap: 12 }}>
               <label style={sourceCardStyle}>
                 <Camera size={28} color="#00C87A" />
-                <span style={{ fontSize: 13, fontWeight: 600, color: '#0F172A' }}>Cámara</span>
-                <input
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp"
-                  capture="environment"
-                  onChange={addFiles}
-                  style={{ display: 'none' }}
-                />
+                <span style={{ fontSize: 13, fontWeight: 600, color: c.text }}>Cámara</span>
+                <input type="file" accept="image/jpeg,image/png,image/webp" capture="environment" onChange={addFiles} style={{ display: 'none' }} />
               </label>
               <label style={sourceCardStyle}>
                 <Image size={28} color="#4B6EF5" />
-                <span style={{ fontSize: 13, fontWeight: 600, color: '#0F172A' }}>Galería / PDF</span>
-                <input
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp,application/pdf"
-                  multiple
-                  onChange={addFiles}
-                  style={{ display: 'none' }}
-                />
+                <span style={{ fontSize: 13, fontWeight: 600, color: c.text }}>Galería / PDF</span>
+                <input type="file" accept="image/jpeg,image/png,image/webp,application/pdf" multiple onChange={addFiles} style={{ display: 'none' }} />
               </label>
               <label style={sourceCardStyle}>
                 <Activity size={28} color="#3B82F6" />
-                <span style={{ fontSize: 13, fontWeight: 600, color: '#0F172A' }}>DICOM</span>
-                <input
-                  type="file"
-                  accept=".dcm,application/dicom"
-                  onChange={addFiles}
-                  style={{ display: 'none' }}
-                />
+                <span style={{ fontSize: 13, fontWeight: 600, color: c.text }}>DICOM</span>
+                <input type="file" accept=".dcm,application/dicom" onChange={addFiles} style={{ display: 'none' }} />
               </label>
             </div>
           </div>
 
-          {/* Thumbnails de páginas seleccionadas */}
+          {/* Thumbnails */}
           {files.length > 0 && (
             <div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                <span style={{ fontSize: 13, fontWeight: 600, color: '#475569' }}>
+                <span style={{ fontSize: 13, fontWeight: 600, color: c.textSub }}>
                   {pageLabel} seleccionada{files.length !== 1 ? 's' : ''}
                 </span>
-                <button
-                  onClick={() => setFiles([])}
-                  style={{ fontSize: 12, color: '#94A3B8', background: 'none', border: 'none', cursor: 'pointer' }}
-                >
+                <button onClick={() => setFiles([])} style={{ fontSize: 12, color: c.textMuted, background: 'none', border: 'none', cursor: 'pointer' }}>
                   Limpiar todo
                 </button>
               </div>
@@ -315,29 +305,23 @@ export default function Upload() {
                 {files.map((f, i) => (
                   <div key={f.id} style={{ position: 'relative', width: 72, height: 72 }}>
                     {f.preview ? (
-                      <img
-                        src={f.preview}
-                        alt={`Página ${i + 1}`}
-                        style={{ width: 72, height: 72, objectFit: 'cover', borderRadius: 10, border: '1.5px solid #E2E8F0' }}
-                      />
+                      <img src={f.preview} alt={`Página ${i + 1}`} style={{ width: 72, height: 72, objectFit: 'cover', borderRadius: 10, border: `1.5px solid ${c.border}` }} />
                     ) : f.file.name.toLowerCase().endsWith('.dcm') ? (
                       <div style={{ width: 72, height: 72, borderRadius: 10, background: '#EFF6FF', border: '1.5px solid #BFDBFE', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
                         <Activity size={22} color="#3B82F6" />
                         <span style={{ fontSize: 9, color: '#3B82F6', fontWeight: 600, textAlign: 'center' }}>DICOM</span>
                       </div>
                     ) : (
-                      <div style={{ width: 72, height: 72, borderRadius: 10, background: '#F1F5F9', border: '1.5px solid #E2E8F0', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
-                        <FileText size={22} color="#94A3B8" />
-                        <span style={{ fontSize: 9, color: '#94A3B8', textAlign: 'center', padding: '0 4px', lineHeight: 1.2 }}>
+                      <div style={{ width: 72, height: 72, borderRadius: 10, background: c.cardAlt, border: `1.5px solid ${c.border}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+                        <FileText size={22} color={c.textMuted} />
+                        <span style={{ fontSize: 9, color: c.textMuted, textAlign: 'center', padding: '0 4px', lineHeight: 1.2 }}>
                           {f.file.name.slice(-12)}
                         </span>
                       </div>
                     )}
-                    {/* Número de página */}
                     <div style={{ position: 'absolute', bottom: 4, left: 4, background: 'rgba(0,0,0,0.55)', borderRadius: 4, padding: '1px 5px', fontSize: 10, color: '#fff', fontWeight: 600 }}>
                       {i + 1}
                     </div>
-                    {/* Botón quitar */}
                     <button
                       onClick={() => removeFile(f.id)}
                       style={{ position: 'absolute', top: -6, right: -6, width: 20, height: 20, borderRadius: '50%', background: '#EF4444', border: '2px solid #fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0 }}
@@ -347,17 +331,10 @@ export default function Upload() {
                   </div>
                 ))}
 
-                {/* Botón agregar otra */}
-                <label style={{ width: 72, height: 72, borderRadius: 10, border: '1.5px dashed #CBD5E1', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, cursor: 'pointer', background: '#F8FAFC' }}>
-                  <Plus size={20} color="#94A3B8" />
-                  <span style={{ fontSize: 10, color: '#94A3B8' }}>Agregar</span>
-                  <input
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp,application/pdf,.dcm,application/dicom"
-                    multiple
-                    onChange={addFiles}
-                    style={{ display: 'none' }}
-                  />
+                <label style={{ width: 72, height: 72, borderRadius: 10, border: `1.5px dashed ${c.border}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, cursor: 'pointer', background: c.cardAlt }}>
+                  <Plus size={20} color={c.textMuted} />
+                  <span style={{ fontSize: 10, color: c.textMuted }}>Agregar</span>
+                  <input type="file" accept="image/jpeg,image/png,image/webp,application/pdf,.dcm,application/dicom" multiple onChange={addFiles} style={{ display: 'none' }} />
                 </label>
               </div>
             </div>
@@ -371,18 +348,18 @@ export default function Upload() {
             </p>
           </div>
 
-          {/* Progress bar — visible solo durante la subida al Storage */}
+          {/* Progress bar */}
           {uploading && uploadPct !== null && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: 13, color: '#475569', fontWeight: 500 }}>
+                <span style={{ fontSize: 13, color: c.textSub, fontWeight: 500 }}>
                   {uploadPct < 100 ? 'Subiendo el archivo…' : 'Enviando a la IA…'}
                 </span>
                 <span style={{ fontSize: 13, color: '#00C87A', fontWeight: 700 }}>
                   {uploadPct < 100 ? `${uploadPct}%` : '✓'}
                 </span>
               </div>
-              <div style={{ height: 4, background: '#E2E8F0', borderRadius: 99, overflow: 'hidden' }}>
+              <div style={{ height: 4, background: c.border, borderRadius: 99, overflow: 'hidden' }}>
                 <div style={{ height: '100%', width: `${uploadPct}%`, background: 'linear-gradient(90deg, #00C87A, #4B6EF5)', borderRadius: 99, transition: 'width 0.15s ease-out' }} />
               </div>
             </div>
@@ -408,12 +385,12 @@ export default function Upload() {
       {step === 'review' && draft && (
         <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-            <h2 style={{ fontSize: 18, fontWeight: 700, color: '#0F172A' }}>Revisá los datos extraídos</h2>
+            <h2 style={{ fontSize: 18, fontWeight: 700, color: c.text }}>Revisá los datos extraídos</h2>
             {draft.ocr_score != null && (
               <OcrScoreBadge score={draft.ocr_score} />
             )}
           </div>
-          <p style={{ fontSize: 14, color: '#64748B', marginBottom: draft.needs_review ? 12 : 20 }}>Podés corregir cualquier campo antes de guardar.</p>
+          <p style={{ fontSize: 14, color: c.textSub, marginBottom: draft.needs_review ? 12 : 20 }}>Podés corregir cualquier campo antes de guardar.</p>
 
           {draft.needs_review && (
             <div style={{ background: '#FFF7ED', border: '1px solid #FED7AA', borderRadius: 12, padding: '12px 16px', marginBottom: 16 }}>
@@ -432,7 +409,7 @@ export default function Upload() {
 
           {Object.keys(draft.extracted_fields).length > 0 && (
             <>
-              <p style={{ fontSize: 11, fontWeight: 600, color: '#94A3B8', letterSpacing: '0.08em', marginTop: 16, marginBottom: 8 }}>RESULTADOS EXTRAÍDOS</p>
+              <p style={{ fontSize: 11, fontWeight: 600, color: c.textMuted, letterSpacing: '0.08em', marginTop: 16, marginBottom: 8 }}>RESULTADOS EXTRAÍDOS</p>
               <div style={fieldGroupStyle}>
                 {Object.entries(draft.extracted_fields).map(([key, val]) => (
                   <FieldRow key={key} label={key} value={val} onChange={v => setDraft({ ...draft, extracted_fields: { ...draft.extracted_fields, [key]: v } })} />
@@ -448,7 +425,7 @@ export default function Upload() {
           )}
 
           {draft.storagePaths.length > 1 && (
-            <p style={{ fontSize: 12, color: '#94A3B8', marginTop: 12 }}>
+            <p style={{ fontSize: 12, color: c.textMuted, marginTop: 12 }}>
               {draft.storagePaths.length} páginas procesadas
             </p>
           )}
@@ -491,19 +468,12 @@ function OcrScoreBadge({ score }: { score: number }) {
 }
 
 function FieldRow({ label, value, onChange, type = 'text' }: { label: string; value: string; onChange: (v: string) => void; type?: string }) {
+  const { isDark } = useTheme();
+  const c = themeColors(isDark);
   return (
-    <div style={{ padding: '10px 14px', borderBottom: '1px solid #F1F5F9' }}>
-      <label style={{ display: 'block', fontSize: 10, fontWeight: 600, color: '#94A3B8', letterSpacing: '0.08em', marginBottom: 4, textTransform: 'uppercase' }}>{label}</label>
-      <input type={type} value={value} onChange={e => onChange(e.target.value)} style={{ width: '100%', border: 'none', outline: 'none', fontSize: 15, color: '#0F172A', background: 'transparent', minHeight: 28 }} />
+    <div style={{ padding: '10px 14px', borderBottom: `1px solid ${c.borderLight}` }}>
+      <label style={{ display: 'block', fontSize: 10, fontWeight: 600, color: c.textMuted, letterSpacing: '0.08em', marginBottom: 4, textTransform: 'uppercase' }}>{label}</label>
+      <input type={type} value={value} onChange={e => onChange(e.target.value)} style={{ width: '100%', border: 'none', outline: 'none', fontSize: 15, color: c.text, background: 'transparent', minHeight: 28 }} />
     </div>
   );
 }
-
-const sourceCardStyle: React.CSSProperties = {
-  flex: 1, background: '#fff', borderRadius: 16, padding: '20px 16px',
-  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
-  border: '1.5px solid #E2E8F0', cursor: 'pointer', minHeight: 90,
-};
-const fieldGroupStyle: React.CSSProperties = {
-  background: '#fff', borderRadius: 14, overflow: 'hidden', border: '1px solid #E2E8F0',
-};

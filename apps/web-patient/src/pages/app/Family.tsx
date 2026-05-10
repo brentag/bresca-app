@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Users, Plus, ChevronRight, X } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useSession } from '../../lib/session';
+import { useTheme, themeColors } from '../../lib/theme';
 import { Spinner } from '../../components/Spinner';
 
 type Profile = {
@@ -31,6 +32,8 @@ const RELATION_EMOJI: Record<string, string> = {
 export default function Family() {
   const nav = useNavigate();
   const { user } = useSession();
+  const { isDark } = useTheme();
+  const c = themeColors(isDark);
 
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -64,7 +67,7 @@ export default function Family() {
     <div style={{ display: 'flex', flexDirection: 'column', paddingTop: 'env(safe-area-inset-top, 16px)' }}>
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px' }}>
-        <h1 style={{ fontSize: 24, fontWeight: 700, color: '#0F172A' }}>Familia</h1>
+        <h1 style={{ fontSize: 24, fontWeight: 700, color: c.text }}>Familia</h1>
         <button
           onClick={() => setShowModal(true)}
           style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#4B6EF5', color: '#fff', border: 'none', borderRadius: 10, padding: '8px 14px', fontSize: 14, fontWeight: 600, cursor: 'pointer', minHeight: 44 }}
@@ -83,7 +86,7 @@ export default function Family() {
             {/* Mi perfil */}
             {primaryProfile && (
               <section>
-                <p style={{ fontSize: 11, fontWeight: 600, color: '#94A3B8', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 10 }}>
+                <p style={{ fontSize: 11, fontWeight: 600, color: c.textMuted, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 10 }}>
                   Mi perfil
                 </p>
                 <ProfileCard
@@ -96,7 +99,7 @@ export default function Family() {
 
             {/* Familiares */}
             <section>
-              <p style={{ fontSize: 11, fontWeight: 600, color: '#94A3B8', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 10 }}>
+              <p style={{ fontSize: 11, fontWeight: 600, color: c.textMuted, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 10 }}>
                 {familyProfiles.length > 0 ? 'Familia' : 'Familiares'}
               </p>
 
@@ -114,7 +117,7 @@ export default function Family() {
                   ))}
                   <button
                     onClick={() => setShowModal(true)}
-                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '12px 16px', border: '1.5px dashed #CBD5E1', borderRadius: 14, background: 'transparent', color: '#64748B', fontSize: 14, fontWeight: 500, cursor: 'pointer' }}
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '12px 16px', border: `1.5px dashed ${c.border}`, borderRadius: 14, background: 'transparent', color: c.textSub, fontSize: 14, fontWeight: 500, cursor: 'pointer' }}
                   >
                     <Plus size={16} /> Agregar otro familiar
                   </button>
@@ -141,6 +144,9 @@ function ProfileCard({ profile, isOwner, onViewVault }: {
   isOwner: boolean;
   onViewVault: () => void;
 }) {
+  const { isDark } = useTheme();
+  const c = themeColors(isDark);
+
   const age = profile.birth_year
     ? new Date().getFullYear() - profile.birth_year
     : null;
@@ -150,7 +156,7 @@ function ProfileCard({ profile, isOwner, onViewVault }: {
     : RELATION_EMOJI[profile.relationship ?? ''] ?? '🧑‍🤝‍🧑';
 
   return (
-    <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #F1F5F9', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
+    <div style={{ background: c.card, borderRadius: 16, border: `1px solid ${c.borderLight}`, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
       {/* Avatar */}
       <div style={{ width: 44, height: 44, borderRadius: 14, background: isOwner ? 'linear-gradient(135deg,#00C87A,#4B6EF5)' : '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>
         {emoji}
@@ -158,11 +164,11 @@ function ProfileCard({ profile, isOwner, onViewVault }: {
 
       {/* Info */}
       <div style={{ flex: 1, minWidth: 0 }}>
-        <p style={{ fontSize: 15, fontWeight: 600, color: '#0F172A', marginBottom: 2 }}>
+        <p style={{ fontSize: 15, fontWeight: 600, color: c.text, marginBottom: 2 }}>
           {profile.display_name}
           {isOwner && <span style={{ marginLeft: 6, fontSize: 11, background: '#F0FDF4', color: '#00A663', padding: '2px 8px', borderRadius: 100, fontWeight: 600 }}>Yo</span>}
         </p>
-        <p style={{ fontSize: 12, color: '#64748B' }}>
+        <p style={{ fontSize: 12, color: c.textSub }}>
           {[profile.relationship, age ? `${age} años` : null].filter(Boolean).join(' · ') || 'Sin información adicional'}
         </p>
       </div>
@@ -179,14 +185,16 @@ function ProfileCard({ profile, isOwner, onViewVault }: {
 }
 
 function EmptyFamily({ onAdd }: { onAdd: () => void }) {
+  const { isDark } = useTheme();
+  const c = themeColors(isDark);
   return (
-    <div style={{ background: '#F8FAFC', borderRadius: 16, border: '1.5px dashed #CBD5E1', padding: '32px 24px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
-      <div style={{ width: 56, height: 56, borderRadius: 18, background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+    <div style={{ background: c.cardAlt, borderRadius: 16, border: `1.5px dashed ${c.border}`, padding: '32px 24px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+      <div style={{ width: 56, height: 56, borderRadius: 18, background: isDark ? '#1E293B' : '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <Users size={26} color="#4B6EF5" />
       </div>
       <div>
-        <p style={{ fontSize: 15, fontWeight: 600, color: '#0F172A', marginBottom: 4 }}>Gestioná la salud familiar</p>
-        <p style={{ fontSize: 13, color: '#64748B', lineHeight: 1.6, maxWidth: 240, margin: '0 auto' }}>
+        <p style={{ fontSize: 15, fontWeight: 600, color: c.text, marginBottom: 4 }}>Gestioná la salud familiar</p>
+        <p style={{ fontSize: 13, color: c.textSub, lineHeight: 1.6, maxWidth: 240, margin: '0 auto' }}>
           Agregá familiares para administrar su historial médico desde tu cuenta.
         </p>
       </div>
@@ -205,6 +213,8 @@ function AddFamilyModal({ userId, onClose, onAdded }: {
   onClose: () => void;
   onAdded: () => void;
 }) {
+  const { isDark } = useTheme();
+  const c = themeColors(isDark);
   const [name, setName]           = useState('');
   const [relationship, setRel]    = useState('');
   const [birthYear, setBirthYear] = useState('');
@@ -230,6 +240,12 @@ function AddFamilyModal({ userId, onClose, onAdded }: {
     onAdded();
   }
 
+  const inputStyle: React.CSSProperties = {
+    width: '100%', padding: '12px 14px', border: `1.5px solid ${c.border}`,
+    borderRadius: 12, fontSize: 15, color: c.text, background: c.cardAlt,
+    outline: 'none', boxSizing: 'border-box',
+  };
+
   return (
     <>
       {/* Overlay */}
@@ -241,25 +257,27 @@ function AddFamilyModal({ userId, onClose, onAdded }: {
       {/* Sheet */}
       <div style={{
         position: 'fixed', bottom: 0, left: 0, right: 0,
-        background: '#fff', borderRadius: '20px 20px 0 0',
+        background: c.card, borderRadius: '20px 20px 0 0',
         padding: '20px 20px calc(20px + env(safe-area-inset-bottom, 0px))',
         zIndex: 51, display: 'flex', flexDirection: 'column', gap: 16,
         maxHeight: '80dvh', overflowY: 'auto',
       }}>
         {/* Handle + header */}
         <div style={{ textAlign: 'center', marginBottom: 4 }}>
-          <div style={{ width: 36, height: 4, borderRadius: 2, background: '#E2E8F0', margin: '0 auto 16px' }} />
+          <div style={{ width: 36, height: 4, borderRadius: 2, background: c.border, margin: '0 auto 16px' }} />
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <h2 style={{ fontSize: 18, fontWeight: 700, color: '#0F172A' }}>Agregar familiar</h2>
+            <h2 style={{ fontSize: 18, fontWeight: 700, color: c.text }}>Agregar familiar</h2>
             <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
-              <X size={20} color="#94A3B8" />
+              <X size={20} color={c.textMuted} />
             </button>
           </div>
         </div>
 
         {/* Nombre */}
         <div>
-          <label style={labelStyle}>Nombre</label>
+          <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: c.textSub, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 6 }}>
+            Nombre
+          </label>
           <input
             type="text"
             placeholder="Ej: María García"
@@ -271,7 +289,9 @@ function AddFamilyModal({ userId, onClose, onAdded }: {
 
         {/* Parentesco */}
         <div>
-          <label style={labelStyle}>Parentesco</label>
+          <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: c.textSub, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 6 }}>
+            Parentesco
+          </label>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
             {RELATIONSHIPS.map(r => (
               <button
@@ -279,8 +299,8 @@ function AddFamilyModal({ userId, onClose, onAdded }: {
                 onClick={() => setRel(r)}
                 style={{
                   padding: '8px 14px', borderRadius: 100, fontSize: 13, fontWeight: 500, cursor: 'pointer', border: 'none',
-                  background: relationship === r ? '#4B6EF5' : '#F1F5F9',
-                  color: relationship === r ? '#fff' : '#475569',
+                  background: relationship === r ? '#4B6EF5' : c.cardAlt,
+                  color: relationship === r ? '#fff' : c.textSub,
                 }}
               >
                 {r}
@@ -291,7 +311,9 @@ function AddFamilyModal({ userId, onClose, onAdded }: {
 
         {/* Año de nacimiento */}
         <div>
-          <label style={labelStyle}>Año de nacimiento <span style={{ color: '#94A3B8', fontWeight: 400 }}>(opcional)</span></label>
+          <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: c.textSub, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 6 }}>
+            Año de nacimiento <span style={{ color: c.textMuted, fontWeight: 400 }}>(opcional)</span>
+          </label>
           <input
             type="number"
             placeholder="Ej: 1985"
@@ -320,14 +342,3 @@ function AddFamilyModal({ userId, onClose, onAdded }: {
     </>
   );
 }
-
-const labelStyle: React.CSSProperties = {
-  display: 'block', fontSize: 12, fontWeight: 600, color: '#64748B',
-  letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 6,
-};
-
-const inputStyle: React.CSSProperties = {
-  width: '100%', padding: '12px 14px', border: '1.5px solid #E2E8F0',
-  borderRadius: 12, fontSize: 15, color: '#0F172A', background: '#fff',
-  outline: 'none', boxSizing: 'border-box',
-};

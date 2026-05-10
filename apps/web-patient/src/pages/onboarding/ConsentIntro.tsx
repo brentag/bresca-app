@@ -30,6 +30,12 @@ export default function ConsentIntro() {
       });
       setLoading(false);
     }
+    const refToken = localStorage.getItem('bresca_ref');
+    if (refToken) {
+      supabase.rpc('register_referral', { p_token: refToken }).then(() => {
+        localStorage.removeItem('bresca_ref');
+      });
+    }
     nav('/app/home', { replace: true });
   }
 
@@ -57,7 +63,15 @@ export default function ConsentIntro() {
       <button onClick={acceptAndContinue} disabled={loading} style={{ ...btn, opacity: loading ? 0.7 : 1 }}>
         {loading ? 'Guardando…' : '¡Entendido, empezar!'}
       </button>
-      <button onClick={() => nav('/app/home', { replace: true })} style={skip}>Configurar más tarde</button>
+      <button onClick={() => {
+        const refToken = localStorage.getItem('bresca_ref');
+        if (refToken) {
+          supabase.rpc('register_referral', { p_token: refToken }).then(() => {
+            localStorage.removeItem('bresca_ref');
+          });
+        }
+        nav('/app/home', { replace: true });
+      }} style={skip}>Configurar más tarde</button>
     </div>
   );
 }
