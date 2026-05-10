@@ -6,6 +6,7 @@ import { useProfile } from '../../lib/useProfile';
 import { useSession } from '../../lib/session';
 import { CATEGORIES } from '../../lib/vault';
 import { enqueueExtract } from '../../lib/api';
+import { useTrackNode } from '../../lib/useTrackNode';
 import { CategoryChip } from '../../components/CategoryChip';
 import { Spinner } from '../../components/Spinner';
 import FeedbackSheet from '../../components/FeedbackSheet';
@@ -49,6 +50,7 @@ async function uploadFileStorage(
 }
 
 export default function Upload() {
+  useTrackNode('upload');
   const nav = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();

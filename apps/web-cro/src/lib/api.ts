@@ -53,3 +53,15 @@ export async function matchPatients(filters: { age_min?: number; age_max?: numbe
     count: number;
   }>;
 }
+
+export async function getMetrics(period: 'day' | 'week' | 'month') {
+  const res = await fetch(`${BASE}/admin/metrics?period=${period}`, { headers: await headers() });
+  if (!res.ok) throw new Error('metrics fetch failed');
+  return res.json();
+}
+
+export async function getLive() {
+  const res = await fetch(`${BASE}/admin/live`, { headers: await headers() });
+  if (!res.ok) throw new Error('live fetch failed');
+  return res.json() as Promise<{ nodes: Record<string, number>; as_of: string }>;
+}

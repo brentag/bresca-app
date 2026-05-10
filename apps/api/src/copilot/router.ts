@@ -5,6 +5,7 @@ import { COPILOT_MAX_TOKENS } from '@bresca/shared';
 import { requireAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
 import { checkRateLimit } from './rate-limit';
+import { emitEvent } from '../lib/emit-event';
 import { COPILOT_SYSTEM_PROMPT_V1 } from './system-prompt';
 
 const router = Router();
@@ -106,6 +107,7 @@ router.post('/chat', requireAuth, async (req, res) => {
     return;
   }
 
+  emitEvent('copilot_query', 'copilot');
   res.json({ reply: text, remaining });
 });
 

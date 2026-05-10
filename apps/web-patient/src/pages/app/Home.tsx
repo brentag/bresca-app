@@ -5,6 +5,7 @@ import { Upload, MessageCircle, QrCode, FolderOpen, FlaskConical, ChevronRight, 
 import { supabase } from '../../lib/supabase';
 import { useProfile } from '../../lib/useProfile';
 import { useSession } from '../../lib/session';
+import { useTrackNode } from '../../lib/useTrackNode';
 import { StudyCard, StudyCardSkeleton } from '../../components/StudyCard';
 import RetentionModal from '../../components/RetentionModal';
 import type { Database } from '@bresca/shared';
@@ -63,6 +64,7 @@ async function fetchRecentStudies(profileId: string): Promise<Study[]> {
 }
 
 export default function Home() {
+  useTrackNode('home');
   const nav = useNavigate();
   const { user } = useSession();
   const { profile, loading: profileLoading } = useProfile();

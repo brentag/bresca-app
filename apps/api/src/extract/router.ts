@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { requireAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
+import { emitEvent } from '../lib/emit-event';
 
 const router = Router();
 
@@ -78,6 +79,7 @@ router.post('/', requireAuth, async (req, res) => {
     return;
   }
 
+  emitEvent('upload_start', 'upload');
   res.status(202).json({ job_id: draft.id });
 });
 

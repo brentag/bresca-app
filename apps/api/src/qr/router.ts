@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { requireAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
 import { checkRateLimit } from '../copilot/rate-limit';
+import { emitEvent } from '../lib/emit-event';
 
 const QR_MAX_PER_HOUR = 10;
 
@@ -155,6 +156,7 @@ router.get('/:token', async (req, res) => {
     };
   });
 
+  emitEvent('qr_scan', 'qr');
   res.json({ studies: safeStudies, expires_at: qrToken.expires_at });
 });
 

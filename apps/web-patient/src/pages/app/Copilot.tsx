@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Send, ExternalLink, X } from 'lucide-react';
 import { sendCopilotMessage, fetchContextCard } from '../../lib/api';
 import { Spinner } from '../../components/Spinner';
+import { useTrackNode } from '../../lib/useTrackNode';
 
 type Message = { role: 'user' | 'assistant'; content: string };
 type GPTContext = { userMsg: string; assistantMsg: string };
@@ -11,6 +12,7 @@ function showGptCta() {
 }
 
 export default function Asistente() {
+  useTrackNode('copilot');
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);

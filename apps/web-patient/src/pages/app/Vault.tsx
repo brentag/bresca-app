@@ -4,6 +4,7 @@ import { Plus } from 'lucide-react';
 import { generateQR } from '../../lib/api';
 import { supabase } from '../../lib/supabase';
 import { useProfile } from '../../lib/useProfile';
+import { useTrackNode } from '../../lib/useTrackNode';
 import { CATEGORIES, type CategoryFilter } from '../../lib/vault';
 import { StudyCard, StudyCardSkeleton, DraftStudyCard } from '../../components/StudyCard';
 import { CategoryChip } from '../../components/CategoryChip';
@@ -20,6 +21,7 @@ const IN_PROGRESS: DraftStatus[] = ['pending', 'processing'];
 const FAILED: DraftStatus[] = ['error', 'failed'];
 
 export default function Vault() {
+  useTrackNode('vault');
   const nav = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();

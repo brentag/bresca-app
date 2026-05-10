@@ -9,14 +9,16 @@ const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Patients   = lazy(() => import('./pages/Patients'));
 const Studies    = lazy(() => import('./pages/Studies'));
 const Matching   = lazy(() => import('./pages/Matching'));
+const Admin      = lazy(() => import('./pages/Admin'));
 
-type Tab = 'dashboard' | 'patients' | 'studies' | 'matching';
+export type Tab = 'dashboard' | 'patients' | 'studies' | 'matching' | 'monitoring';
 
 const PAGES: Record<Tab, React.ComponentType> = {
-  dashboard: Dashboard,
-  patients: Patients,
-  studies: Studies,
-  matching: Matching,
+  dashboard:  Dashboard,
+  patients:   Patients,
+  studies:    Studies,
+  matching:   Matching,
+  monitoring: Admin,
 };
 
 export default function App() {
@@ -43,10 +45,11 @@ export default function App() {
     return <Login />;
   }
 
+  const isAdmin = session.user?.email?.endsWith('@bresca.io') ?? false;
   const Page = PAGES[tab];
 
   return (
-    <Layout tab={tab} onTab={setTab}>
+    <Layout tab={tab} onTab={setTab} isAdmin={isAdmin}>
       <Suspense fallback={<div style={{ padding: 40, color: '#94A3B8', fontSize: 14 }}>Cargando…</div>}>
         <Page />
       </Suspense>

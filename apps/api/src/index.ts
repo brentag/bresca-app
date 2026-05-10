@@ -7,6 +7,7 @@ import qrRouter from './qr/router';
 import croRouter from './cro/router';
 import extractRouter from './extract/router';
 import accountRouter from './account/router';
+import adminRouter from './admin/router';
 
 const app = express();
 const PORT = process.env.PORT ?? 3000;
@@ -66,6 +67,7 @@ app.use('/qr', qrRouter);
 app.use('/cro', croRouter);
 app.use('/extract', extractRouter);
 app.use('/account', accountRouter);
+app.use('/admin', adminRouter);
 
 app.listen(PORT, () => {
   console.log(`API running on port ${PORT}`);

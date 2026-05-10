@@ -1,17 +1,24 @@
 import type { ReactNode } from 'react';
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
+import type { Tab } from '../App';
 
-type Tab = 'dashboard' | 'patients' | 'studies' | 'matching';
-
-const NAV: { id: Tab; label: string; icon: string }[] = [
-  { id: 'dashboard', label: 'Dashboard',  icon: '📊' },
-  { id: 'patients',  label: 'Pacientes',  icon: '👥' },
-  { id: 'studies',   label: 'Estudios',   icon: '🧪' },
-  { id: 'matching',  label: 'Matching',   icon: '🎯' },
+const NAV_BASE: { id: Tab; label: string; icon: string; adminOnly?: boolean }[] = [
+  { id: 'dashboard',  label: 'Dashboard',   icon: '📊' },
+  { id: 'patients',   label: 'Pacientes',   icon: '👥' },
+  { id: 'studies',    label: 'Estudios',    icon: '🧪' },
+  { id: 'matching',   label: 'Matching',    icon: '🎯' },
+  { id: 'monitoring', label: 'Monitoreo',   icon: '📡', adminOnly: true },
 ];
 
-export default function Layout({ tab, onTab, children }: { tab: Tab; onTab: (t: Tab) => void; children: ReactNode }) {
+interface LayoutProps {
+  tab: Tab;
+  onTab: (t: Tab) => void;
+  children: ReactNode;
+  isAdmin?: boolean;
+}
+
+export default function Layout({ tab, onTab, children, isAdmin = false }: LayoutProps) {
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
 
   useEffect(() => {
@@ -19,6 +26,8 @@ export default function Layout({ tab, onTab, children }: { tab: Tab; onTab: (t: 
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
   }, []);
+
+  const nav = NAV_BASE.filter((item) => !item.adminOnly || isAdmin);
 
   if (isMobile) {
     return (
@@ -39,7 +48,7 @@ export default function Layout({ tab, onTab, children }: { tab: Tab; onTab: (t: 
         <main style={sm.main}>{children}</main>
 
         <nav style={sm.tabBar}>
-          {NAV.map((item) => (
+          {nav.map((item) => (
             <button
               key={item.id}
               style={{ ...sm.tabItem, ...(tab === item.id ? sm.tabItemActive : {}) }}
@@ -66,7 +75,7 @@ export default function Layout({ tab, onTab, children }: { tab: Tab; onTab: (t: 
         </div>
 
         <nav style={s.nav}>
-          {NAV.map((item) => (
+          {nav.map((item) => (
             <button
               key={item.id}
               style={{ ...s.navItem, ...(tab === item.id ? s.navItemActive : {}) }}
