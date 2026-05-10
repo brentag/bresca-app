@@ -168,6 +168,10 @@ export default function Upload() {
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : String(err);
       console.error('Processing error:', errMsg);
+      if (errMsg.includes('profile_not_found')) {
+        nav('/onboarding/name', { replace: true });
+        return;
+      }
       let msg: string;
       if (errMsg.startsWith('storage_upload_failed')) {
         msg = `Error al subir el archivo (${errMsg.replace('storage_upload_failed: ', '')}). Intentá de nuevo o usá una imagen en lugar de PDF.`;

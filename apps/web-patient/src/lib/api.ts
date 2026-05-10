@@ -88,6 +88,10 @@ export async function enqueueExtract(
       headers: await authHeaders(),
       body: JSON.stringify(body),
     });
+    if (res.status === 404) {
+      const payload = await res.json().catch(() => ({})) as { error?: string };
+      if (payload.error === 'profile_not_found') throw new Error('extract enqueue error 404 profile_not_found');
+    }
     if (!res.ok) throw new Error(`extract enqueue error ${res.status}`);
     return res.json() as Promise<{ job_id: string }>;
   };
