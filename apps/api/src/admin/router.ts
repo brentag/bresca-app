@@ -2,9 +2,6 @@ import { Router } from 'express';
 import type { Request, Response, NextFunction } from 'express';
 import { supabase } from '../lib/supabase';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = supabase as any;
-
 const router = Router();
 
 async function requireBrescaAdmin(req: Request, res: Response, next: NextFunction) {
@@ -29,7 +26,7 @@ router.get('/metrics', requireBrescaAdmin, async (req, res) => {
     return;
   }
 
-  const { data, error } = await db.rpc('get_kpis', { period });
+  const { data, error } = await supabase.rpc('get_kpis', { period });
   if (error) {
     console.error('[admin] get_kpis failed:', error.message);
     res.status(500).json({ error: 'metrics_unavailable' });
@@ -43,7 +40,7 @@ router.get('/metrics', requireBrescaAdmin, async (req, res) => {
 router.get('/live', requireBrescaAdmin, async (req, res) => {
   const since = new Date(Date.now() - 5 * 60 * 1000).toISOString();
 
-  const { data, error } = await db
+  const { data, error } = await supabase
     .from('events')
     .select('node')
     .gte('created_at', since);
@@ -55,7 +52,7 @@ router.get('/live', requireBrescaAdmin, async (req, res) => {
   }
 
   const nodes: Record<string, number> = {};
-  for (const row of (data ?? []) as { node: string }[]) {
+  for (const row of data ?? []) {
     nodes[row.node] = (nodes[row.node] ?? 0) + 1;
   }
 

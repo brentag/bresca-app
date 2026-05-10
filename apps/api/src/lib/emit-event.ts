@@ -19,11 +19,11 @@ export function emitEvent(
   metadata: Record<string, unknown> = {},
 ): void {
   // Fire-and-forget — nunca bloquea el response principal
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const db = supabase as any;
-  db.from('events')
-    .insert({ event_type, node, profile_id: profile_id ?? null, metadata })
-    .then(({ error }: { error: { message: string } | null }) => {
+  supabase
+    .from('events')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .insert({ event_type, node, profile_id: profile_id ?? null, metadata: metadata as any })
+    .then(({ error }) => {
       if (error) console.error('[events] emit failed:', error.message);
     });
 }

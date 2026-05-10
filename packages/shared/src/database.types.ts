@@ -70,6 +70,41 @@ export type Database = {
           },
         ]
       }
+      events: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          metadata: Json
+          node: string
+          profile_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: string
+          metadata?: Json
+          node: string
+          profile_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          metadata?: Json
+          node?: string
+          profile_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "events_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       legal_documents: {
         Row: {
           content_url: string
@@ -97,8 +132,50 @@ export type Database = {
         }
         Relationships: []
       }
+      notifications: {
+        Row: {
+          body: string | null
+          created_at: string
+          id: string
+          metadata: Json | null
+          profile_id: string
+          read: boolean
+          title: string
+          type: string
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          profile_id: string
+          read?: boolean
+          title: string
+          type: string
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          profile_id?: string
+          read?: boolean
+          title?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
+          anon_id: string
           birth_year: number | null
           conditions: string[]
           created_at: string
@@ -110,6 +187,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          anon_id?: string
           birth_year?: number | null
           conditions?: string[]
           created_at?: string
@@ -121,6 +199,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          anon_id?: string
           birth_year?: number | null
           conditions?: string[]
           created_at?: string
@@ -171,6 +250,41 @@ export type Database = {
           },
         ]
       }
+      referral_invitations: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          inviter_id: string
+          status: string
+          token: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          inviter_id: string
+          status?: string
+          token?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          inviter_id?: string
+          status?: string
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referral_invitations_inviter_id_fkey"
+            columns: ["inviter_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       studies: {
         Row: {
           category: string
@@ -179,6 +293,7 @@ export type Database = {
           extracted_fields: Json
           id: string
           lab_name: string | null
+          ocr_score: number | null
           profile_id: string
           storage_path: string | null
           storage_paths: string[]
@@ -192,6 +307,7 @@ export type Database = {
           extracted_fields?: Json
           id?: string
           lab_name?: string | null
+          ocr_score?: number | null
           profile_id: string
           storage_path?: string | null
           storage_paths?: string[]
@@ -205,6 +321,7 @@ export type Database = {
           extracted_fields?: Json
           id?: string
           lab_name?: string | null
+          ocr_score?: number | null
           profile_id?: string
           storage_path?: string | null
           storage_paths?: string[]
@@ -232,6 +349,9 @@ export type Database = {
           id: string
           lab_name: string | null
           mime_type: string | null
+          needs_review: boolean
+          ocr_pass: number
+          ocr_score: number | null
           profile_id: string
           raw_text: string | null
           started_at: string | null
@@ -251,6 +371,9 @@ export type Database = {
           id?: string
           lab_name?: string | null
           mime_type?: string | null
+          needs_review?: boolean
+          ocr_pass?: number
+          ocr_score?: number | null
           profile_id: string
           raw_text?: string | null
           started_at?: string | null
@@ -270,6 +393,9 @@ export type Database = {
           id?: string
           lab_name?: string | null
           mime_type?: string | null
+          needs_review?: boolean
+          ocr_pass?: number
+          ocr_score?: number | null
           profile_id?: string
           raw_text?: string | null
           started_at?: string | null
@@ -368,6 +494,8 @@ export type Database = {
       }
     }
     Functions: {
+      cleanup_expired_qr_tokens: { Args: never; Returns: undefined }
+      get_kpis: { Args: { period: string }; Returns: Json }
       record_consent: {
         Args: {
           p_action: Database["public"]["Enums"]["consent_action"]
@@ -381,10 +509,15 @@ export type Database = {
         }
         Returns: string
       }
+      register_referral: { Args: { p_token: string }; Returns: undefined }
     }
     Enums: {
       consent_action: "grant" | "revoke"
-      feedback_context: "post_ocr" | "retention_check" | "fake_door_click"
+      feedback_context:
+        | "post_ocr"
+        | "retention_check"
+        | "fake_door_click"
+        | "general_feedback"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -513,7 +646,12 @@ export const Constants = {
   public: {
     Enums: {
       consent_action: ["grant", "revoke"],
-      feedback_context: ["post_ocr", "retention_check", "fake_door_click"],
+      feedback_context: [
+        "post_ocr",
+        "retention_check",
+        "fake_door_click",
+        "general_feedback",
+      ],
     },
   },
 } as const
