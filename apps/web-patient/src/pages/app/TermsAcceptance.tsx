@@ -15,7 +15,7 @@ interface Props {
 }
 
 export default function TermsAcceptance({ onAccepted }: Props) {
-  const { profile } = useProfile();
+  const { profile, loading: profileLoading } = useProfile();
   const [tcDoc, setTcDoc] = useState<LegalDoc | null>(null);
   const [privacyDoc, setPrivacyDoc] = useState<LegalDoc | null>(null);
   const [checked, setChecked] = useState(false);
@@ -50,7 +50,8 @@ export default function TermsAcceptance({ onAccepted }: Props) {
     });
 
     if (rpcError) {
-      setError('No pudimos registrar tu aceptación. Intentá de nuevo.');
+      console.error('[TermsAcceptance] record_consent failed:', rpcError);
+      setError(`No pudimos registrar tu aceptación: ${rpcError.message}`);
       setSaving(false);
       return;
     }
@@ -170,26 +171,31 @@ export default function TermsAcceptance({ onAccepted }: Props) {
           </span>
         </label>
 
-        {error && (
-          <p style={{ fontSize: 12, color: '#EF4444', marginTop: 8, textAlign: 'center' }}>{error}</p>
-        )}
       </div>
 
       {/* Footer CTA */}
       <div style={{ padding: '12px 20px 20px', background: '#fff', borderTop: '1px solid #F1F5F9' }}>
+        {error && (
+          <div style={{
+            background: '#FFF5F5', border: '1px solid #FED7D7', borderRadius: 10,
+            padding: '10px 14px', marginBottom: 12, fontSize: 13, color: '#DC2626',
+          }}>
+            {error}
+          </div>
+        )}
         <button
           onClick={handleAccept}
-          disabled={!checked || saving || !profile}
+          disabled={!checked || saving || !profile || profileLoading}
           style={{
             width: '100%', height: 52, borderRadius: 14, border: 'none',
-            background: (checked && !!profile && !saving) ? '#00C87A' : '#E2E8F0',
-            color: (checked && !!profile && !saving) ? '#fff' : '#94A3B8',
+            background: (checked && !!profile && !saving && !profileLoading) ? '#00C87A' : '#E2E8F0',
+            color: (checked && !!profile && !saving && !profileLoading) ? '#fff' : '#94A3B8',
             fontSize: 16, fontWeight: 700,
-            cursor: (checked && !!profile && !saving) ? 'pointer' : 'default',
+            cursor: (checked && !!profile && !saving && !profileLoading) ? 'pointer' : 'default',
             transition: 'all 200ms ease',
           }}
         >
-          {saving ? 'Guardando…' : 'Continuar'}
+          {profileLoading ? 'Cargando…' : saving ? 'Guardando…' : 'Continuar'}
         </button>
         <p style={{ fontSize: 11, color: '#CBD5E1', textAlign: 'center', marginTop: 10 }}>
           Bresca cumple con la Ley 25.326 de Protección de Datos Personales (Argentina)

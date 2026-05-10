@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { supabase } from '@bresca/shared/supabase';
+import { supabase } from './supabase';
 
 type Node = 'home' | 'vault' | 'upload' | 'copilot' | 'qr' | 'family' | 'cro' | 'api' | 'onboarding';
 
