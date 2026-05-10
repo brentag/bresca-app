@@ -17,7 +17,7 @@ Marcar cada ítem como `[x]` cuando esté completo. Mínimo para lanzar: todos l
 - [ ] **[BLOQUEANTE]** RLS activo en todas las tablas con PII (verificar con QA script)
 - [ ] **[BLOQUEANTE]** Edge Function `process-study-draft` deployada y activa
 - [ ] Secretos de Edge Functions configurados: `DEEPSEEK_API_KEY`, `MISTRAL_API_KEY`
-- [ ] **[BLOQUEANTE]** SMTP personalizado configurado en Supabase Auth — usar Google Workspace (`smtp.gmail.com:587`) con App Password de `@bresca.io` para eliminar el límite de 2 emails/hora del plan Free
+- [ ] **[BLOQUEANTE]** SMTP personalizado configurado en Supabase Auth — usar Google Workspace (`smtp.gmail.com:587`) con App Password de `@bresca.io`. Sender: `noreply@bresca.io` / "Bresca". Elimina el límite de 2 emails/hora y garantiza que los magic links lleguen desde `@bresca.io` (crítico para confianza en app de salud)
 - [ ] Supabase Auth: Site URL apuntando al dominio final (no al `.vercel.app`)
 - [ ] Supabase Auth: Redirect URLs del dominio final agregadas
 - [ ] Bucket `studies` en Storage con policies RLS correctas
