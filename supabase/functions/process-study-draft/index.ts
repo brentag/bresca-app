@@ -6,7 +6,6 @@ declare const EdgeRuntime: { waitUntil(p: Promise<unknown>): void };
 
 const SUPABASE_URL      = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_ROLE_KEY  = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-const WEBHOOK_SECRET    = Deno.env.get('EDGE_WEBHOOK_SECRET')!;
 const DEEPSEEK_API_KEY  = Deno.env.get('DEEPSEEK_API_KEY')!;
 const MISTRAL_API_KEY   = Deno.env.get('MISTRAL_API_KEY') ?? '';
 
@@ -61,11 +60,6 @@ type PageResult = Omit<Structured, 'raw_text' | 'ocr_score'> & {
 };
 
 Deno.serve(async (req) => {
-  const auth = req.headers.get('authorization') ?? '';
-  if (auth !== `Bearer ${WEBHOOK_SECRET}`) {
-    return new Response('unauthorized', { status: 401 });
-  }
-
   const body = await req.json().catch(() => ({}));
   const draft_id: string | undefined = body.draft_id;
   if (!draft_id) return new Response('missing draft_id', { status: 400 });

@@ -1,6 +1,6 @@
 # Checklist Pre-Lanzamiento — Bresca MVP
 
-**Versión:** 1.0 — 2026-05-08  
+**Versión:** 1.1 — 2026-05-10  
 **Estado:** En progreso  
 **Target:** Go-live público (dominio propio + usuarios reales)
 
@@ -15,11 +15,12 @@ Marcar cada ítem como `[x]` cuando esté completo. Mínimo para lanzar: todos l
 - [ ] **[BLOQUEANTE]** PITR (Point-in-Time Recovery) habilitado en Dashboard → Backups
 - [ ] **[BLOQUEANTE]** Todas las migraciones aplicadas (`supabase migration list --linked` — ninguna pendiente)
 - [ ] **[BLOQUEANTE]** RLS activo en todas las tablas con PII (verificar con QA script)
-- [ ] **[BLOQUEANTE]** Edge Function `process-study-draft` deployada y activa
+- [x] **[BLOQUEANTE]** Edge Function `process-study-draft` deployada y activa — deployada con `--no-verify-jwt --use-api` (2026-05-10)
 - [ ] Secretos de Edge Functions configurados: `DEEPSEEK_API_KEY`, `MISTRAL_API_KEY`
 - [ ] **[BLOQUEANTE]** SMTP personalizado configurado en Supabase Auth — usar Google Workspace (`smtp.gmail.com:587`) con App Password de `@bresca.io`. Sender: `noreply@bresca.io` / "Bresca". Elimina el límite de 2 emails/hora y garantiza que los magic links lleguen desde `@bresca.io` (crítico para confianza en app de salud)
 - [ ] Supabase Auth: Site URL apuntando al dominio final (no al `.vercel.app`)
 - [ ] Supabase Auth: Redirect URLs del dominio final agregadas
+- [ ] Supabase Auth: Redirect URLs de testing local agregadas (`http://localhost:5173` para web-cro, `http://localhost:5174` para web-patient)
 - [ ] Bucket `studies` en Storage con policies RLS correctas
 
 ### API (Render.com)
@@ -121,7 +122,7 @@ Estos ítems no bloquean el lanzamiento pero deben completarse en los primeros 3
 
 | Bloque | Total ítems | Bloqueantes | Estado |
 |---|---|---|---|
-| 1 — Infraestructura | 15 | 9 | Pendiente |
+| 1 — Infraestructura | 16 | 9 | 1/9 bloqueantes ✅ |
 | 2 — Seguridad | 11 | 5 | Pendiente |
 | 3 — Legal | 7 | 5 | Pendiente |
 | 4 — Calidad | 10 | 5 | Pendiente |

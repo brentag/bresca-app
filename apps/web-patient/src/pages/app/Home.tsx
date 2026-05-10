@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { generateQR } from '../../lib/api';
-import { Upload, MessageCircle, QrCode, FolderOpen, FlaskConical, ChevronRight, Bell } from 'lucide-react';
+import { Upload, MessageCircle, QrCode, FolderOpen, FlaskConical, Bell } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useProfile } from '../../lib/useProfile';
 import { useSession } from '../../lib/session';
 import { useTrackNode } from '../../lib/useTrackNode';
+import { useNotifications } from '../../lib/notifications';
 import { StudyCard, StudyCardSkeleton } from '../../components/StudyCard';
 import RetentionModal from '../../components/RetentionModal';
 import type { Database } from '@bresca/shared';
@@ -95,6 +96,8 @@ export default function Home() {
     return () => clearTimeout(timer);
   }, [user?.id]);
 
+  const { unreadCount } = useNotifications();
+
   const displayName = profile?.display_name ?? user?.email?.split('@')[0] ?? 'vos';
   const firstName = displayName.split(' ')[0];
 
@@ -119,13 +122,23 @@ export default function Home() {
             }
           </div>
           <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-            <button style={{ background: 'none', border: 'none', cursor: 'pointer', position: 'relative', padding: 4, minHeight: 44, minWidth: 44, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <button
+              onClick={() => nav('/app/notifications')}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', position: 'relative', padding: 4, minHeight: 44, minWidth: 44, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            >
               <Bell size={22} color="#64748B" />
-              {showInvite && (
+              {unreadCount > 0 && (
                 <span style={{ position: 'absolute', top: 4, right: 4, width: 8, height: 8, borderRadius: '50%', background: '#00C87A' }} />
               )}
             </button>
-            {!profileLoading && <Avatar name={displayName} />}
+            {!profileLoading && (
+              <button
+                onClick={() => nav('/app/menu')}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center' }}
+              >
+                <Avatar name={displayName} />
+              </button>
+            )}
           </div>
         </div>
       </div>
