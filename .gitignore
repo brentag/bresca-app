@@ -9,6 +9,8 @@ dist/
 .env.local
 .env.*.local
 .env.production
+# Excepción: .env.production del CRO solo tiene vars VITE_* (públicas por diseño)
+!apps/web-cro/.env.production
 
 # Supabase local
 supabase/.branches/
