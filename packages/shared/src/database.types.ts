@@ -418,6 +418,7 @@ export type Database = {
       user_consent_state: {
         Row: {
           cro_research_allowed: boolean
+          has_accepted_ai_copilot: boolean
           has_accepted_tc: boolean
           last_updated: string
           specific_studies_allowed: string[]
@@ -426,6 +427,7 @@ export type Database = {
         }
         Insert: {
           cro_research_allowed?: boolean
+          has_accepted_ai_copilot?: boolean
           has_accepted_tc?: boolean
           last_updated?: string
           specific_studies_allowed?: string[]
@@ -434,6 +436,7 @@ export type Database = {
         }
         Update: {
           cro_research_allowed?: boolean
+          has_accepted_ai_copilot?: boolean
           has_accepted_tc?: boolean
           last_updated?: string
           specific_studies_allowed?: string[]

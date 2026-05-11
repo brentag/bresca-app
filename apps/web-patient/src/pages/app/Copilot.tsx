@@ -1,9 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Send, ExternalLink, X } from 'lucide-react';
 import { sendCopilotMessage, fetchContextCard } from '../../lib/api';
 import { Spinner } from '../../components/Spinner';
 import { useTrackNode } from '../../lib/useTrackNode';
 import { useTheme, themeColors } from '../../lib/theme';
+import { useProfile } from '../../lib/useProfile';
+import CopilotConsentGate from '../../components/CopilotConsentGate';
 
 type Message = { role: 'user' | 'assistant'; content: string };
 type GPTContext = { userMsg: string; assistantMsg: string };
@@ -14,6 +17,8 @@ function showGptCta() {
 
 export default function Asistente() {
   useTrackNode('copilot');
+  const nav = useNavigate();
+  const { profile, loading: profileLoading } = useProfile();
   const { isDark } = useTheme();
   const c = themeColors(isDark);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -67,8 +72,16 @@ export default function Asistente() {
     setGptModal(null);
   }
 
+  if (profileLoading || !profile) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', background: c.bg }}>
+        <div style={{ width: 32, height: 32, borderRadius: '50%', border: `3px solid ${c.border}`, borderTopColor: '#00C87A', animation: 'spin 0.8s linear infinite' }} />
+      </div>
+    );
+  }
+
   return (
-    <>
+    <CopilotConsentGate profileId={profile.id} onBack={() => nav(-1)}>
       <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: c.bg }}>
 
         <div style={{ padding: '16px 20px', background: c.card, borderBottom: `1px solid ${c.border}` }}>
@@ -194,6 +207,6 @@ export default function Asistente() {
           </div>
         </div>
       )}
-    </>
+    </CopilotConsentGate>
   );
 }
