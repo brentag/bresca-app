@@ -18,8 +18,10 @@ export default function Email() {
     const { error: err } = await supabase.auth.signInWithOtp({
       email,
       options: {
-        shouldCreateUser: mode === 'register',
-        // Codificar mode en la URL para preservarlo cuando el link se abre desde email
+        // Magic link: el botón en /welcome es solo etiqueta UX. Si el email existe → login,
+        // si no existe → crea cuenta. Apretar "Acceder" sin tener cuenta no debe ser un dead-end.
+        shouldCreateUser: true,
+        // Codificar mode en la URL para preservar el copy de Verify cuando se abre el link
         emailRedirectTo: `${window.location.origin}/auth/verify?mode=${mode}`,
       },
     });
