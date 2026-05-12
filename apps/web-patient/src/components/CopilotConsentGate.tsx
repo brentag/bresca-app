@@ -20,22 +20,12 @@ export default function CopilotConsentGate({ profileId, onBack, children }: Prop
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (localStorage.getItem(CONSENT_LS_KEY) === CONSENT_VERSION) {
+    // Consent por sesión — sessionStorage se limpia al cerrar el browser/pestaña
+    if (sessionStorage.getItem(CONSENT_LS_KEY) === CONSENT_VERSION) {
       setStatus('accepted');
       return;
     }
-    supabase
-      .from('user_consent_state')
-      .select('has_accepted_ai_copilot')
-      .maybeSingle()
-      .then(({ data }) => {
-        if (data?.has_accepted_ai_copilot) {
-          localStorage.setItem(CONSENT_LS_KEY, CONSENT_VERSION);
-          setStatus('accepted');
-        } else {
-          setStatus('gate');
-        }
-      });
+    setStatus('gate');
   }, []);
 
   async function accept() {
@@ -52,7 +42,7 @@ export default function CopilotConsentGate({ profileId, onBack, children }: Prop
       setAccepting(false);
       return;
     }
-    localStorage.setItem(CONSENT_LS_KEY, CONSENT_VERSION);
+    sessionStorage.setItem(CONSENT_LS_KEY, CONSENT_VERSION);
     setStatus('accepted');
   }
 

@@ -168,13 +168,11 @@ export default function Upload() {
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : String(err);
       console.error('Processing error:', errMsg);
-      if (errMsg.includes('profile_not_found')) {
-        nav('/onboarding/name', { replace: true });
-        return;
-      }
       let msg: string;
       if (errMsg.startsWith('storage_upload_failed')) {
         msg = `Error al subir el archivo (${errMsg.replace('storage_upload_failed: ', '')}). Intentá de nuevo o usá una imagen en lugar de PDF.`;
+      } else if (errMsg.includes('profile_not_found')) {
+        msg = 'No encontramos tu perfil en el servidor. Cerrá sesión, volvé a ingresar e intentá de nuevo.';
       } else if (errMsg.startsWith('extract enqueue')) {
         msg = `Error al enviar a analizar (${errMsg.replace('extract enqueue error ', '')}). Intentá de nuevo en unos segundos.`;
       } else if (err instanceof TypeError || errMsg.toLowerCase().includes('network')) {

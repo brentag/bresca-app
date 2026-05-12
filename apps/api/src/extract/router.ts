@@ -46,14 +46,16 @@ router.post('/', requireAuth, async (req, res) => {
     }
     targetProfileId = familyProfile.id;
   } else {
-    // Perfil propio
-    const { data: profile, error: profErr } = await supabase
+    // Perfil propio — limit(1) + maybeSingle para tolerar perfiles duplicados (user_id no tiene UNIQUE todavía)
+    const { data: profile } = await supabase
       .from('profiles')
       .select('id')
       .eq('user_id', userId)
-      .single();
+      .order('created_at', { ascending: true })
+      .limit(1)
+      .maybeSingle();
 
-    if (profErr || !profile) {
+    if (!profile) {
       res.status(404).json({ error: 'profile_not_found' });
       return;
     }

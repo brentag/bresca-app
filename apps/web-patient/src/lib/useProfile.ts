@@ -12,6 +12,7 @@ export function useProfile() {
 
   useEffect(() => {
     if (!user) { setProfile(null); setLoading(false); return; }
+    setLoading(true);
     supabase
       .from('profiles')
       .select('*')
