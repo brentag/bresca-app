@@ -42,11 +42,75 @@
 | TS-025 | extracted_fields no se devuelve raw | — | ✅ OK | — |
 | TS-026 | RLS activo en todas las tablas | — | ✅ OK | — |
 
-**Total escenarios:** 26 | ✅ Pasados: 18 | ✅ Resueltos post-QA: 5 | 🟡 Pendientes: 0 | 🔵 Bajos: 0
+**Total escenarios:** 26 | ✅ Pasados: 18 | ✅ Resueltos post-QA: 6 | 🟡 Pendientes: 0 | 🔵 Bajos: 0
+
+> **Bug post-producción resuelto:** Upload 404 `profile_not_found` — commit `7bc1300` (2026-05-10). Ver sección 2 para detalle.
+> **Bug post-producción resuelto:** Upload loop de redirect a onboarding por perfiles duplicados — commit `fdd5f574` (2026-05-12). Ver sección 2 para detalle.
 
 ---
 
 ## 2. Issues detallados
+
+---
+
+## [BUG POST-PRODUCCIÓN] Upload — loop de redirect a onboarding (perfiles duplicados)
+
+> ✅ **RESUELTO** — commit `fdd5f574` (2026-05-12)
+
+**Persona afectada:** P-01 María (cualquier usuario con sesión activa)
+**Feature:** F-002 — Health Vault — Upload
+**Severidad:** 🔴 Crítica → ✅ Resuelto
+**Tipo:** 🐛 Bug — detectado en producción
+
+### Descripción
+
+Después de subir un PDF el usuario era redirigido a `/onboarding/name` en lugar de al Vault. El flujo se había vuelto un loop:
+
+1. `extract/router.ts` usaba `.single()` que lanza error si hay 0 ó 2+ rows en el resultado.
+2. El redirect de `7bc1300` mandaba al usuario a `/onboarding/name` al recibir `profile_not_found`.
+3. `Name.tsx` hace `INSERT` sin verificar si el perfil ya existe — no hay `UNIQUE` constraint en `profiles.user_id`.
+4. Se creaba un segundo perfil con el mismo `user_id`. En la siguiente subida, `.single()` encontraba 2 rows → error → redirect → nuevo INSERT → loop.
+
+**Evidencia en DB:** brentag@gmail.com acumuló 3 perfiles "Gabriel" con el mismo `user_id`.
+
+### Resolución
+
+- `apps/api/src/extract/router.ts`: `.single()` → `.limit(1).order('created_at', asc).maybeSingle()`. Tolera duplicados, usa siempre el perfil más antiguo.
+- `apps/web-patient/src/pages/app/Upload.tsx`: elimina redirect a `/onboarding/name` ante `profile_not_found`; muestra mensaje de error con instrucción de cerrar sesión y reingresar.
+- `apps/web-patient/src/lib/useProfile.ts`: agrega `setLoading(true)` antes del fetch — evita window de `profile=null + loading=false` en renders intermedios de `ConsentGateway`.
+- **DB:** eliminados 3 perfiles duplicados + migración preventiva `UNIQUE(user_id) WHERE user_id IS NOT NULL` pendiente.
+
+### Labels
+`bug` `production` `data-integrity` `resolved`
+
+---
+
+## [BUG POST-PRODUCCIÓN] Upload — 404 `profile_not_found`
+
+> ✅ **RESUELTO** — commits `cf50f75` + `7bc1300` (2026-05-10)
+
+**Persona afectada:** P-01 María (cualquier usuario que llegue a Upload sin haber completado onboarding)
+**Feature:** F-002 — Health Vault — Upload
+**Severidad:** 🟠 Alta → ✅ Resuelto
+**Tipo:** 🐛 Bug — detectado en producción
+
+### Descripción
+
+El endpoint `POST /extract` retorna `404 { error: 'profile_not_found' }` cuando el `user_id` del JWT no tiene registro en la tabla `profiles`. Esto ocurría en dos escenarios:
+
+1. **Onboarding abandonado:** usuario acepta T&C pero cierra la app antes de crear su perfil. Al volver, `ConsentGateway` lo dejaba entrar al `Layout` (T&C OK) y podía navegar a Upload sin perfil.
+2. **Bundle cacheado (PWA/SW):** usuario con sesión activa y old bundle del Service Worker bypasseaba el nuevo `ConsentGateway`.
+
+El frontend mostraba *"Error al enviar a analizar (404). Intentá de nuevo en unos segundos"* — mensaje incorrecto ya que reintentar no resolvía el problema.
+
+### Resolución
+
+- `ConsentGateway.tsx`: agrega `useProfile()` — si T&C OK pero `!profile`, hace `<Navigate replace to="/onboarding/name" />`.
+- `api.ts` (`enqueueExtract`): parsea el body del 404; si `payload.error === 'profile_not_found'` lanza error distinguible.
+- `Upload.tsx`: intercepta `profile_not_found` y navega a `/onboarding/name` en lugar de mostrar banner de error.
+
+### Labels
+`bug` `production` `ux` `resolved`
 
 ---
 
@@ -213,6 +277,8 @@ Soy Laura, investigadora del CRO. El sistema me devuelve `patient_hash` (md5 del
 | Issues originales detectados por QA | 5 |
 | ✅ Resueltos (2026-05-04) | 4 |
 | ✅ Resueltos (2026-05-05) | 1 (TS-023) |
+| ✅ Resueltos en producción (2026-05-10) | 1 (upload 404 profile_not_found) |
+| ✅ Resueltos en producción (2026-05-12) | 1 (upload loop — perfiles duplicados) |
 | 🟡 Pendientes | 0 |
 | ~~🔴 Críticos~~ | ~~2~~ → 0 |
 | ~~🟠 Altos~~ | ~~2~~ → 0 |

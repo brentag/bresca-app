@@ -156,15 +156,25 @@ QR_TOKEN_SECRET            → rotación semestral
 
 ## Pendientes de código (backlog)
 
-| Item | Severidad |
-|---|---|
-| `Family.tsx` — multi-perfil no implementado (TS-015/016) | 🔴 Crítica |
-| `QRGenerate.tsx` — componente faltante (TS-011) | 🟠 Alta |
-| OCR timeout — sin botón de reintento (TS-006) | 🟠 Alta |
-| `ConsentGateway` — redirigir a onboarding si usuario sin perfil | 🟠 Alta |
-| `Welcome.tsx` — llamar `register_referral()` cuando `?ref=TOKEN` | 🟡 Media |
-| `Menu.tsx` — reemplazar número WA placeholder `5491100000000` | 🔴 |
-| Dark mode global — Vault, Copilot, Upload, Family (colores hardcoded) | 🟡 |
+| Item | Severidad | Estado |
+|---|---|---|
+| `Menu.tsx` — reemplazar número WA placeholder `5491100000000` | 🔴 | ⏸️ Bloqueado — número real pendiente |
+| Migración `UNIQUE(user_id) WHERE user_id IS NOT NULL` en `profiles` | 🟠 | ⏳ Pendiente — previene duplicados a nivel DB |
+
+### Resueltos (historial)
+
+| Item | Commit | Fecha |
+|---|---|---|
+| `Family.tsx` — multi-perfil (TS-015/016) | `6bad579` | 2026-05-04 |
+| `QRGenerate.tsx` — componente faltante (TS-011) | `7c9f799` | 2026-05-04 |
+| OCR timeout — UX de error + non-blocking (TS-006) | `b885b1d` | 2026-05-04 |
+| `ConsentGateway` — redirect a onboarding si sin perfil | `cf50f75` | 2026-05-10 |
+| `Welcome.tsx` — captura `?ref=TOKEN` + `register_referral()` | `980284b` | 2026-05-10 |
+| Dark mode global — Vault, Copilot, Upload, Family | `980284b` | 2026-05-10 |
+| Upload 404 `profile_not_found` — redirect en lugar de error genérico | `7bc1300` | 2026-05-10 |
+| Copilot Consent Gate — disclaimer legal obligatorio antes del Asistente IA | `69af32db` | 2026-05-11 |
+| Copilot consent — localStorage → sessionStorage (por sesión, no permanente) | `fdd5f574` | 2026-05-12 |
+| Upload loop → onboarding por perfiles duplicados — fix API + Upload + useProfile | `fdd5f574` | 2026-05-12 |
 
 ## Skills disponibles (cargar con @skill nombre)
 ```
