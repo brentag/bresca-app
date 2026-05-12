@@ -103,10 +103,17 @@ router.get('/:token', async (req, res) => {
     return;
   }
 
+  // Owner display_name para el copy "X te compartió por Bresca"
+  const { data: ownerProfile } = await supabase
+    .from('profiles')
+    .select('display_name')
+    .eq('id', qrToken.profile_id)
+    .single();
+
   // Fetch studies (service role bypasses RLS — we already validated via qr_tokens)
   const { data: studies } = await supabase
     .from('studies')
-    .select('id, study_type, category, study_date, lab_name, extracted_fields, confirmed')
+    .select('id, study_type, category, study_date, lab_name, extracted_fields, storage_path, storage_paths, confirmed')
     .in('id', qrToken.study_ids)
     .eq('confirmed', true);
 
@@ -142,22 +149,68 @@ router.get('/:token', async (req, res) => {
     'Diagnóstico','Impresión diagnóstica','Modalidad','Parte del cuerpo','Resolución','Descripción',
   ]);
 
-  const safeStudies = (studies ?? []).map(s => {
+  // TTL para signed URLs: dura tanto como el token, max 7 días = 604800s.
+  // Cuando expira el token la URL también vence — alineado por construcción.
+  const ttlSeconds = Math.max(
+    60,
+    Math.floor((new Date(qrToken.expires_at).getTime() - Date.now()) / 1000),
+  );
+
+  const safeStudies = await Promise.all((studies ?? []).map(async s => {
     const raw = (s.extracted_fields as Record<string, unknown>) ?? {};
     const discarded = Object.keys(raw).filter(k => !SAFE_FIELDS.has(k));
     if (discarded.length > 0) {
       console.warn('[QR] campos descartados por SAFE_FIELDS', { study_id: s.id, discarded });
     }
+
+    // Paths a firmar: prioriza storage_paths (multi-página), fallback a storage_path (legacy).
+    const paths: string[] = (s.storage_paths as string[] | null)?.length
+      ? (s.storage_paths as string[])
+      : (s.storage_path ? [s.storage_path as string] : []);
+
+    let files: { path: string; url: string; mime: string }[] = [];
+    if (paths.length > 0) {
+      const { data: signed } = await supabase.storage.from('studies').createSignedUrls(paths, ttlSeconds);
+      files = (signed ?? [])
+        .map((row, i) => ({
+          path: paths[i] ?? '',
+          url: row.signedUrl ?? '',
+          mime: guessMime(paths[i] ?? ''),
+        }))
+        .filter(f => f.url.length > 0);
+    }
+
+    // No retornamos storage_path/storage_paths al cliente público — sólo signed URLs.
+    const { storage_path: _sp, storage_paths: _sps, ...rest } = s as Record<string, unknown>;
+    void _sp; void _sps;
     return {
-      ...s,
+      ...rest,
       extracted_fields: Object.fromEntries(
         Object.entries(raw).filter(([k]) => SAFE_FIELDS.has(k)),
       ),
+      files,
     };
-  });
+  }));
 
   emitEvent('qr_scan', 'qr');
-  res.json({ studies: safeStudies, expires_at: qrToken.expires_at });
+  res.json({
+    owner_name: ownerProfile?.display_name ?? null,
+    studies: safeStudies,
+    expires_at: qrToken.expires_at,
+  });
 });
+
+function guessMime(path: string): string {
+  const ext = path.toLowerCase().split('.').pop() ?? '';
+  switch (ext) {
+    case 'pdf':  return 'application/pdf';
+    case 'jpg':
+    case 'jpeg': return 'image/jpeg';
+    case 'png':  return 'image/png';
+    case 'webp': return 'image/webp';
+    case 'dcm':  return 'application/dicom';
+    default:     return 'application/octet-stream';
+  }
+}
 
 export default router;
