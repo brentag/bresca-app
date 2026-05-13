@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, ChevronLeft, ChevronRight, QrCode, FileText, X, RefreshCw, Printer } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, ChevronRight, QrCode, FileText, X, RefreshCw, Printer, MoreHorizontal, MoveRight } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { categoryColor, formatStudyDate } from '../../lib/vault';
 import { useTheme, themeColors } from '../../lib/theme';
 import { FullPageSpinner } from '../../components/Spinner';
 import { exportStudyPDF } from '../../lib/export-pdf';
+import { moveStudy } from '../../lib/api';
 import type { Database } from '@bresca/shared';
 
 type Study = Database['public']['Tables']['studies']['Row'];
@@ -69,6 +70,8 @@ function useStudyFiles(study: Study | null) {
   return signedUrls;
 }
 
+type ProfileOption = { id: string; display_name: string | null };
+
 export default function StudyDetail() {
   const { id } = useParams<{ id: string }>();
   const nav = useNavigate();
@@ -77,6 +80,10 @@ export default function StudyDetail() {
   const [study, setStudy] = useState<Study | null>(null);
   const [loading, setLoading] = useState(true);
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+  const [showMoveSheet, setShowMoveSheet] = useState(false);
+  const [moveProfiles, setMoveProfiles] = useState<ProfileOption[]>([]);
+  const [moveLoading, setMoveLoading] = useState(false);
+  const [moveToast, setMoveToast] = useState('');
 
   useEffect(() => {
     if (!id) return;
@@ -86,6 +93,33 @@ export default function StudyDetail() {
 
   const files = useStudyFiles(study);
   const { prev, next } = useSiblings(study);
+
+  async function openMoveSheet() {
+    setShowMoveSheet(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const { data } = await supabase
+      .from('profiles')
+      .select('id, display_name')
+      .or(`user_id.eq.${user.id},owner_user_id.eq.${user.id}`)
+      .order('created_at');
+    setMoveProfiles(data ?? []);
+  }
+
+  async function handleMove(targetId: string) {
+    if (!study || moveLoading) return;
+    setMoveLoading(true);
+    try {
+      const { moved_to } = await moveStudy(study.id, targetId);
+      setShowMoveSheet(false);
+      setMoveToast(`Estudio movido a ${moved_to ?? 'otro vault'}`);
+      setTimeout(() => { setMoveToast(''); nav(-1); }, 1800);
+    } catch {
+      setMoveToast('No se pudo mover el estudio. Intentá de nuevo.');
+      setTimeout(() => setMoveToast(''), 3000);
+    }
+    setMoveLoading(false);
+  }
 
   if (loading) return <FullPageSpinner />;
   if (!study) return <div style={{ padding: 24, color: t.textSub, background: t.bg, minHeight: '100dvh' }}>Estudio no encontrado.</div>;
@@ -114,6 +148,13 @@ export default function StudyDetail() {
             style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: '#00C87A', fontSize: 14, fontWeight: 600, cursor: 'pointer', minHeight: 44 }}
           >
             <QrCode size={18} /> Compartir QR
+          </button>
+          <button
+            onClick={openMoveSheet}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', color: t.textSub, cursor: 'pointer', minHeight: 44, padding: '0 4px' }}
+            title="Más opciones"
+          >
+            <MoreHorizontal size={20} />
           </button>
         </div>
       </div>
@@ -216,6 +257,13 @@ export default function StudyDetail() {
                 </button>
               </div>
             )}
+
+            {study.category === 'receta' && (
+              <RecetaValidityBadge
+                fields={study.extracted_fields as Record<string, string>}
+                isDark={isDark}
+              />
+            )}
           </div>
         </div>
 
@@ -299,6 +347,109 @@ export default function StudyDetail() {
           />
         </div>
       )}
+
+      {/* Move sheet */}
+      {showMoveSheet && (
+        <div
+          style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.55)', zIndex: 200, display: 'flex', alignItems: 'flex-end' }}
+          onClick={() => !moveLoading && setShowMoveSheet(false)}
+        >
+          <div
+            style={{ background: t.card, width: '100%', borderRadius: '20px 20px 0 0', padding: '24px 20px', paddingBottom: 'calc(28px + env(safe-area-inset-bottom, 0px))' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
+              <h2 style={{ fontSize: 18, fontWeight: 700, color: t.text, margin: 0 }}>Mover a…</h2>
+              <button onClick={() => setShowMoveSheet(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', lineHeight: 0, padding: 4 }}>
+                <X size={20} color={t.textMuted} />
+              </button>
+            </div>
+
+            {moveProfiles.length === 0 ? (
+              <p style={{ fontSize: 14, color: t.textSub, textAlign: 'center', padding: '20px 0' }}>Cargando perfiles…</p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {moveProfiles.map((p) => {
+                  const isCurrent = p.id === study.profile_id;
+                  return (
+                    <button
+                      key={p.id}
+                      disabled={isCurrent || moveLoading}
+                      onClick={() => !isCurrent && handleMove(p.id)}
+                      style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        padding: '14px 16px', borderRadius: 12,
+                        background: isCurrent ? (isDark ? 'rgba(0,200,122,0.1)' : '#F0FDF4') : t.bg,
+                        border: `1.5px solid ${isCurrent ? '#00C87A' : t.border}`,
+                        cursor: isCurrent ? 'default' : 'pointer',
+                        opacity: moveLoading && !isCurrent ? 0.5 : 1,
+                        transition: 'opacity 150ms',
+                      }}
+                    >
+                      <span style={{ fontSize: 15, fontWeight: 600, color: isCurrent ? '#00C87A' : t.text }}>
+                        {p.display_name ?? 'Sin nombre'}
+                      </span>
+                      {isCurrent ? (
+                        <span style={{ fontSize: 11, color: '#00C87A', fontWeight: 600 }}>Vault actual</span>
+                      ) : (
+                        <MoveRight size={16} color={t.textMuted} />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Toast */}
+      {moveToast && (
+        <div style={{ position: 'fixed', bottom: 'calc(80px + env(safe-area-inset-bottom, 0px))', left: '50%', transform: 'translateX(-50%)', background: '#0F172A', color: '#fff', padding: '10px 18px', borderRadius: 12, fontSize: 14, fontWeight: 500, zIndex: 300, whiteSpace: 'nowrap', boxShadow: '0 4px 20px rgba(0,0,0,0.3)' }}>
+          {moveToast}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function parseValidDate(val: string): Date | null {
+  // Accepts YYYY-MM-DD or DD/MM/YYYY
+  if (/^\d{4}-\d{2}-\d{2}$/.test(val)) return new Date(val + 'T00:00:00');
+  const parts = val.split('/');
+  if (parts.length === 3) {
+    const [d, m, y] = parts;
+    return new Date(`${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}T00:00:00`);
+  }
+  return null;
+}
+
+function RecetaValidityBadge({ fields, isDark }: { fields: Record<string, string>; isDark: boolean }) {
+  const raw = fields['Válida hasta'] ?? fields['Valida hasta'] ?? fields['valid_until'];
+  if (!raw) return null;
+  const date = parseValidDate(raw);
+  if (!date || isNaN(date.getTime())) return null;
+
+  const today = new Date(); today.setHours(0,0,0,0);
+  const daysLeft = Math.round((date.getTime() - today.getTime()) / 86_400_000);
+  const expired = daysLeft < 0;
+  const soonExpiring = !expired && daysLeft <= 7;
+
+  const bg    = expired ? (isDark ? 'rgba(239,68,68,0.15)' : '#FEF2F2')
+              : soonExpiring ? (isDark ? 'rgba(245,158,11,0.15)' : '#FFFBEB')
+              : (isDark ? 'rgba(34,197,94,0.12)' : '#F0FDF4');
+  const border = expired ? '#EF4444' : soonExpiring ? '#F59E0B' : '#22C55E';
+  const color  = expired ? (isDark ? '#FCA5A5' : '#DC2626')
+               : soonExpiring ? (isDark ? '#FCD34D' : '#B45309')
+               : (isDark ? '#86EFAC' : '#166534');
+  const label  = expired ? `Vencida hace ${Math.abs(daysLeft)} días`
+               : soonExpiring ? `Vence en ${daysLeft} día${daysLeft === 1 ? '' : 's'}`
+               : `Válida hasta ${date.toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric' })}`;
+
+  return (
+    <div style={{ marginTop: 10, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 12px', borderRadius: 20, background: bg, border: `1px solid ${border}30` }}>
+      <span style={{ width: 7, height: 7, borderRadius: '50%', background: border, flexShrink: 0 }} />
+      <span style={{ fontSize: 12, fontWeight: 600, color }}>{label}</span>
     </div>
   );
 }

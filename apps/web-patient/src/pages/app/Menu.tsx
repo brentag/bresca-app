@@ -42,7 +42,7 @@ export default function Menu() {
     setTimeout(() => { setFeedbackSent(false); setFeedbackText(''); setShowFeedback(false); }, 1800);
   }
 
-  function openSupport() {
+  function openWhatsApp() {
     const msg = encodeURIComponent('Hola Bresca, necesito ayuda con la app.');
     window.open(`https://wa.me/5491100000000?text=${msg}`, '_blank');
   }
@@ -55,6 +55,14 @@ export default function Menu() {
       badge: unreadCount > 0 ? unreadCount : null,
       iconBg: unreadCount > 0 ? '#FEF2F2' : t.iconBg,
       action: () => nav('/app/notifications'),
+    },
+    {
+      icon: <LifeBuoy size={20} color="#4B6EF5" />,
+      label: 'Asistente XYZ',
+      sub: 'Ayuda para usar BrescaApp',
+      badge: null,
+      iconBg: isDark ? 'rgba(75,110,245,0.18)' : '#EEF2FF',
+      action: () => nav('/app/support'),
     },
     {
       icon: <Users2 size={20} color={t.textSub} />,
@@ -161,7 +169,7 @@ export default function Menu() {
           <ChevronRight size={16} color={t.textMuted} />
         </button>
         <button
-          onClick={openSupport}
+          onClick={openWhatsApp}
           style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 14, padding: '16px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', minHeight: 62 }}
         >
           <div style={{ width: 40, height: 40, borderRadius: 12, background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

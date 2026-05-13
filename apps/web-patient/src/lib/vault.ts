@@ -8,6 +8,7 @@ export const CATEGORIES = [
   { id: 'cardiología',    label: 'Corazón',      color: '#EC4899' },
   { id: 'endocrinología', label: 'Endocrino',    color: '#8B5CF6' },
   { id: 'respiratorio',   label: 'Respiratorio', color: '#06B6D4' },
+  { id: 'receta',         label: 'Receta',       color: '#10B981' },
   { id: 'otro',           label: 'Otro',         color: '#94A3B8' },
 ] as const;
 

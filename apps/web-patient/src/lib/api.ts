@@ -42,6 +42,29 @@ export async function generateQR(study_ids: string[], ttl_hours: number) {
   return res.json() as Promise<{ token: string; expires_at: string }>;
 }
 
+export async function sendSupportMessage(
+  message: string,
+  history: { role: 'user' | 'assistant'; content: string }[],
+) {
+  const res = await fetch(`${BASE}/support/chat`, {
+    method: 'POST',
+    headers: await authHeaders(),
+    body: JSON.stringify({ message, history }),
+  });
+  if (!res.ok) throw new Error(`support error ${res.status}`);
+  return res.json() as Promise<{ reply: string; remaining: number }>;
+}
+
+export async function moveStudy(studyId: string, targetProfileId: string) {
+  const res = await fetch(`${BASE}/studies/${studyId}/move`, {
+    method: 'PATCH',
+    headers: await authHeaders(),
+    body: JSON.stringify({ target_profile_id: targetProfileId }),
+  });
+  if (!res.ok) throw new Error(`move error ${res.status}`);
+  return res.json() as Promise<{ ok: boolean; moved_to?: string }>;
+}
+
 export async function deleteAccount(): Promise<void> {
   const res = await fetch(`${BASE}/account`, {
     method: 'DELETE',

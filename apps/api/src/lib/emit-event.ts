@@ -2,15 +2,18 @@ import { supabase } from './supabase';
 
 type EventType =
   | 'page_view'
+  | 'page_exit'
   | 'upload_start'
   | 'upload_complete'
   | 'copilot_query'
   | 'qr_scan'
   | 'ocr_complete'
   | 'cro_search'
-  | 'cro_view';
+  | 'cro_view'
+  | 'support_query'
+  | 'study_moved';
 
-type Node = 'home' | 'vault' | 'upload' | 'copilot' | 'qr' | 'family' | 'cro' | 'api' | 'onboarding';
+type Node = 'home' | 'vault' | 'upload' | 'copilot' | 'qr' | 'family' | 'cro' | 'api' | 'onboarding' | 'support';
 
 export function emitEvent(
   event_type: EventType,

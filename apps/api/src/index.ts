@@ -8,6 +8,8 @@ import croRouter from './cro/router';
 import extractRouter from './extract/router';
 import accountRouter from './account/router';
 import adminRouter from './admin/router';
+import studiesRouter from './studies/router';
+import supportRouter from './support/router';
 
 const app = express();
 const PORT = process.env.PORT ?? 3000;
@@ -68,6 +70,8 @@ app.use('/cro', croRouter);
 app.use('/extract', extractRouter);
 app.use('/account', accountRouter);
 app.use('/admin', adminRouter);
+app.use('/studies', studiesRouter);
+app.use('/support', supportRouter);
 
 app.listen(PORT, () => {
   console.log(`API running on port ${PORT}`);

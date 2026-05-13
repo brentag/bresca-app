@@ -24,10 +24,10 @@ const mistral = MISTRAL_API_KEY
   : null;
 
 // confidence_score: el modelo reporta su confianza (0=ilegible, 100=perfectamente legible y completo)
-// category: una de las 7 categorías Bresca; default 'otro' si no encaja.
+// category: una de las 8 categorías Bresca; default 'otro' si no encaja.
 const ALLOWED_CATEGORIES = [
   'hematología', 'bioquímica', 'imágenes', 'cardiología',
-  'endocrinología', 'respiratorio', 'otro',
+  'endocrinología', 'respiratorio', 'receta', 'otro',
 ] as const;
 type Category = typeof ALLOWED_CATEGORIES[number];
 
@@ -35,7 +35,7 @@ const SYSTEM_PROMPT = `Sos un experto en análisis de estudios médicos latinoam
 Respondé SIEMPRE con JSON válido, sin markdown, sin explicaciones:
 {
   "study_type": "nombre del estudio",
-  "category": "hematología" | "bioquímica" | "imágenes" | "cardiología" | "endocrinología" | "respiratorio" | "otro",
+  "category": "hematología" | "bioquímica" | "imágenes" | "cardiología" | "endocrinología" | "respiratorio" | "receta" | "otro",
   "lab_name": "laboratorio o centro médico" | null,
   "study_date": "YYYY-MM-DD" | null,
   "extracted_fields": { "Campo en español": "valor con unidad" },
@@ -48,10 +48,12 @@ category: clasificá el estudio en una sola categoría:
   - cardiología: ECG, ecocardiograma, holter, ergometría
   - endocrinología: tiroides (TSH/T4/T3), hormonas (FSH/LH/cortisol/testosterona), HOMA, insulina
   - respiratorio: espirometría, función pulmonar, gases en sangre
+  - receta: prescripción médica, medicamentos indicados, posología, dosis, nombre de médico + matrícula, diagnóstico, "válida hasta"
   - otro: cualquier estudio que no encaje claramente arriba
 confidence_score: tu nivel de confianza en la extracción (0=documento ilegible, 100=todo perfectamente legible y completo).
 Reglas: solo campos con valores concretos del documento, nunca inventes,
-si no hay año tomá el actual, extracted_fields vacío si el texto es ilegible.`;
+si no hay año tomá el actual, extracted_fields vacío si el texto es ilegible.
+Para recetas: extraé en extracted_fields: Prescriptor, Matrícula, Medicamento 1, Dosis 1 (y siguientes numerados), Diagnóstico, Válida hasta (formato DD/MM/YYYY o YYYY-MM-DD).`;
 
 type DraftRow = {
   id: string;
@@ -88,6 +90,7 @@ function normalizeCategory(raw: unknown): Category {
     'cardiologia': 'cardiología', 'cardiología': 'cardiología', 'corazon': 'cardiología', 'corazón': 'cardiología',
     'endocrinologia': 'endocrinología', 'endocrinología': 'endocrinología', 'endocrino': 'endocrinología',
     'respiratorio': 'respiratorio', 'respiratoria': 'respiratorio', 'pulmonar': 'respiratorio',
+    'receta': 'receta', 'recetas': 'receta', 'prescripcion': 'receta', 'prescripción': 'receta', 'medicamento': 'receta', 'prescripcion medica': 'receta',
     'otro': 'otro', 'otros': 'otro',
   };
   return map[trimmed] ?? 'otro';

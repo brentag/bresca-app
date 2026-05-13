@@ -28,6 +28,7 @@ import ConsentCenter from './pages/app/ConsentCenter';
 import Settings from './pages/app/Settings';
 import Notifications from './pages/app/Notifications';
 import InvitationCenter from './pages/app/InvitationCenter';
+import SupportChat from './pages/app/Support';
 import Privacidad from './pages/Privacidad';
 
 function RootRedirect() {
@@ -73,6 +74,7 @@ export default function App() {
             <Route path="settings"      element={<Settings />} />
             <Route path="notifications" element={<Notifications />} />
             <Route path="invitations"   element={<InvitationCenter />} />
+            <Route path="support"       element={<SupportChat />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
