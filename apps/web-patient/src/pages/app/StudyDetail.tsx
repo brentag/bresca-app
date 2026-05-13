@@ -10,20 +10,24 @@ import { moveStudy } from '../../lib/api';
 import type { Database } from '@bresca/shared';
 
 type Study = Database['public']['Tables']['studies']['Row'];
-type SiblingStudy = Pick<Study, 'id' | 'study_type' | 'study_date'>;
+type SiblingStudy = Pick<Study, 'id' | 'study_type' | 'study_date' | 'category'>;
 
-// Navega entre estudios de la misma categoría, ordenados por study_date desc.
-// Retorna { prev, next } basado en la posición del estudio actual.
+// Navega entre TODOS los estudios del perfil, ordenados por study_date desc.
+// Retorna prev, next y posición N/M en la línea de tiempo completa.
 function useSiblings(study: Study | null) {
-  const [siblings, setSiblings] = useState<{ prev: SiblingStudy | null; next: SiblingStudy | null }>({ prev: null, next: null });
+  const [result, setResult] = useState<{
+    prev: SiblingStudy | null;
+    next: SiblingStudy | null;
+    position: number;
+    total: number;
+  }>({ prev: null, next: null, position: 0, total: 0 });
 
   useEffect(() => {
     if (!study) return;
     supabase
       .from('studies')
-      .select('id, study_type, study_date')
+      .select('id, study_type, study_date, category')
       .eq('profile_id', study.profile_id)
-      .eq('category', study.category)
       .eq('confirmed', true)
       .order('study_date', { ascending: false })
       .order('id', { ascending: true })
@@ -31,15 +35,16 @@ function useSiblings(study: Study | null) {
         if (!data) return;
         const idx = data.findIndex(s => s.id === study.id);
         if (idx === -1) return;
-        // prev = más reciente (índice menor), next = más viejo (índice mayor)
-        setSiblings({
-          prev: idx > 0 ? data[idx - 1] as SiblingStudy : null,
+        setResult({
+          prev: idx > 0           ? data[idx - 1] as SiblingStudy : null,
           next: idx < data.length - 1 ? data[idx + 1] as SiblingStudy : null,
+          position: idx + 1,
+          total: data.length,
         });
       });
   }, [study?.id]);
 
-  return siblings;
+  return result;
 }
 
 function useStudyFiles(study: Study | null) {
@@ -80,6 +85,7 @@ export default function StudyDetail() {
   const [study, setStudy] = useState<Study | null>(null);
   const [loading, setLoading] = useState(true);
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+  const [touchStartX, setTouchStartX] = useState<number | null>(null);
   const [showMoveSheet, setShowMoveSheet] = useState(false);
   const [moveProfiles, setMoveProfiles] = useState<ProfileOption[]>([]);
   const [moveLoading, setMoveLoading] = useState(false);
@@ -92,7 +98,18 @@ export default function StudyDetail() {
   }, [id]);
 
   const files = useStudyFiles(study);
-  const { prev, next } = useSiblings(study);
+  const { prev, next, position, total } = useSiblings(study);
+
+  function handleTouchStart(e: React.TouchEvent) {
+    setTouchStartX(e.touches[0].clientX);
+  }
+  function handleTouchEnd(e: React.TouchEvent) {
+    if (touchStartX === null) return;
+    const delta = touchStartX - e.changedTouches[0].clientX;
+    if (delta > 60 && next) nav(`/app/vault/${next.id}`);
+    else if (delta < -60 && prev) nav(`/app/vault/${prev.id}`);
+    setTouchStartX(null);
+  }
 
   async function openMoveSheet() {
     setShowMoveSheet(true);
@@ -130,7 +147,11 @@ export default function StudyDetail() {
   const needsReview = ocrScore != null && ocrScore < 80;
 
   return (
-    <div style={{ minHeight: '100dvh', background: t.bg }}>
+    <div
+      style={{ minHeight: '100dvh', background: t.bg }}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+    >
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', background: t.card, borderBottom: `1px solid ${t.border}` }}>
         <button onClick={() => nav(-1)} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: t.textSub, fontSize: 15, cursor: 'pointer', minHeight: 44 }}>
           <ArrowLeft size={18} /> Vault
@@ -160,13 +181,13 @@ export default function StudyDetail() {
       </div>
 
       <div style={{ padding: '20px' }}>
-        {/* Navegación entre estudios de la misma categoría */}
-        {(prev || next) && (
+        {/* Navegación entre todos los estudios del perfil */}
+        {total > 1 && (
           <div style={{
-            display: 'flex', alignItems: 'stretch', gap: 6, marginBottom: 14,
+            display: 'flex', alignItems: 'stretch', marginBottom: 14,
             background: t.card, border: `1px solid ${t.border}`, borderRadius: 12, overflow: 'hidden',
           }}>
-            {/* Botón anterior (más reciente) */}
+            {/* ← Más reciente */}
             <button
               onClick={() => prev && nav(`/app/vault/${prev.id}`)}
               disabled={!prev}
@@ -174,32 +195,44 @@ export default function StudyDetail() {
                 flex: 1, display: 'flex', alignItems: 'center', gap: 6,
                 padding: '10px 12px',
                 background: 'none', border: 'none',
-                borderLeft: `3px solid ${prev ? color : 'transparent'}`,
+                borderLeft: `3px solid ${prev ? categoryColor(prev.category) : 'transparent'}`,
                 cursor: prev ? 'pointer' : 'default',
-                opacity: prev ? 1 : 0.35,
+                opacity: prev ? 1 : 0.3,
                 minHeight: 52, textAlign: 'left',
                 transition: 'opacity 150ms',
               }}
-              title={prev ? `${prev.study_type} — ${formatStudyDate(prev.study_date)}` : undefined}
             >
-              <ChevronLeft size={16} color={prev ? color : t.textMuted} style={{ flexShrink: 0 }} />
+              <ChevronLeft size={16} color={prev ? categoryColor(prev.category) : t.textMuted} style={{ flexShrink: 0 }} />
               <div style={{ minWidth: 0, overflow: 'hidden' }}>
-                <span style={{ display: 'block', fontSize: 9, fontWeight: 700, color: prev ? color : t.textMuted, letterSpacing: '0.07em', textTransform: 'uppercase', marginBottom: 2 }}>Más reciente</span>
-                {prev && (
-                  <span style={{ display: 'block', fontSize: 11, fontWeight: 600, color: t.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {prev.study_type}
-                  </span>
-                )}
-                <span style={{ display: 'block', fontSize: 11, color: t.textSub, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {prev ? formatStudyDate(prev.study_date) : '—'}
+                <span style={{ display: 'block', fontSize: 9, fontWeight: 700, color: prev ? categoryColor(prev.category) : t.textMuted, letterSpacing: '0.07em', textTransform: 'uppercase', marginBottom: 2 }}>
+                  Más reciente
                 </span>
+                {prev ? (
+                  <>
+                    <span style={{ display: 'block', fontSize: 11, fontWeight: 600, color: t.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {prev.study_type}
+                    </span>
+                    <span style={{ display: 'block', fontSize: 11, color: t.textSub }}>
+                      {formatStudyDate(prev.study_date)}
+                    </span>
+                  </>
+                ) : (
+                  <span style={{ fontSize: 11, color: t.textMuted }}>Primero</span>
+                )}
               </div>
             </button>
 
-            {/* Separador central */}
-            <div style={{ width: 1, background: t.border, alignSelf: 'stretch', flexShrink: 0 }} />
+            {/* Indicador de posición central */}
+            <div style={{
+              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+              flexShrink: 0, padding: '6px 10px', borderLeft: `1px solid ${t.border}`, borderRight: `1px solid ${t.border}`,
+            }}>
+              <span style={{ fontSize: 13, fontWeight: 700, color: t.text, lineHeight: 1 }}>{position}</span>
+              <div style={{ width: 1, height: 8, background: t.border, margin: '3px 0' }} />
+              <span style={{ fontSize: 11, color: t.textMuted, lineHeight: 1 }}>{total}</span>
+            </div>
 
-            {/* Botón siguiente (más antiguo) */}
+            {/* Más antiguo → */}
             <button
               onClick={() => next && nav(`/app/vault/${next.id}`)}
               disabled={!next}
@@ -207,26 +240,31 @@ export default function StudyDetail() {
                 flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6,
                 padding: '10px 12px',
                 background: 'none', border: 'none',
-                borderRight: `3px solid ${next ? color : 'transparent'}`,
+                borderRight: `3px solid ${next ? categoryColor(next.category) : 'transparent'}`,
                 cursor: next ? 'pointer' : 'default',
-                opacity: next ? 1 : 0.35,
+                opacity: next ? 1 : 0.3,
                 minHeight: 52, textAlign: 'right',
                 transition: 'opacity 150ms',
               }}
-              title={next ? `${next.study_type} — ${formatStudyDate(next.study_date)}` : undefined}
             >
               <div style={{ minWidth: 0, overflow: 'hidden', textAlign: 'right' }}>
-                <span style={{ display: 'block', fontSize: 9, fontWeight: 700, color: next ? color : t.textMuted, letterSpacing: '0.07em', textTransform: 'uppercase', marginBottom: 2, textAlign: 'right' }}>Más antiguo</span>
-                {next && (
-                  <span style={{ display: 'block', fontSize: 11, fontWeight: 600, color: t.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {next.study_type}
-                  </span>
-                )}
-                <span style={{ display: 'block', fontSize: 11, color: t.textSub, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {next ? formatStudyDate(next.study_date) : '—'}
+                <span style={{ display: 'block', fontSize: 9, fontWeight: 700, color: next ? categoryColor(next.category) : t.textMuted, letterSpacing: '0.07em', textTransform: 'uppercase', marginBottom: 2 }}>
+                  Más antiguo
                 </span>
+                {next ? (
+                  <>
+                    <span style={{ display: 'block', fontSize: 11, fontWeight: 600, color: t.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {next.study_type}
+                    </span>
+                    <span style={{ display: 'block', fontSize: 11, color: t.textSub }}>
+                      {formatStudyDate(next.study_date)}
+                    </span>
+                  </>
+                ) : (
+                  <span style={{ fontSize: 11, color: t.textMuted }}>Último</span>
+                )}
               </div>
-              <ChevronRight size={16} color={next ? color : t.textMuted} style={{ flexShrink: 0 }} />
+              <ChevronRight size={16} color={next ? categoryColor(next.category) : t.textMuted} style={{ flexShrink: 0 }} />
             </button>
           </div>
         )}
