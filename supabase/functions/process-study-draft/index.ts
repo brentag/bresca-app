@@ -144,12 +144,14 @@ async function processAndSave(draft: DraftRow): Promise<void> {
       })
       .eq('id', draft.id);
 
-    // Segundo pass si score < 80 y es imagen (PDFs y DICOM no aplican)
-    const isImage = draft.mime_type.startsWith('image/');
-    if (result.ocr_score < 80 && isImage && mistral) {
+    // DICOM: score siempre 95 desde metadata embebida — nunca requiere segundo pass ni revisión manual
+    const isDicom = draft.mime_type === 'application/dicom';
+    const isImage = !isDicom && draft.mime_type.startsWith('image/');
+
+    if (!isDicom && result.ocr_score < 80 && isImage && mistral) {
       await runSecondPass(draft, result);
-    } else if (result.ocr_score < 80 && !isImage) {
-      // PDFs/DICOM con score bajo: marcar directamente sin segundo pass
+    } else if (!isDicom && result.ocr_score < 80 && !isImage) {
+      // PDFs con score bajo: marcar directamente sin segundo pass
       await supabase
         .from('study_drafts')
         .update({ needs_review: true })
@@ -250,22 +252,27 @@ async function runSecondPass(draft: DraftRow, pass1: Structured): Promise<void> 
 async function process(draft: DraftRow): Promise<Structured> {
   const today = new Date().toISOString().slice(0, 10);
   const paths = draft.storage_paths ?? [draft.storage_path];
-  // Hint para el LLM: si el usuario seleccionó categoría, la pasamos como pista.
-  // Si vino NULL (auto-detect), pasamos string vacío — el modelo clasifica desde cero.
   const categoryHint = draft.category ?? '';
 
+  // DICOM: shortcut directo sin pasar por IA.
+  // Todos los slices de una serie comparten los mismos metadatos — procesar solo el primero.
+  if (draft.mime_type === 'application/dicom') {
+    return processSinglePath(paths[0], 'application/dicom', categoryHint, today);
+  }
+
+  // octet-stream con un solo archivo: puede ser DICOM sin extensión — processSinglePath detecta.
   if (paths.length === 1) {
     return processSinglePath(paths[0], draft.mime_type, categoryHint, today);
   }
 
+  // Multi-path (PDF multi-página o imágenes de estudio): procesar cada página con IA.
   const results: PageResult[] = [];
   for (const path of paths) {
     const mime = mimeFromPath(path);
     const r = await processSinglePath(path, mime, categoryHint, today);
     results.push({ ...r, confidence_score: r.ocr_score });
   }
-  const merged = mergeResults(results);
-  return merged;
+  return mergeResults(results);
 }
 
 async function processSinglePath(
@@ -298,11 +305,20 @@ async function processSinglePath(
   }
 
   if (effectiveMime === 'application/dicom') {
+    // DICOM: metadata embebida — no requiere IA
     const structured = await processDicom(buffer, today);
     return { ...structured, raw_text: '', ocr_score: 95 };
   }
 
-  // Imagen: DeepSeek Vision
+  // Guard: si después de detectar magic bytes el tipo sigue sin resolverse, no llamar IA con contenido inválido
+  if (effectiveMime === 'application/octet-stream') {
+    throw new Error('unsupported_format: el contenido del archivo no pudo identificarse (magic bytes desconocidos)');
+  }
+
+  // Imagen (JPEG, PNG, WebP): DeepSeek Vision
+  if (!effectiveMime.startsWith('image/')) {
+    throw new Error(`unsupported_mime: ${effectiveMime}`);
+  }
   const base64  = encodeBase64(buffer);
   const dataUrl = `data:${effectiveMime};base64,${base64}`;
   const structured = await structureFromImage(dataUrl, category, today);
