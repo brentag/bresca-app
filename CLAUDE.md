@@ -160,10 +160,8 @@ QR_TOKEN_SECRET            → rotación semestral
 |---|---|---|
 | `Menu.tsx` — reemplazar número WA placeholder `5491100000000` | 🔴 | ⏸️ Bloqueado — número real pendiente |
 | Migración `UNIQUE(user_id) WHERE user_id IS NOT NULL` en `profiles` | 🟠 | ⏳ Pendiente — previene duplicados a nivel DB |
-| Upload: auto-detectar `category` del estudio en el OCR — eliminar el selector manual. La pantalla de revisión actual queda como segundo chequeo del OCR, pero **solo se muestra automáticamente si `confidence_score < 95`**. >=95 confirma directo. | 🟠 | 📋 Backlog |
-| Marco de color del estudio según `confidence_score`: verde ≥95, amarillo 80-94.9, rojo <80. Rojo ofrece "Revisar valores" o "Subir nuevamente". El score ya se extrae en `process-study-draft/index.ts` (`ocr_score`) — falta cablearlo en `StudyCard.tsx` y dar tratamiento al rojo. | 🟠 | 📋 Backlog |
-| Vault: mostrar `study_date` prominente y agregar una **línea de tiempo** (vista cronológica) de los estudios del año. | 🟡 | 📋 Backlog |
-| `StudyDetail.tsx`: navegación anterior/posterior entre estudios del **mismo tipo** (ej. comparar hemogramas de meses distintos). Evaluar si conviene anchor con sliders por analito o lista simple. | 🟡 | 📋 Backlog — necesita análisis de UX |
+| Dark mode en `ConsentCenter.tsx` (353 líneas, no migrada todavía) | 🟡 | 📋 Backlog |
+| Dark mode en flujo de auth (`Welcome`, `Email`, `Verify`) y onboarding | 🔵 | 📋 Backlog (debatible — primer impresión usual en light) |
 
 ### Resueltos (historial)
 
@@ -179,6 +177,14 @@ QR_TOKEN_SECRET            → rotación semestral
 | Copilot Consent Gate — disclaimer legal obligatorio antes del Asistente IA | `69af32db` | 2026-05-11 |
 | Copilot consent — localStorage → sessionStorage (por sesión, no permanente) | `fdd5f574` | 2026-05-12 |
 | Upload loop → onboarding por perfiles duplicados — fix API + Upload + useProfile | `fdd5f574` | 2026-05-12 |
+| `Email.tsx` — unificar /welcome: Acceder no falla con email nuevo | `fa2c3a29` | 2026-05-12 |
+| `/qr/:token` — incluir archivo embebido + greeting personalizado | `e9fd4681` | 2026-05-12 |
+| `reset-user.mjs` + migración defensiva `handle_account_deletion` | `95685de4` | 2026-05-12 |
+| Edge Function `process-study-draft` redeploy con `--no-verify-jwt` (regresión) | deploy manual | 2026-05-12 |
+| StudyCard marco color OCR + dark mode + Home/StudyDetail/QRGenerate dark mode | `5b28d011`, `3a597d4e` | 2026-05-13 |
+| StudyDetail — navegación ant/post entre estudios del mismo tipo | `5b28d011` | 2026-05-13 |
+| Vault — timeline anual con dots por estudio (navegación clickeable) | `8115d833` | 2026-05-13 |
+| Auto-detect category en OCR + auto-confirm si confianza ≥95 | `1db4e9a6` | 2026-05-13 |
 
 ## Skills disponibles (cargar con @skill nombre)
 ```
