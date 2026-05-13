@@ -26,6 +26,8 @@ type Draft = {
 };
 type SelectedFile = { id: string; file: File; preview: string };
 
+const MAX_FILES = 10;
+
 const MIME_MAP: Record<string, string> = {
   jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp',
   pdf: 'application/pdf',
@@ -74,7 +76,8 @@ export default function Upload() {
   const [saving, setSaving]           = useState(false);
   const [saveError, setSaveError]     = useState('');
   const [extractError, setExtractError] = useState('');
-  const [uploadPct, setUploadPct]     = useState<number | null>(null);
+  const [uploadPct, setUploadPct]       = useState<number | null>(null);
+  const [uploadingFileName, setUploadingFileName] = useState<string | null>(null);
   const [showFeedback, setShowFeedback] = useState(false);
   const [savedVaultPath, setSavedVaultPath] = useState('/app/vault');
   const folderRef = React.useRef<HTMLInputElement>(null);
@@ -125,35 +128,54 @@ export default function Upload() {
   function addFiles(e: React.ChangeEvent<HTMLInputElement>) {
     const incoming = Array.from(e.target.files ?? []);
     if (!incoming.length) return;
-    setFiles(prev => [
-      ...prev,
-      ...incoming.map(file => ({
-        id:      `${Date.now()}-${Math.random()}`,
-        file,
-        preview: file.type.startsWith('image/') ? URL.createObjectURL(file) : '',
-      })),
-    ]);
+    setExtractError('');
+    setFiles(prev => {
+      const remaining = MAX_FILES - prev.length;
+      if (remaining <= 0) {
+        setExtractError(`Máximo ${MAX_FILES} archivos por envío. Procesá los actuales primero.`);
+        return prev;
+      }
+      const toAdd = incoming.slice(0, remaining);
+      if (toAdd.length < incoming.length) {
+        setExtractError(`Se agregaron ${toAdd.length} de ${incoming.length} archivos (límite: ${MAX_FILES}).`);
+      }
+      return [
+        ...prev,
+        ...toAdd.map(file => ({
+          id:      `${Date.now()}-${Math.random()}`,
+          file,
+          preview: file.type.startsWith('image/') ? URL.createObjectURL(file) : '',
+        })),
+      ];
+    });
     e.target.value = '';
   }
 
   function addFolderFiles(e: React.ChangeEvent<HTMLInputElement>) {
     const incoming = Array.from(e.target.files ?? []);
     if (!incoming.length) return;
-    // Filtrar solo archivos DICOM (con extensión reconocida o sin extensión)
+    setExtractError('');
     const dicomFiles = incoming.filter(f => isDicomFile(f.name));
     if (!dicomFiles.length) {
       setExtractError('La carpeta no contiene archivos DICOM reconocidos (.dcm, .dicom o sin extensión).');
       e.target.value = '';
       return;
     }
-    setFiles(prev => [
-      ...prev,
-      ...dicomFiles.map(file => ({
-        id:      `${Date.now()}-${Math.random()}`,
-        file,
-        preview: '',
-      })),
-    ]);
+    setFiles(prev => {
+      const remaining = MAX_FILES - prev.length;
+      if (remaining <= 0) {
+        setExtractError(`Máximo ${MAX_FILES} archivos por envío. Procesá los actuales primero.`);
+        return prev;
+      }
+      const toAdd = dicomFiles.slice(0, remaining);
+      if (toAdd.length < dicomFiles.length) {
+        setExtractError(`Se agregaron ${toAdd.length} de ${dicomFiles.length} archivos DICOM (límite: ${MAX_FILES}).`);
+      }
+      return [
+        ...prev,
+        ...toAdd.map(file => ({ id: `${Date.now()}-${Math.random()}`, file, preview: '' })),
+      ];
+    });
     e.target.value = '';
   }
 
@@ -167,9 +189,10 @@ export default function Upload() {
     setExtractError('');
     setUploading(true);
     setUploadPct(0);
+    setUploadingFileName(null);
 
     try {
-      const totalBytes  = files.reduce((acc, f) => acc + f.file.size, 0) || 1;
+      const totalBytes   = files.reduce((acc, f) => acc + f.file.size, 0) || 1;
       const fileProgress = files.map(() => 0);
 
       const uploads = await Promise.all(
@@ -177,6 +200,7 @@ export default function Upload() {
           const ext  = file.name.split('.').pop()?.toLowerCase() ?? '';
           const mime = MIME_MAP[ext] ?? 'application/octet-stream';
           const path = `${user!.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+          setUploadingFileName(file.name.length > 30 ? `…${file.name.slice(-27)}` : file.name);
 
           await uploadFileStorage(file, path, mime, (pct) => {
             fileProgress[idx] = pct;
@@ -244,7 +268,7 @@ export default function Upload() {
     setShowFeedback(true);
   }
 
-  const pageLabel = files.length === 1 ? '1 página' : `${files.length} páginas`;
+  const fileLabel = files.length === 1 ? '1 archivo' : `${files.length} archivos`;
 
   const sourceCardStyle: React.CSSProperties = {
     flex: 1, background: c.card, borderRadius: 16, padding: '20px 16px',
@@ -291,9 +315,16 @@ export default function Upload() {
 
           {/* Selector de origen */}
           <div>
-            <h2 style={{ fontSize: 17, fontWeight: 700, color: c.text, marginBottom: 12 }}>
-              {files.length === 0 ? '¿Cómo querés subir el archivo?' : 'Agregar más páginas'}
-            </h2>
+            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 12 }}>
+              <h2 style={{ fontSize: 17, fontWeight: 700, color: c.text }}>
+                {files.length === 0 ? '¿Qué querés subir?' : 'Agregar más archivos'}
+              </h2>
+              {files.length > 0 && (
+                <span style={{ fontSize: 12, color: files.length >= MAX_FILES ? '#EF4444' : c.textMuted }}>
+                  {files.length}/{MAX_FILES}
+                </span>
+              )}
+            </div>
             <div style={{ display: 'flex', gap: 12 }}>
               <label style={sourceCardStyle}>
                 <Camera size={28} color="#00C87A" />
@@ -323,7 +354,7 @@ export default function Upload() {
             <div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
                 <span style={{ fontSize: 13, fontWeight: 600, color: c.textSub }}>
-                  {pageLabel} seleccionada{files.length !== 1 ? 's' : ''}
+                  {fileLabel} seleccionado{files.length !== 1 ? 's' : ''}
                 </span>
                 <button onClick={() => setFiles([])} style={{ fontSize: 12, color: c.textMuted, background: 'none', border: 'none', cursor: 'pointer' }}>
                   Limpiar todo
@@ -377,7 +408,7 @@ export default function Upload() {
           <div style={{ background: '#F0FDF4', borderRadius: 12, padding: '12px 16px', display: 'flex', alignItems: 'flex-start', gap: 10 }}>
             <ScanLine size={18} color="#00C87A" style={{ marginTop: 1, flexShrink: 0 }} />
             <p style={{ fontSize: 13, color: '#166534', lineHeight: 1.5 }}>
-              Si el estudio tiene varias páginas, agregá todas las fotos antes de procesar. Bresca las analiza juntas.
+              Podés seleccionar hasta {MAX_FILES} archivos a la vez — PDF, imágenes o DICOM. Si el estudio tiene varias páginas, agregalas todas antes de procesar.
             </p>
           </div>
 
@@ -385,10 +416,12 @@ export default function Upload() {
           {uploading && uploadPct !== null && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: 13, color: c.textSub, fontWeight: 500 }}>
-                  {uploadPct < 100 ? 'Subiendo el archivo…' : 'Enviando a la IA…'}
+                <span style={{ fontSize: 13, color: c.textSub, fontWeight: 500, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {uploadPct < 100
+                    ? (uploadingFileName ? uploadingFileName : 'Subiendo…')
+                    : 'Enviando a la IA…'}
                 </span>
-                <span style={{ fontSize: 13, color: '#00C87A', fontWeight: 700 }}>
+                <span style={{ fontSize: 13, color: '#00C87A', fontWeight: 700, flexShrink: 0, marginLeft: 8 }}>
                   {uploadPct < 100 ? `${uploadPct}%` : '✓'}
                 </span>
               </div>
@@ -407,7 +440,7 @@ export default function Upload() {
             >
               {uploading
                 ? <><Spinner /> Subiendo…</>
-                : <><ScanLine size={18} color="#fff" /> Subir {pageLabel}</>
+                : <><ScanLine size={18} color="#fff" /> Subir {fileLabel}</>
               }
             </button>
           )}
