@@ -316,13 +316,11 @@ function YearTimeline({
   c: ReturnType<typeof themeColors>;
 }) {
   const currentMonth = new Date().getMonth();
-  const currentYear = new Date().getFullYear();
+  const currentYear  = new Date().getFullYear();
 
-  // Studies con su posición % en el año (0-100) por study_date.
   const positioned = useMemo(() => {
     return studies.map(s => {
       const d = new Date(s.study_date + 'T00:00:00');
-      // posición continua dentro del año: día / 365
       const startOfYear = new Date(year, 0, 1).getTime();
       const endOfYear   = new Date(year + 1, 0, 1).getTime();
       const pct = ((d.getTime() - startOfYear) / (endOfYear - startOfYear)) * 100;
@@ -330,8 +328,6 @@ function YearTimeline({
     }).sort((a, b) => a.pct - b.pct);
   }, [studies, year]);
 
-  // Agrupar dots muy cercanos para evitar overlap
-  // (gap mínimo 2.5% del ancho — ~9 días).
   const grouped = useMemo(() => {
     const out: { pct: number; items: typeof positioned }[] = [];
     for (const p of positioned) {
@@ -345,27 +341,37 @@ function YearTimeline({
     return out;
   }, [positioned]);
 
+  // Meses que tienen al menos un estudio
+  const monthsWithStudies = useMemo(() => {
+    const set = new Set<number>();
+    for (const s of studies) {
+      if (s.study_date) set.add(new Date(s.study_date + 'T00:00:00').getMonth());
+    }
+    return set;
+  }, [studies]);
+
   return (
     <div style={{ padding: '0 20px 14px' }}>
-      {/* Año selector + contador */}
+      {/* Año pills + contador */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-        <div style={{ display: 'flex', gap: 6, alignItems: 'baseline' }}>
+        <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
           {availableYears.length > 1 ? (
             availableYears.map(y => (
               <button
                 key={y}
                 onClick={() => onSelectYear(y)}
                 style={{
-                  background: 'none', border: 'none',
-                  fontSize: y === year ? 16 : 13,
-                  fontWeight: y === year ? 700 : 500,
-                  color: y === year ? c.text : c.textMuted,
-                  cursor: 'pointer', padding: '4px 6px', minHeight: 32,
+                  background: y === year ? '#00C87A' : 'none',
+                  border: `1.5px solid ${y === year ? '#00C87A' : c.borderLight}`,
+                  borderRadius: 20, fontSize: 13, fontWeight: 600,
+                  color: y === year ? '#fff' : c.textMuted,
+                  cursor: 'pointer', padding: '3px 10px', minHeight: 28,
+                  transition: 'all 150ms',
                 }}
               >{y}</button>
             ))
           ) : (
-            <span style={{ fontSize: 16, fontWeight: 700, color: c.text }}>{year}</span>
+            <span style={{ fontSize: 15, fontWeight: 700, color: c.text }}>{year}</span>
           )}
         </div>
         <span style={{ fontSize: 11, color: c.textMuted, letterSpacing: '0.04em' }}>
@@ -374,48 +380,82 @@ function YearTimeline({
       </div>
 
       {/* Eje + dots */}
-      <div style={{ position: 'relative', height: 48, marginBottom: 6 }}>
+      <div style={{ position: 'relative', height: 52 }}>
+        {/* Banda de mes seleccionado */}
+        {selectedMonth != null && (
+          <div style={{
+            position: 'absolute',
+            left: `${(selectedMonth / 12) * 100}%`,
+            width: `${(1 / 12) * 100}%`,
+            top: 0, bottom: 0,
+            background: '#00C87A18',
+            borderRadius: 4,
+            pointerEvents: 'none',
+          }} />
+        )}
+
+        {/* Tick marks de mes (11 ticks intermedios + extremos) */}
+        {Array.from({ length: 13 }).map((_, i) => (
+          <div
+            key={i}
+            style={{
+              position: 'absolute',
+              left: `${(i / 12) * 100}%`,
+              top: i === 0 || i === 12 ? 0 : (i % 3 === 0 ? 14 : 17),
+              width: 1,
+              height: i === 0 || i === 12 ? 0 : (i % 3 === 0 ? 10 : 6),
+              background: c.borderLight,
+              transform: 'translateX(-50%)',
+              opacity: 0.7,
+              pointerEvents: 'none',
+            }}
+          />
+        ))}
+
         {/* Línea base */}
-        <div style={{ position: 'absolute', left: 0, right: 0, top: 21, height: 2, background: c.borderLight, borderRadius: 2 }} />
-        {/* Línea progresada (hasta hoy si es año actual) */}
+        <div style={{
+          position: 'absolute', left: 0, right: 0, top: 24, height: 2,
+          background: c.borderLight, borderRadius: 2,
+        }} />
+
+        {/* Progreso del año actual */}
         {year === currentYear && (
           <div style={{
-            position: 'absolute', left: 0, top: 21, height: 2,
+            position: 'absolute', left: 0, top: 24, height: 2,
             width: `${((new Date().getTime() - new Date(year, 0, 1).getTime()) / (1000 * 60 * 60 * 24 * 365)) * 100}%`,
-            background: '#00C87A', opacity: 0.4, borderRadius: 2,
+            background: '#00C87A', opacity: 0.45, borderRadius: 2,
           }} />
         )}
 
         {/* Dots por estudio */}
         {grouped.map((g, i) => {
-          const isMulti = g.items.length > 1;
+          const isMulti    = g.items.length > 1;
           const firstColor = categoryColor(g.items[0].category);
+          const size       = isMulti ? 20 : 13;
           return (
             <button
               key={i}
               onClick={() => {
-                // Si hay varios, abrir el más reciente (ordenamos ya por pct; el último es el más reciente)
                 const target = isMulti ? g.items[g.items.length - 1] : g.items[0];
                 onSelectStudy(target.id);
               }}
               style={{
                 position: 'absolute',
                 left: `${g.pct}%`,
-                top: 12,
+                top: 24 - size / 2,
                 transform: 'translateX(-50%)',
-                width: isMulti ? 22 : 16, height: isMulti ? 22 : 16,
+                width: size, height: size,
                 borderRadius: '50%',
                 background: firstColor,
                 border: `2px solid ${c.bg}`,
-                boxShadow: `0 0 0 1px ${firstColor}50`,
-                cursor: 'pointer',
-                padding: 0,
+                boxShadow: `0 0 0 1.5px ${firstColor}55, 0 1px 5px ${firstColor}25`,
+                cursor: 'pointer', padding: 0, zIndex: 2,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                color: '#fff', fontSize: 10, fontWeight: 700,
-                transition: 'transform 120ms',
+                color: '#fff', fontSize: 9, fontWeight: 700,
+                transition: 'transform 120ms, box-shadow 120ms',
               }}
               title={isMulti
-                ? `${g.items.length} estudios cerca de ${g.items[0].date.toLocaleDateString('es-AR', { day: '2-digit', month: 'short' })}`
+                ? `${g.items.length} estudios — ${g.items[0].date.toLocaleDateString('es-AR', { day: '2-digit', month: 'short' })}`
                 : `${g.items[0].type} · ${g.items[0].date.toLocaleDateString('es-AR', { day: '2-digit', month: 'short' })}`}
             >
               {isMulti ? g.items.length : ''}
@@ -424,27 +464,42 @@ function YearTimeline({
         })}
       </div>
 
-      {/* Labels de meses (filtro al hacer click) */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: 0 }}>
+      {/* Labels de meses */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', marginTop: 2 }}>
         {MONTH_LABELS.map((label, i) => {
-          const isSelected = selectedMonth === i;
-          const isCurrent  = year === currentYear && i === currentMonth;
+          const isSelected  = selectedMonth === i;
+          const isCurrent   = year === currentYear && i === currentMonth;
+          const hasStudies  = monthsWithStudies.has(i);
           return (
             <button
               key={label}
               onClick={() => onSelectMonth(i)}
               style={{
-                background: 'none', border: 'none', cursor: 'pointer',
-                fontSize: 10,
-                fontWeight: isSelected ? 700 : (isCurrent ? 600 : 500),
-                color: isSelected ? '#00C87A' : (isCurrent ? c.text : c.textMuted),
-                padding: '4px 0', minHeight: 28,
-                letterSpacing: '0.02em',
-                textAlign: 'center',
+                background: isSelected ? '#00C87A' : 'none',
+                border: 'none',
+                borderRadius: 6,
+                cursor: 'pointer',
+                padding: '4px 0 6px',
+                minHeight: 30,
+                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3,
+                transition: 'background 120ms',
               }}
               title={`Filtrar ${label} ${year}`}
             >
-              {label}
+              <span style={{
+                fontSize: 9,
+                fontWeight: isSelected ? 700 : (isCurrent ? 600 : 400),
+                color: isSelected ? '#fff' : (isCurrent ? '#00C87A' : hasStudies ? c.textSub : c.textMuted),
+                letterSpacing: '0.02em',
+              }}>
+                {label}
+              </span>
+              {/* Dot indicador de estudios en ese mes */}
+              <span style={{
+                width: 3, height: 3, borderRadius: '50%',
+                background: isSelected ? 'rgba(255,255,255,0.7)' : (hasStudies ? '#00C87A' : 'transparent'),
+                transition: 'background 120ms',
+              }} />
             </button>
           );
         })}
@@ -453,9 +508,14 @@ function YearTimeline({
       {selectedMonth != null && (
         <button
           onClick={() => onSelectMonth(selectedMonth)}
-          style={{ marginTop: 4, background: 'none', border: 'none', color: '#00C87A', fontSize: 12, fontWeight: 600, cursor: 'pointer', padding: '2px 0' }}
+          style={{
+            marginTop: 4, background: 'none', border: 'none',
+            color: '#00C87A', fontSize: 12, fontWeight: 600,
+            cursor: 'pointer', padding: '2px 0',
+            display: 'flex', alignItems: 'center', gap: 3,
+          }}
         >
-          Mostrar todo el año ×
+          <span style={{ fontSize: 14, lineHeight: 1 }}>×</span> Todo el año
         </button>
       )}
     </div>
