@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
+import type React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { generateQR } from '../../lib/api';
 import { Upload, MessageCircle, QrCode, FolderOpen, FlaskConical, Bell } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useProfile } from '../../lib/useProfile';
 import { useSession } from '../../lib/session';
+import { useTheme, themeColors } from '../../lib/theme';
 import { useTrackNode } from '../../lib/useTrackNode';
 import { useNotifications } from '../../lib/notifications';
 import { StudyCard, StudyCardSkeleton } from '../../components/StudyCard';
@@ -69,11 +71,33 @@ export default function Home() {
   const nav = useNavigate();
   const { user } = useSession();
   const { profile, loading: profileLoading } = useProfile();
+  const { isDark } = useTheme();
+  const t = themeColors(isDark);
   const [stats, setStats] = useState<HomeStats | null>(null);
   const [recent, setRecent] = useState<Study[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
   const [showInvite, setShowInvite] = useState(true);
   const [showRetention, setShowRetention] = useState(false);
+
+  const statCardStyle: React.CSSProperties = {
+    background: t.card,
+    border: `1px solid ${t.border}`,
+    borderRadius: 14,
+    padding: '12px 10px',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    boxShadow: isDark ? 'none' : '0 1px 3px rgba(0,0,0,0.04)',
+  };
+
+  const sectionLabelStyle: React.CSSProperties = {
+    fontSize: 11,
+    fontWeight: 700,
+    color: t.textMuted,
+    letterSpacing: '0.08em',
+    textTransform: 'uppercase',
+    marginBottom: 10,
+  };
 
   useEffect(() => {
     if (!profile) return;
@@ -109,16 +133,16 @@ export default function Home() {
   ];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', background: '#F7F9FC', minHeight: '100%' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', background: t.bg, minHeight: '100%' }}>
 
       {/* ─── Header ──────────────────────────────────────────── */}
-      <div style={{ background: '#fff', padding: '16px 20px 14px', borderBottom: '1px solid #E2E8F0', flexShrink: 0 }}>
+      <div style={{ background: t.card, padding: '16px 20px 14px', borderBottom: `1px solid ${t.border}`, flexShrink: 0 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <p style={{ fontSize: 12, color: '#94A3B8', marginBottom: 2 }}>{greeting()},</p>
+            <p style={{ fontSize: 12, color: t.textMuted, marginBottom: 2 }}>{greeting()},</p>
             {profileLoading
               ? <div className="skeleton" style={{ height: 22, width: 120, borderRadius: 6 }} />
-              : <h1 style={{ fontSize: 20, fontWeight: 700, color: '#0F172A', lineHeight: 1.2 }}>{firstName} 👋</h1>
+              : <h1 style={{ fontSize: 20, fontWeight: 700, color: t.text, lineHeight: 1.2 }}>{firstName} 👋</h1>
             }
           </div>
           <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
@@ -126,7 +150,7 @@ export default function Home() {
               onClick={() => nav('/app/notifications')}
               style={{ background: 'none', border: 'none', cursor: 'pointer', position: 'relative', padding: 4, minHeight: 44, minWidth: 44, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             >
-              <Bell size={22} color="#64748B" />
+              <Bell size={22} color={t.textSub} />
               {unreadCount > 0 && (
                 <span style={{ position: 'absolute', top: 4, right: 4, width: 8, height: 8, borderRadius: '50%', background: '#00C87A' }} />
               )}
@@ -149,7 +173,7 @@ export default function Home() {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 14 }}>
           {(dataLoading || profileLoading)
             ? Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} style={statCard}>
+                <div key={i} style={statCardStyle}>
                   <div className="skeleton" style={{ height: 22, width: 36, borderRadius: 4, marginBottom: 4 }} />
                   <div className="skeleton" style={{ height: 11, width: 50, borderRadius: 4 }} />
                 </div>
@@ -159,9 +183,9 @@ export default function Home() {
                 { value: stats?.months ?? 0, label: 'meses historia', color: '#4B6EF5' },
                 { value: stats?.categories ?? 0, label: 'categorías', color: '#00B8D4' },
               ].map(({ value, label, color }) => (
-                <div key={label} style={statCard}>
+                <div key={label} style={statCardStyle}>
                   <span style={{ fontSize: 20, fontWeight: 700, color, lineHeight: 1 }}>{value}</span>
-                  <span style={{ fontSize: 10, color: '#94A3B8', marginTop: 3, textAlign: 'center', lineHeight: 1.3 }}>{label}</span>
+                  <span style={{ fontSize: 10, color: t.textMuted, marginTop: 3, textAlign: 'center', lineHeight: 1.3 }}>{label}</span>
                 </div>
               ))
           }
@@ -171,7 +195,7 @@ export default function Home() {
         {showInvite && (
           <div
             onClick={() => nav('/app/menu')}
-            style={{ marginBottom: 14, background: 'linear-gradient(135deg,#EEF2FF,#F0FDF4)', border: '1px solid rgba(0,200,122,0.25)', borderRadius: 16, padding: '14px', cursor: 'pointer', display: 'flex', gap: 12, alignItems: 'flex-start', position: 'relative' }}
+            style={{ marginBottom: 14, background: isDark ? 'linear-gradient(135deg,rgba(75,110,245,0.10),rgba(0,200,122,0.10))' : 'linear-gradient(135deg,#EEF2FF,#F0FDF4)', border: '1px solid rgba(0,200,122,0.25)', borderRadius: 16, padding: '14px', cursor: 'pointer', display: 'flex', gap: 12, alignItems: 'flex-start', position: 'relative' }}
           >
             <div style={{ width: 38, height: 38, borderRadius: 12, background: 'rgba(75,110,245,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
               <FlaskConical size={20} color="#4B6EF5" />
@@ -179,43 +203,43 @@ export default function Home() {
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'rgba(0,200,122,0.12)', borderRadius: 6, padding: '2px 8px', marginBottom: 5 }}>
                 <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#00C87A' }} />
-                <span style={{ fontSize: 10, fontWeight: 700, color: '#00A064', letterSpacing: '0.06em', textTransform: 'uppercase' }}>Investigación clínica</span>
+                <span style={{ fontSize: 10, fontWeight: 700, color: isDark ? '#86EFAC' : '#00A064', letterSpacing: '0.06em', textTransform: 'uppercase' }}>Investigación clínica</span>
               </div>
-              <p style={{ fontSize: 13, fontWeight: 700, color: '#0F172A', marginBottom: 3 }}>
+              <p style={{ fontSize: 13, fontWeight: 700, color: t.text, marginBottom: 3 }}>
                 Tu historial puede ayudar a la ciencia
               </p>
-              <p style={{ fontSize: 11, color: '#64748B', lineHeight: 1.5 }}>
+              <p style={{ fontSize: 11, color: t.textSub, lineHeight: 1.5 }}>
                 Las CROs (Contract Research Organizations) buscan pacientes para estudios clínicos. Podés participar de forma anónima y voluntaria.
               </p>
             </div>
             <button
               onClick={e => { e.stopPropagation(); setShowInvite(false); }}
-              style={{ position: 'absolute', top: 10, right: 12, background: 'none', border: 'none', color: '#94A3B8', fontSize: 16, cursor: 'pointer', lineHeight: 1, padding: 4 }}
+              style={{ position: 'absolute', top: 10, right: 12, background: 'none', border: 'none', color: t.textMuted, fontSize: 16, cursor: 'pointer', lineHeight: 1, padding: 4 }}
               aria-label="Cerrar"
             >×</button>
           </div>
         )}
 
         {/* ─── Acciones rápidas ────────────────────────────────── */}
-        <p style={sectionLabel}>Acciones rápidas</p>
+        <p style={sectionLabelStyle}>Acciones rápidas</p>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 16 }}>
           {quickActions.map(({ icon: Icon, label, color, bg, action }) => (
             <button
               key={label}
               onClick={action}
-              style={{ background: '#fff', border: '1px solid #E2E8F0', borderRadius: 16, padding: '16px 14px', display: 'flex', flexDirection: 'column', gap: 10, cursor: 'pointer', textAlign: 'left', boxShadow: '0 1px 4px rgba(0,0,0,0.04)', minHeight: 90 }}
+              style={{ background: t.card, border: `1px solid ${t.border}`, borderRadius: 16, padding: '16px 14px', display: 'flex', flexDirection: 'column', gap: 10, cursor: 'pointer', textAlign: 'left', boxShadow: isDark ? 'none' : '0 1px 4px rgba(0,0,0,0.04)', minHeight: 90 }}
             >
               <div style={{ width: 38, height: 38, borderRadius: 12, background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Icon size={19} color={color} strokeWidth={2} />
               </div>
-              <span style={{ fontSize: 13, fontWeight: 600, color: '#0F172A', lineHeight: 1.35, whiteSpace: 'pre-line' }}>{label}</span>
+              <span style={{ fontSize: 13, fontWeight: 600, color: t.text, lineHeight: 1.35, whiteSpace: 'pre-line' }}>{label}</span>
             </button>
           ))}
         </div>
 
         {/* ─── Estudios recientes ──────────────────────────────── */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-          <p style={sectionLabel}>Estudios recientes</p>
+          <p style={sectionLabelStyle}>Estudios recientes</p>
           <button
             onClick={() => nav('/app/vault')}
             style={{ background: 'none', border: 'none', fontSize: 12, color: '#00C87A', cursor: 'pointer', fontWeight: 600, padding: '4px 8px', minHeight: 44, display: 'flex', alignItems: 'center' }}
@@ -228,7 +252,7 @@ export default function Home() {
           {(dataLoading || profileLoading)
             ? Array.from({ length: 3 }).map((_, i) => <StudyCardSkeleton key={i} />)
             : recent.length === 0
-              ? <EmptyState onUpload={() => nav('/app/vault/upload')} />
+              ? <EmptyState onUpload={() => nav('/app/vault/upload')} t={t} />
               : recent.map(s => (
                   <StudyCard
                     key={s.id}
@@ -249,9 +273,9 @@ export default function Home() {
 
         {/* ─── Bresca footer tagline ───────────────────────────── */}
         <div style={{ marginTop: 24, marginBottom: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-          <div style={{ height: 1, flex: 1, background: '#F1F5F9' }} />
-          <span style={{ fontSize: 10, color: '#CBD5E1', fontWeight: 500, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Bresca · Tu salud, tu control</span>
-          <div style={{ height: 1, flex: 1, background: '#F1F5F9' }} />
+          <div style={{ height: 1, flex: 1, background: t.borderLight }} />
+          <span style={{ fontSize: 10, color: t.textMuted, fontWeight: 500, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Bresca · Tu salud, tu control</span>
+          <div style={{ height: 1, flex: 1, background: t.borderLight }} />
         </div>
 
       </div>
@@ -269,12 +293,12 @@ export default function Home() {
   );
 }
 
-function EmptyState({ onUpload }: { onUpload: () => void }) {
+function EmptyState({ onUpload, t }: { onUpload: () => void; t: ReturnType<typeof themeColors> }) {
   return (
-    <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #E2E8F0', padding: '32px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 10 }}>
+    <div style={{ background: t.card, borderRadius: 16, border: `1px solid ${t.border}`, padding: '32px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 10 }}>
       <span style={{ fontSize: 36 }}>🗂</span>
-      <p style={{ fontSize: 15, fontWeight: 700, color: '#0F172A' }}>Todavía no tenés estudios</p>
-      <p style={{ fontSize: 13, color: '#64748B', lineHeight: 1.6, maxWidth: 240 }}>Subí tu primer estudio médico y Bresca lo analiza automáticamente.</p>
+      <p style={{ fontSize: 15, fontWeight: 700, color: t.text }}>Todavía no tenés estudios</p>
+      <p style={{ fontSize: 13, color: t.textSub, lineHeight: 1.6, maxWidth: 240 }}>Subí tu primer estudio médico y Bresca lo analiza automáticamente.</p>
       <button
         onClick={onUpload}
         style={{ marginTop: 6, background: '#00C87A', color: '#fff', border: 'none', borderRadius: 100, padding: '11px 24px', fontSize: 14, fontWeight: 600, cursor: 'pointer', minHeight: 44 }}
@@ -284,27 +308,3 @@ function EmptyState({ onUpload }: { onUpload: () => void }) {
     </div>
   );
 }
-
-// Shared styles
-const statCard: React.CSSProperties = {
-  background: '#fff',
-  border: '1px solid #E2E8F0',
-  borderRadius: 14,
-  padding: '12px 10px',
-  display: 'flex',
-  flexDirection: 'column',
-  alignItems: 'center',
-  boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-};
-
-const sectionLabel: React.CSSProperties = {
-  fontSize: 11,
-  fontWeight: 700,
-  color: '#94A3B8',
-  letterSpacing: '0.08em',
-  textTransform: 'uppercase',
-  marginBottom: 10,
-};
-
-// React import for CSSProperties type
-import type React from 'react';

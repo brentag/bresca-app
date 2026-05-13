@@ -1,13 +1,45 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, QrCode, FileText, X, RefreshCw, Printer } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, ChevronRight, QrCode, FileText, X, RefreshCw, Printer } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { categoryColor, formatStudyDate } from '../../lib/vault';
+import { useTheme, themeColors } from '../../lib/theme';
 import { FullPageSpinner } from '../../components/Spinner';
 import { exportStudyPDF } from '../../lib/export-pdf';
 import type { Database } from '@bresca/shared';
 
 type Study = Database['public']['Tables']['studies']['Row'];
+type SiblingStudy = Pick<Study, 'id' | 'study_type' | 'study_date'>;
+
+// Navega entre estudios de la misma categoría, ordenados por study_date desc.
+// Retorna { prev, next } basado en la posición del estudio actual.
+function useSiblings(study: Study | null) {
+  const [siblings, setSiblings] = useState<{ prev: SiblingStudy | null; next: SiblingStudy | null }>({ prev: null, next: null });
+
+  useEffect(() => {
+    if (!study) return;
+    supabase
+      .from('studies')
+      .select('id, study_type, study_date')
+      .eq('profile_id', study.profile_id)
+      .eq('category', study.category)
+      .eq('confirmed', true)
+      .order('study_date', { ascending: false })
+      .order('id', { ascending: true })
+      .then(({ data }) => {
+        if (!data) return;
+        const idx = data.findIndex(s => s.id === study.id);
+        if (idx === -1) return;
+        // prev = más reciente (índice menor), next = más viejo (índice mayor)
+        setSiblings({
+          prev: idx > 0 ? data[idx - 1] as SiblingStudy : null,
+          next: idx < data.length - 1 ? data[idx + 1] as SiblingStudy : null,
+        });
+      });
+  }, [study?.id]);
+
+  return siblings;
+}
 
 function useStudyFiles(study: Study | null) {
   const [signedUrls, setSignedUrls] = useState<{ path: string; url: string; isPdf: boolean }[]>([]);
@@ -40,6 +72,8 @@ function useStudyFiles(study: Study | null) {
 export default function StudyDetail() {
   const { id } = useParams<{ id: string }>();
   const nav = useNavigate();
+  const { isDark } = useTheme();
+  const t = themeColors(isDark);
   const [study, setStudy] = useState<Study | null>(null);
   const [loading, setLoading] = useState(true);
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
@@ -51,9 +85,10 @@ export default function StudyDetail() {
   }, [id]);
 
   const files = useStudyFiles(study);
+  const { prev, next } = useSiblings(study);
 
   if (loading) return <FullPageSpinner />;
-  if (!study) return <div style={{ padding: 24, color: '#64748B' }}>Estudio no encontrado.</div>;
+  if (!study) return <div style={{ padding: 24, color: t.textSub, background: t.bg, minHeight: '100dvh' }}>Estudio no encontrado.</div>;
 
   const color = categoryColor(study.category);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -61,15 +96,15 @@ export default function StudyDetail() {
   const needsReview = ocrScore != null && ocrScore < 80;
 
   return (
-    <div style={{ minHeight: '100dvh', background: '#F7F9FC' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', background: '#fff', borderBottom: '1px solid #E2E8F0' }}>
-        <button onClick={() => nav(-1)} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: '#64748B', fontSize: 15, cursor: 'pointer', minHeight: 44 }}>
+    <div style={{ minHeight: '100dvh', background: t.bg }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', background: t.card, borderBottom: `1px solid ${t.border}` }}>
+        <button onClick={() => nav(-1)} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: t.textSub, fontSize: 15, cursor: 'pointer', minHeight: 44 }}>
           <ArrowLeft size={18} /> Vault
         </button>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
           <button
             onClick={() => exportStudyPDF(study)}
-            style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'none', border: 'none', color: '#64748B', fontSize: 13, fontWeight: 500, cursor: 'pointer', minHeight: 44, padding: '0 8px' }}
+            style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'none', border: 'none', color: t.textSub, fontSize: 13, fontWeight: 500, cursor: 'pointer', minHeight: 44, padding: '0 8px' }}
             title="Exportar para médico"
           >
             <Printer size={17} /> Para médico
@@ -84,21 +119,55 @@ export default function StudyDetail() {
       </div>
 
       <div style={{ padding: '20px' }}>
-        <div style={{ background: '#fff', borderRadius: 16, overflow: 'hidden', border: '1px solid #E2E8F0', marginBottom: 16 }}>
+        {/* Navegación entre estudios de la misma categoría */}
+        {(prev || next) && (
+          <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
+            <button
+              onClick={() => prev && nav(`/app/vault/${prev.id}`)}
+              disabled={!prev}
+              style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', background: t.card, border: `1px solid ${t.border}`, borderRadius: 12, cursor: prev ? 'pointer' : 'not-allowed', opacity: prev ? 1 : 0.4, minHeight: 56, textAlign: 'left' }}
+              title={prev ? `Anterior: ${prev.study_type}` : 'No hay estudio anterior'}
+            >
+              <ChevronLeft size={18} color={t.textSub} style={{ flexShrink: 0 }} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ display: 'block', fontSize: 10, fontWeight: 600, color: t.textMuted, letterSpacing: '0.06em', textTransform: 'uppercase' }}>Más reciente</span>
+                <span style={{ display: 'block', fontSize: 12, fontWeight: 600, color: t.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {prev ? formatStudyDate(prev.study_date) : '—'}
+                </span>
+              </div>
+            </button>
+            <button
+              onClick={() => next && nav(`/app/vault/${next.id}`)}
+              disabled={!next}
+              style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', background: t.card, border: `1px solid ${t.border}`, borderRadius: 12, cursor: next ? 'pointer' : 'not-allowed', opacity: next ? 1 : 0.4, minHeight: 56, textAlign: 'right', justifyContent: 'flex-end' }}
+              title={next ? `Siguiente: ${next.study_type}` : 'No hay estudio anterior'}
+            >
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ display: 'block', fontSize: 10, fontWeight: 600, color: t.textMuted, letterSpacing: '0.06em', textTransform: 'uppercase' }}>Más antiguo</span>
+                <span style={{ display: 'block', fontSize: 12, fontWeight: 600, color: t.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {next ? formatStudyDate(next.study_date) : '—'}
+                </span>
+              </div>
+              <ChevronRight size={18} color={t.textSub} style={{ flexShrink: 0 }} />
+            </button>
+          </div>
+        )}
+
+        <div style={{ background: t.card, borderRadius: 16, overflow: 'hidden', border: `1px solid ${t.border}`, marginBottom: 16 }}>
           <div style={{ height: 4, background: color }} />
           <div style={{ padding: '16px 20px' }}>
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, marginBottom: 4 }}>
-              <h1 style={{ fontSize: 20, fontWeight: 700, color: '#0F172A', margin: 0 }}>{study.study_type}</h1>
+              <h1 style={{ fontSize: 20, fontWeight: 700, color: t.text, margin: 0 }}>{study.study_type}</h1>
               {ocrScore != null && <OcrScoreBadge score={ocrScore} />}
             </div>
-            <p style={{ fontSize: 14, color: '#64748B', marginTop: 4 }}>{formatStudyDate(study.study_date)}</p>
-            {study.lab_name && <p style={{ fontSize: 13, color: '#94A3B8' }}>{study.lab_name}</p>}
+            <p style={{ fontSize: 14, color: t.textSub, marginTop: 4 }}>{formatStudyDate(study.study_date)}</p>
+            {study.lab_name && <p style={{ fontSize: 13, color: t.textMuted }}>{study.lab_name}</p>}
 
             {needsReview && (
-              <div style={{ background: '#FFF7ED', border: '1px solid #FED7AA', borderRadius: 10, padding: '10px 14px', marginTop: 12, display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+              <div style={{ background: isDark ? 'rgba(249,115,22,0.15)' : '#FFF7ED', border: `1px solid ${isDark ? 'rgba(249,115,22,0.4)' : '#FED7AA'}`, borderRadius: 10, padding: '10px 14px', marginTop: 12, display: 'flex', gap: 10, alignItems: 'flex-start' }}>
                 <div style={{ flex: 1 }}>
-                  <p style={{ fontSize: 13, fontWeight: 600, color: '#92400E', margin: '0 0 2px' }}>Calidad de lectura baja</p>
-                  <p style={{ fontSize: 12, color: '#B45309', margin: 0, lineHeight: 1.5 }}>
+                  <p style={{ fontSize: 13, fontWeight: 600, color: isDark ? '#FDBA74' : '#92400E', margin: '0 0 2px' }}>Calidad de lectura baja</p>
+                  <p style={{ fontSize: 12, color: isDark ? '#FED7AA' : '#B45309', margin: 0, lineHeight: 1.5 }}>
                     El análisis automático tuvo dificultades con este documento. Verificá los valores o resubí con mejor calidad.
                   </p>
                 </div>
@@ -116,7 +185,7 @@ export default function StudyDetail() {
         {/* Archivos del estudio */}
         {files.length > 0 && (
           <>
-            <p style={{ fontSize: 11, fontWeight: 600, color: '#94A3B8', letterSpacing: '0.08em', marginBottom: 10 }}>
+            <p style={{ fontSize: 11, fontWeight: 600, color: t.textMuted, letterSpacing: '0.08em', marginBottom: 10 }}>
               {files.length === 1 ? 'ARCHIVO' : `ARCHIVOS (${files.length} páginas)`}
             </p>
             <div style={{ display: 'flex', gap: 10, overflowX: 'auto', marginBottom: 16, paddingBottom: 4, scrollbarWidth: 'none' }}>
@@ -127,17 +196,17 @@ export default function StudyDetail() {
                     href={f.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    style={{ flexShrink: 0, width: 90, height: 110, borderRadius: 12, background: '#F1F5F9', border: '1.5px solid #E2E8F0', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, textDecoration: 'none', color: '#64748B' }}
+                    style={{ flexShrink: 0, width: 90, height: 110, borderRadius: 12, background: t.cardAlt, border: `1.5px solid ${t.border}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, textDecoration: 'none', color: t.textSub }}
                   >
                     <FileText size={28} color="#4B6EF5" />
                     <span style={{ fontSize: 10, fontWeight: 600 }}>Pág. {i + 1}</span>
-                    <span style={{ fontSize: 9, color: '#94A3B8' }}>Abrir PDF</span>
+                    <span style={{ fontSize: 9, color: t.textMuted }}>Abrir PDF</span>
                   </a>
                 ) : (
                   <button
                     key={f.path}
                     onClick={() => setLightboxUrl(f.url)}
-                    style={{ flexShrink: 0, width: 90, height: 110, borderRadius: 12, overflow: 'hidden', border: '1.5px solid #E2E8F0', padding: 0, cursor: 'pointer', position: 'relative' }}
+                    style={{ flexShrink: 0, width: 90, height: 110, borderRadius: 12, overflow: 'hidden', border: `1.5px solid ${t.border}`, padding: 0, cursor: 'pointer', position: 'relative' }}
                   >
                     <img src={f.url} alt={`Página ${i + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     {files.length > 1 && (
@@ -154,18 +223,18 @@ export default function StudyDetail() {
 
         {Object.entries((study.extracted_fields as Record<string, string>) ?? {}).length > 0 && (
           <>
-            <p style={{ fontSize: 11, fontWeight: 600, color: '#94A3B8', letterSpacing: '0.08em', marginBottom: 10 }}>RESULTADOS</p>
-            <div style={{ background: '#FFF7ED', border: '1px solid #FED7AA', borderRadius: 12, padding: '10px 14px', marginBottom: 10, display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+            <p style={{ fontSize: 11, fontWeight: 600, color: t.textMuted, letterSpacing: '0.08em', marginBottom: 10 }}>RESULTADOS</p>
+            <div style={{ background: isDark ? 'rgba(249,115,22,0.12)' : '#FFF7ED', border: `1px solid ${isDark ? 'rgba(249,115,22,0.35)' : '#FED7AA'}`, borderRadius: 12, padding: '10px 14px', marginBottom: 10, display: 'flex', gap: 8, alignItems: 'flex-start' }}>
               <span style={{ fontSize: 14, flexShrink: 0, marginTop: 1 }}>⚕️</span>
-              <p style={{ fontSize: 12, color: '#92400E', lineHeight: 1.55, margin: 0 }}>
+              <p style={{ fontSize: 12, color: isDark ? '#FDBA74' : '#92400E', lineHeight: 1.55, margin: 0 }}>
                 Este resumen es <strong>asistivo, no diagnóstico</strong>. Siempre verificá los valores con tu médico antes de tomar decisiones de salud.
               </p>
             </div>
-            <div style={{ background: '#fff', borderRadius: 14, overflow: 'hidden', border: '1px solid #E2E8F0' }}>
+            <div style={{ background: t.card, borderRadius: 14, overflow: 'hidden', border: `1px solid ${t.border}` }}>
               {Object.entries(study.extracted_fields as Record<string, string>).map(([key, val], i, arr) => (
-                <div key={key} style={{ padding: '12px 16px', borderBottom: i < arr.length - 1 ? '1px solid #F1F5F9' : 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: 13, color: '#64748B' }}>{key}</span>
-                  <span style={{ fontSize: 14, fontWeight: 600, color: '#0F172A' }}>{val}</span>
+                <div key={key} style={{ padding: '12px 16px', borderBottom: i < arr.length - 1 ? `1px solid ${t.borderLight}` : 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: 13, color: t.textSub }}>{key}</span>
+                  <span style={{ fontSize: 14, fontWeight: 600, color: t.text }}>{val}</span>
                 </div>
               ))}
             </div>
