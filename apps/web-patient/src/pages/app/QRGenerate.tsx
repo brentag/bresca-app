@@ -7,6 +7,7 @@ import { useProfile } from '../../lib/useProfile';
 import { supabase } from '../../lib/supabase';
 import { Spinner } from '../../components/Spinner';
 import { categoryColor, formatStudyDate } from '../../lib/vault';
+import { useTheme, themeColors } from '../../lib/theme';
 import type { Database } from '@bresca/shared';
 
 type Study = Database['public']['Tables']['studies']['Row'];
@@ -23,6 +24,8 @@ export default function QRGenerate() {
   const nav = useNavigate();
   const location = useLocation();
   const { profile } = useProfile();
+  const { isDark } = useTheme();
+  const t = themeColors(isDark);
   const [studies, setStudies] = useState<Study[]>([]);
   const preSelected = (location.state as { study_ids?: string[] } | null)?.study_ids ?? [];
   const [selected, setSelected] = useState<string[]>(preSelected);
@@ -87,31 +90,32 @@ export default function QRGenerate() {
   }
 
   return (
-    <div style={{ minHeight: '100dvh', background: '#F7F9FC' }}>
+    <div style={{ minHeight: '100dvh', background: t.bg }}>
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', padding: '16px 20px', background: '#fff', borderBottom: '1px solid #E2E8F0', gap: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', padding: '16px 20px', background: t.card, borderBottom: `1px solid ${t.border}`, gap: 12 }}>
         <button
           onClick={() => nav(-1)}
-          style={{ background: 'none', border: 'none', color: '#64748B', cursor: 'pointer', minHeight: 44, minWidth: 44, display: 'flex', alignItems: 'center' }}
+          style={{ background: 'none', border: 'none', color: t.textSub, cursor: 'pointer', minHeight: 44, minWidth: 44, display: 'flex', alignItems: 'center' }}
         >
           <ArrowLeft size={20} />
         </button>
-        <h1 style={{ fontSize: 18, fontWeight: 700, color: '#0F172A' }}>Compartir con QR</h1>
+        <h1 style={{ fontSize: 18, fontWeight: 700, color: t.text }}>Compartir con QR</h1>
       </div>
 
       <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: 24 }}>
         {/* QR generado */}
         {token && (
-          <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #E2E8F0', padding: '24px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, boxShadow: '0 4px 16px rgba(0,200,122,0.08)' }}>
-            <p style={{ fontSize: 14, fontWeight: 600, color: '#0F172A' }}>QR listo para mostrar</p>
+          <div style={{ background: t.card, borderRadius: 16, border: `1px solid ${t.border}`, padding: '24px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, boxShadow: isDark ? '0 4px 16px rgba(0,0,0,0.4)' : '0 4px 16px rgba(0,200,122,0.08)' }}>
+            <p style={{ fontSize: 14, fontWeight: 600, color: t.text }}>QR listo para mostrar</p>
+            {/* QR siempre sobre fondo blanco para asegurar lectura del scanner */}
             <div style={{ padding: 16, background: '#fff', borderRadius: 12, border: '1px solid #E2E8F0' }}>
               <QRCode value={url} size={180} />
             </div>
-            <div style={{ background: '#F8FAFC', borderRadius: 10, padding: '10px 14px', border: '1px solid #E2E8F0', width: '100%', display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span style={{ fontSize: 12, color: '#64748B', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{url}</span>
+            <div style={{ background: t.cardAlt, borderRadius: 10, padding: '10px 14px', border: `1px solid ${t.border}`, width: '100%', display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ fontSize: 12, color: t.textSub, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{url}</span>
               <button
                 onClick={copy}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: copied ? '#00C87A' : '#64748B', minWidth: 44, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: copied ? '#00C87A' : t.textSub, minWidth: 44, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
                 title="Copiar link"
               >
                 {copied ? <Check size={18} /> : <Copy size={18} />}
@@ -126,10 +130,10 @@ export default function QRGenerate() {
                 Compartir por WhatsApp
               </button>
             </div>
-            <p style={{ fontSize: 12, color: '#94A3B8', textAlign: 'center' }}>El médico abre este link — sin app ni login.</p>
+            <p style={{ fontSize: 12, color: t.textMuted, textAlign: 'center' }}>El médico abre este link — sin app ni login.</p>
             <button
               onClick={() => setToken('')}
-              style={{ background: 'none', border: 'none', color: '#64748B', fontSize: 14, cursor: 'pointer', minHeight: 44 }}
+              style={{ background: 'none', border: 'none', color: t.textSub, fontSize: 14, cursor: 'pointer', minHeight: 44 }}
             >
               Generar otro QR
             </button>
@@ -140,10 +144,10 @@ export default function QRGenerate() {
         {!token && (
           <>
             <div>
-              <p style={{ fontSize: 14, fontWeight: 600, color: '#0F172A', marginBottom: 12 }}>Seleccioná los estudios a compartir:</p>
+              <p style={{ fontSize: 14, fontWeight: 600, color: t.text, marginBottom: 12 }}>Seleccioná los estudios a compartir:</p>
               {studies.length === 0 ? (
-                <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #E2E8F0', padding: '24px', textAlign: 'center' }}>
-                  <p style={{ color: '#94A3B8', fontSize: 14 }}>No tenés estudios confirmados todavía.</p>
+                <div style={{ background: t.card, borderRadius: 12, border: `1px solid ${t.border}`, padding: '24px', textAlign: 'center' }}>
+                  <p style={{ color: t.textMuted, fontSize: 14 }}>No tenés estudios confirmados todavía.</p>
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -156,8 +160,8 @@ export default function QRGenerate() {
                         onClick={() => toggleStudy(s.id)}
                         style={{
                           display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', borderRadius: 12,
-                          border: `1.5px solid ${isSelected ? '#00C87A' : '#E2E8F0'}`,
-                          background: isSelected ? 'rgba(0,200,122,0.05)' : '#fff',
+                          border: `1.5px solid ${isSelected ? '#00C87A' : t.border}`,
+                          background: isSelected ? 'rgba(0,200,122,0.08)' : t.card,
                           cursor: 'pointer', textAlign: 'left', minHeight: 54,
                           boxShadow: isSelected ? '0 0 0 3px rgba(0,200,122,0.10)' : 'none',
                           transition: 'border-color 120ms, box-shadow 120ms',
@@ -165,13 +169,13 @@ export default function QRGenerate() {
                       >
                         <div style={{ width: 3, height: 36, borderRadius: 2, background: color, flexShrink: 0 }} />
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <span style={{ fontSize: 14, fontWeight: 600, color: '#0F172A', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          <span style={{ fontSize: 14, fontWeight: 600, color: t.text, display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {s.study_type}
                           </span>
-                          <span style={{ fontSize: 12, color: '#94A3B8' }}>{formatStudyDate(s.study_date)}</span>
+                          <span style={{ fontSize: 12, color: t.textMuted }}>{formatStudyDate(s.study_date)}</span>
                         </div>
                         <div style={{
-                          width: 20, height: 20, borderRadius: 4, border: `2px solid ${isSelected ? '#00C87A' : '#CBD5E1'}`,
+                          width: 20, height: 20, borderRadius: 4, border: `2px solid ${isSelected ? '#00C87A' : t.border}`,
                           background: isSelected ? '#00C87A' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                           transition: 'all 120ms',
                         }}>
@@ -186,16 +190,16 @@ export default function QRGenerate() {
 
             {/* TTL */}
             <div>
-              <p style={{ fontSize: 14, fontWeight: 600, color: '#0F172A', marginBottom: 10 }}>Duración del acceso:</p>
+              <p style={{ fontSize: 14, fontWeight: 600, color: t.text, marginBottom: 10 }}>Duración del acceso:</p>
               <div style={{ display: 'flex', gap: 8 }}>
                 {TTL_OPTIONS.map(opt => (
                   <button
                     key={opt.hours}
                     onClick={() => setTtl(opt.hours)}
                     style={{
-                      flex: 1, padding: '10px 4px', borderRadius: 10, border: `1.5px solid ${ttl === opt.hours ? '#00C87A' : '#E2E8F0'}`,
-                      background: ttl === opt.hours ? 'rgba(0,200,122,0.08)' : '#fff',
-                      color: ttl === opt.hours ? '#00C87A' : '#64748B',
+                      flex: 1, padding: '10px 4px', borderRadius: 10, border: `1.5px solid ${ttl === opt.hours ? '#00C87A' : t.border}`,
+                      background: ttl === opt.hours ? 'rgba(0,200,122,0.10)' : t.card,
+                      color: ttl === opt.hours ? '#00C87A' : t.textSub,
                       fontWeight: ttl === opt.hours ? 600 : 400,
                       fontSize: 13, cursor: 'pointer', minHeight: 44, transition: 'all 120ms',
                     }}
@@ -212,8 +216,8 @@ export default function QRGenerate() {
               disabled={loading || selected.length === 0}
               style={{
                 padding: '16px', borderRadius: 14, border: 'none',
-                background: selected.length === 0 ? '#E2E8F0' : '#00C87A',
-                color: selected.length === 0 ? '#94A3B8' : '#fff',
+                background: selected.length === 0 ? t.border : '#00C87A',
+                color: selected.length === 0 ? t.textMuted : '#fff',
                 fontSize: 16, fontWeight: 600,
                 cursor: selected.length === 0 ? 'not-allowed' : 'pointer',
                 minHeight: 52, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
@@ -228,26 +232,26 @@ export default function QRGenerate() {
         {/* QRs activos */}
         {activeQRs.length > 0 && (
           <div>
-            <p style={{ fontSize: 13, fontWeight: 600, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>
+            <p style={{ fontSize: 13, fontWeight: 600, color: t.textSub, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>
               QRs activos
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {activeQRs.map(qr => (
                 <div
                   key={qr.token}
-                  style={{ background: '#fff', borderRadius: 12, border: `1.5px solid ${qr.token === token ? '#00C87A' : '#E2E8F0'}`, padding: '12px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}
+                  style={{ background: t.card, borderRadius: 12, border: `1.5px solid ${qr.token === token ? '#00C87A' : t.border}`, padding: '12px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}
                 >
                   <div style={{ minWidth: 0 }}>
-                    <p style={{ fontSize: 14, fontWeight: 600, color: '#0F172A', marginBottom: 2 }}>
+                    <p style={{ fontSize: 14, fontWeight: 600, color: t.text, marginBottom: 2 }}>
                       {qr.study_ids.length} estudio{qr.study_ids.length !== 1 ? 's' : ''}
                     </p>
-                    <p style={{ fontSize: 12, color: '#94A3B8' }}>
+                    <p style={{ fontSize: 12, color: t.textMuted }}>
                       Vence {new Date(qr.expires_at).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' })}
                     </p>
                   </div>
                   <button
                     onClick={() => handleRevoke(qr.token)}
-                    style={{ background: '#FEF2F2', border: 'none', borderRadius: 8, padding: '8px', cursor: 'pointer', color: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: 44, minHeight: 44, flexShrink: 0 }}
+                    style={{ background: isDark ? 'rgba(239,68,68,0.15)' : '#FEF2F2', border: 'none', borderRadius: 8, padding: '8px', cursor: 'pointer', color: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: 44, minHeight: 44, flexShrink: 0 }}
                     title="Revocar QR"
                   >
                     <Trash2 size={16} />
