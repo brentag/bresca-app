@@ -286,7 +286,10 @@ async function processSinglePath(
 
   validateMagicBytes(buffer, mime);
 
-  if (mime === 'application/pdf') {
+  // Si el browser reportó octet-stream, resolver el tipo real desde los magic bytes
+  const effectiveMime = mime === 'application/octet-stream' ? detectMimeFromBytes(buffer) : mime;
+
+  if (effectiveMime === 'application/pdf') {
     const { text } = await extractText(buffer, { mergePages: true });
     const rawText = (Array.isArray(text) ? text.join('\n') : text).trim();
     const structured = await structureFromText(rawText, category, today);
@@ -294,14 +297,14 @@ async function processSinglePath(
     return { ...structured, raw_text: rawText, ocr_score };
   }
 
-  if (mime === 'application/dicom') {
+  if (effectiveMime === 'application/dicom') {
     const structured = await processDicom(buffer, today);
     return { ...structured, raw_text: '', ocr_score: 95 };
   }
 
   // Imagen: DeepSeek Vision
   const base64  = encodeBase64(buffer);
-  const dataUrl = `data:${mime};base64,${base64}`;
+  const dataUrl = `data:${effectiveMime};base64,${base64}`;
   const structured = await structureFromImage(dataUrl, category, today);
   const ocr_score  = computeImageScore(structured);
   return { ...structured, raw_text: '', ocr_score };
@@ -534,15 +537,27 @@ function validateMagicBytes(buf: Uint8Array, claimedMime: string): void {
               && buf[128] === 0x44 && buf[129] === 0x49 && buf[130] === 0x43 && buf[131] === 0x4D; // DICM
 
   const valid =
-    (claimedMime === 'application/pdf'   && isPdf)  ||
-    (claimedMime === 'image/jpeg'        && isJpeg) ||
-    (claimedMime === 'image/png'         && isPng)  ||
-    (claimedMime === 'image/webp'        && isWebP) ||
-    (claimedMime === 'application/dicom' && isDicom);
+    (claimedMime === 'application/pdf'          && isPdf)   ||
+    (claimedMime === 'image/jpeg'               && isJpeg)  ||
+    (claimedMime === 'image/png'               && isPng)   ||
+    (claimedMime === 'image/webp'              && isWebP)  ||
+    (claimedMime === 'application/dicom'        && isDicom) ||
+    // octet-stream: el browser no reconoció el tipo — aceptar si los magic bytes corresponden a un formato conocido
+    (claimedMime === 'application/octet-stream' && (isPdf || isJpeg || isPng || isWebP || isDicom));
 
   if (!valid) {
     throw new Error(`mime_mismatch: claimed=${claimedMime} actual_bytes=[${buf[0]},${buf[1]},${buf[2]},${buf[3]}]`);
   }
+}
+
+function detectMimeFromBytes(buf: Uint8Array): string {
+  if (buf[0] === 0x25 && buf[1] === 0x50 && buf[2] === 0x44 && buf[3] === 0x46) return 'application/pdf';
+  if (buf[0] === 0xFF && buf[1] === 0xD8 && buf[2] === 0xFF) return 'image/jpeg';
+  if (buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4E && buf[3] === 0x47) return 'image/png';
+  if (buf.length > 11 && buf[0] === 0x52 && buf[1] === 0x49 && buf[2] === 0x46 && buf[3] === 0x46
+      && buf[8] === 0x57 && buf[9] === 0x45 && buf[10] === 0x42 && buf[11] === 0x50) return 'image/webp';
+  if (buf.length > 131 && buf[128] === 0x44 && buf[129] === 0x49 && buf[130] === 0x43 && buf[131] === 0x4D) return 'application/dicom';
+  return 'application/octet-stream';
 }
 
 function parseDicomDate(raw?: string): string | undefined {
@@ -556,11 +571,12 @@ function capitalizeFirst(s: string): string {
 
 function mimeFromPath(path: string): string {
   const ext = path.split('.').pop()?.toLowerCase() ?? '';
-  if (ext === 'pdf')  return 'application/pdf';
-  if (ext === 'png')  return 'image/png';
-  if (ext === 'webp') return 'image/webp';
-  if (ext === 'dcm')  return 'application/dicom';
-  return 'image/jpeg';
+  if (ext === 'pdf')   return 'application/pdf';
+  if (ext === 'png')   return 'image/png';
+  if (ext === 'webp')  return 'image/webp';
+  if (ext === 'jpg' || ext === 'jpeg') return 'image/jpeg';
+  if (['dcm', 'dicom', 'dco', 'dic'].includes(ext)) return 'application/dicom';
+  return 'application/octet-stream';
 }
 
 function encodeBase64(buf: Uint8Array): string {

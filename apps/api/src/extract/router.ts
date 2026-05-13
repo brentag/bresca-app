@@ -8,7 +8,7 @@ const router = Router();
 
 const ExtractSchema = z.object({
   storage_paths: z.array(z.string().min(1)).min(1).max(20),
-  mime_type: z.enum(['image/jpeg', 'image/png', 'image/webp', 'application/pdf', 'application/dicom']),
+  mime_type: z.enum(['image/jpeg', 'image/png', 'image/webp', 'application/pdf', 'application/dicom', 'application/octet-stream']),
   // category opcional: si no se envía, la Edge Function la detecta del contenido.
   // Si se envía, sirve como hint y se respeta como override.
   category: z.string().min(1).optional(),

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
-import { Camera, Image, ArrowLeft, ScanLine, Plus, X, FileText, Activity } from 'lucide-react';
+import { Camera, Upload, FolderOpen, ArrowLeft, ScanLine, Plus, X, FileText, Activity } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useProfile } from '../../lib/useProfile';
 import { useSession } from '../../lib/session';
@@ -28,8 +28,16 @@ type SelectedFile = { id: string; file: File; preview: string };
 
 const MIME_MAP: Record<string, string> = {
   jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp',
-  pdf: 'application/pdf', dcm: 'application/dicom',
+  pdf: 'application/pdf',
+  dcm: 'application/dicom', dicom: 'application/dicom', dco: 'application/dicom', dic: 'application/dicom',
 };
+
+function isDicomFile(name: string): boolean {
+  const lower = name.toLowerCase();
+  if (!lower.includes('.')) return true; // sin extensión → DICOM de serie/carpeta
+  const ext = lower.split('.').pop() ?? '';
+  return ['dcm', 'dicom', 'dco', 'dic'].includes(ext);
+}
 
 async function uploadFileStorage(
   file: File,
@@ -69,6 +77,11 @@ export default function Upload() {
   const [uploadPct, setUploadPct]     = useState<number | null>(null);
   const [showFeedback, setShowFeedback] = useState(false);
   const [savedVaultPath, setSavedVaultPath] = useState('/app/vault');
+  const folderRef = React.useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (folderRef.current) folderRef.current.setAttribute('webkitdirectory', '');
+  }, []);
 
   useEffect(() => {
     if (!familyProfileId) return;
@@ -123,6 +136,27 @@ export default function Upload() {
     e.target.value = '';
   }
 
+  function addFolderFiles(e: React.ChangeEvent<HTMLInputElement>) {
+    const incoming = Array.from(e.target.files ?? []);
+    if (!incoming.length) return;
+    // Filtrar solo archivos DICOM (con extensión reconocida o sin extensión)
+    const dicomFiles = incoming.filter(f => isDicomFile(f.name));
+    if (!dicomFiles.length) {
+      setExtractError('La carpeta no contiene archivos DICOM reconocidos (.dcm, .dicom o sin extensión).');
+      e.target.value = '';
+      return;
+    }
+    setFiles(prev => [
+      ...prev,
+      ...dicomFiles.map(file => ({
+        id:      `${Date.now()}-${Math.random()}`,
+        file,
+        preview: '',
+      })),
+    ]);
+    e.target.value = '';
+  }
+
   function removeFile(id: string) {
     setFiles(prev => prev.filter(f => f.id !== id));
   }
@@ -140,8 +174,8 @@ export default function Upload() {
 
       const uploads = await Promise.all(
         files.map(async ({ file }, idx) => {
-          const ext  = file.name.split('.').pop()?.toLowerCase() ?? 'jpg';
-          const mime = MIME_MAP[ext] ?? 'image/jpeg';
+          const ext  = file.name.split('.').pop()?.toLowerCase() ?? '';
+          const mime = MIME_MAP[ext] ?? 'application/octet-stream';
           const path = `${user!.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
 
           await uploadFileStorage(file, path, mime, (pct) => {
@@ -266,17 +300,22 @@ export default function Upload() {
                 <span style={{ fontSize: 13, fontWeight: 600, color: c.text }}>Cámara</span>
                 <input type="file" accept="image/jpeg,image/png,image/webp" capture="environment" onChange={addFiles} style={{ display: 'none' }} />
               </label>
-              <label style={sourceCardStyle}>
-                <Image size={28} color="#4B6EF5" />
-                <span style={{ fontSize: 13, fontWeight: 600, color: c.text }}>Galería / PDF</span>
-                <input type="file" accept="image/jpeg,image/png,image/webp,application/pdf" multiple onChange={addFiles} style={{ display: 'none' }} />
-              </label>
-              <label style={sourceCardStyle}>
-                <Activity size={28} color="#3B82F6" />
-                <span style={{ fontSize: 13, fontWeight: 600, color: c.text }}>DICOM</span>
-                <input type="file" accept=".dcm,application/dicom" onChange={addFiles} style={{ display: 'none' }} />
+              <label style={{ ...sourceCardStyle, flex: 2 }}>
+                <Upload size={28} color="#4B6EF5" />
+                <span style={{ fontSize: 13, fontWeight: 600, color: c.text }}>Subir archivo</span>
+                <span style={{ fontSize: 10, color: c.textMuted }}>PDF · Imagen · DICOM</span>
+                <input type="file" accept="image/*,application/pdf,.dcm,.dicom,.dco,.dic" multiple onChange={addFiles} style={{ display: 'none' }} />
               </label>
             </div>
+            <button
+              type="button"
+              onClick={() => folderRef.current?.click()}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', padding: '2px 0', alignSelf: 'flex-start' }}
+            >
+              <FolderOpen size={14} color={c.textMuted} />
+              <span style={{ fontSize: 12, color: c.textMuted }}>Serie DICOM — seleccionar carpeta</span>
+            </button>
+            <input ref={folderRef} type="file" multiple onChange={addFolderFiles} style={{ display: 'none' }} />
           </div>
 
           {/* Thumbnails */}
@@ -295,10 +334,15 @@ export default function Upload() {
                   <div key={f.id} style={{ position: 'relative', width: 72, height: 72 }}>
                     {f.preview ? (
                       <img src={f.preview} alt={`Página ${i + 1}`} style={{ width: 72, height: 72, objectFit: 'cover', borderRadius: 10, border: `1.5px solid ${c.border}` }} />
-                    ) : f.file.name.toLowerCase().endsWith('.dcm') ? (
+                    ) : isDicomFile(f.file.name) ? (
                       <div style={{ width: 72, height: 72, borderRadius: 10, background: '#EFF6FF', border: '1.5px solid #BFDBFE', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
                         <Activity size={22} color="#3B82F6" />
                         <span style={{ fontSize: 9, color: '#3B82F6', fontWeight: 600, textAlign: 'center' }}>DICOM</span>
+                      </div>
+                    ) : f.file.name.toLowerCase().endsWith('.pdf') ? (
+                      <div style={{ width: 72, height: 72, borderRadius: 10, background: '#FEF2F2', border: '1.5px solid #FECACA', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+                        <FileText size={22} color="#EF4444" />
+                        <span style={{ fontSize: 9, color: '#EF4444', fontWeight: 600, textAlign: 'center' }}>PDF</span>
                       </div>
                     ) : (
                       <div style={{ width: 72, height: 72, borderRadius: 10, background: c.cardAlt, border: `1.5px solid ${c.border}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
@@ -323,7 +367,7 @@ export default function Upload() {
                 <label style={{ width: 72, height: 72, borderRadius: 10, border: `1.5px dashed ${c.border}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, cursor: 'pointer', background: c.cardAlt }}>
                   <Plus size={20} color={c.textMuted} />
                   <span style={{ fontSize: 10, color: c.textMuted }}>Agregar</span>
-                  <input type="file" accept="image/jpeg,image/png,image/webp,application/pdf,.dcm,application/dicom" multiple onChange={addFiles} style={{ display: 'none' }} />
+                  <input type="file" accept="image/*,application/pdf,.dcm,.dicom,.dco,.dic" multiple onChange={addFiles} style={{ display: 'none' }} />
                 </label>
               </div>
             </div>

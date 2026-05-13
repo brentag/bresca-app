@@ -170,6 +170,19 @@ Pendiente de naming: Asistente Soporte usa placeholder "XYZ" — definir nombre 
 
 Admin.tsx: métricas de sesión (`avg duration_ms por node`, funnel) — quedó fuera del sprint, datos ya se persisten en DB.
 
+#### Copilot — respuestas con deep link accionable (1 click)
+- **Trigger:** el usuario pregunta al asistente sobre un documento específico de su vault (ej: "cómo comparto la última mamografía de Monica")
+- **Comportamiento actual:** el asistente responde con los pasos correctos en texto
+- **Mejora:** cuando el asistente identifica un documento concreto del vault del usuario, además de los pasos devuelve un botón/chip "Ir a la mamografía →" que lleva directo al documento
+- **Implementación:**
+  - El copilot necesita acceso al vault del usuario autenticado (query `vault_documents` filtrado por `profile_id` del JWT, con RLS activo)
+  - El system prompt debe incluir instrucción: si la respuesta refiere a un documento existente, retornar un JSON estructurado con `{ text, actionLink: { label, path } }` además del texto
+  - El frontend parsea ese campo y renderiza un chip accionable bajo la respuesta
+  - El link es una ruta interna (`/vault/document/:id`) — no se expone URL externa
+  - Sin cambios de RLS necesarios — el usuario accede solo a sus propios docs
+- **Restricciones:** solo para documentos del propio usuario autenticado; nunca para documentos de familiares sin consent explícito en esa sesión
+- **Estado:** 📋 Backlog — pendiente sprint
+
 ## Skills disponibles (`@skill nombre`)
 ```
 bresca-architecture · supabase-rls · ocr-pipeline · copilot-context
