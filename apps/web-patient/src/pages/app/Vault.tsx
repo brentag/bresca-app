@@ -6,7 +6,7 @@ import { supabase } from '../../lib/supabase';
 import { useProfile } from '../../lib/useProfile';
 import { useTrackNode } from '../../lib/useTrackNode';
 import { useTheme, themeColors } from '../../lib/theme';
-import { CATEGORIES, type CategoryFilter } from '../../lib/vault';
+import { CATEGORIES, categoryColor, type CategoryFilter } from '../../lib/vault';
 import { StudyCard, StudyCardSkeleton, DraftStudyCard } from '../../components/StudyCard';
 import { CategoryChip } from '../../components/CategoryChip';
 import type { Database } from '@bresca/shared';
@@ -125,18 +125,19 @@ export default function Vault() {
     supabase.from('study_drafts').delete().eq('id', draftId);
   }
 
-  // Datos para timeline: cuenta de estudios por mes en el año seleccionado.
-  const { monthCounts, availableYears } = useMemo(() => {
-    const counts = new Array(12).fill(0) as number[];
+  // Estudios del año seleccionado, agrupados por mes (para timeline navegable).
+  // Cada estudio es un dot individual clickeable.
+  const { availableYears, studiesThisYear } = useMemo(() => {
     const years = new Set<number>();
+    const yearStudies: Study[] = [];
     for (const s of studies) {
       if (!s.study_date) continue;
       const d = new Date(s.study_date + 'T00:00:00');
       years.add(d.getFullYear());
-      if (d.getFullYear() === selectedYear) counts[d.getMonth()] += 1;
+      if (d.getFullYear() === selectedYear) yearStudies.push(s);
     }
-    years.add(selectedYear); // garantizar que el año actual aparezca
-    return { monthCounts: counts, availableYears: [...years].sort((a, b) => b - a) };
+    years.add(selectedYear);
+    return { availableYears: [...years].sort((a, b) => b - a), studiesThisYear: yearStudies };
   }, [studies, selectedYear]);
 
   // Aplica el filtro de mes sobre los estudios ya filtrados por categoría.
@@ -177,15 +178,16 @@ export default function Vault() {
         </button>
       </div>
 
-      {/* Timeline del año */}
+      {/* Timeline del año — navegación por estudios */}
       {studies.length > 0 && (
-        <MonthTimeline
+        <YearTimeline
           year={selectedYear}
           availableYears={availableYears}
-          monthCounts={monthCounts}
+          studies={studiesThisYear}
           selectedMonth={selectedMonth}
           onSelectYear={y => { setSelectedYear(y); setSelectedMonth(null); }}
           onSelectMonth={m => setSelectedMonth(prev => prev === m ? null : m)}
+          onSelectStudy={id => nav(`/app/vault/${id}`)}
           c={c}
         />
       )}
@@ -245,31 +247,62 @@ export default function Vault() {
 }
 
 
-function MonthTimeline({
+// Timeline horizontal: cada estudio es un dot clickeable sobre un eje
+// temporal continuo (12 meses del año). Sirve como navegación — click
+// en un dot abre el estudio. Click en un label de mes filtra por ese mes.
+function YearTimeline({
   year,
   availableYears,
-  monthCounts,
+  studies,
   selectedMonth,
   onSelectYear,
   onSelectMonth,
+  onSelectStudy,
   c,
 }: {
   year: number;
   availableYears: number[];
-  monthCounts: number[];
+  studies: Study[];
   selectedMonth: number | null;
   onSelectYear: (y: number) => void;
   onSelectMonth: (m: number) => void;
+  onSelectStudy: (id: string) => void;
   c: ReturnType<typeof themeColors>;
 }) {
   const currentMonth = new Date().getMonth();
   const currentYear = new Date().getFullYear();
-  const totalThisYear = monthCounts.reduce((a, b) => a + b, 0);
+
+  // Studies con su posición % en el año (0-100) por study_date.
+  const positioned = useMemo(() => {
+    return studies.map(s => {
+      const d = new Date(s.study_date + 'T00:00:00');
+      // posición continua dentro del año: día / 365
+      const startOfYear = new Date(year, 0, 1).getTime();
+      const endOfYear   = new Date(year + 1, 0, 1).getTime();
+      const pct = ((d.getTime() - startOfYear) / (endOfYear - startOfYear)) * 100;
+      return { id: s.id, pct: Math.max(0, Math.min(100, pct)), date: d, category: s.category, type: s.study_type };
+    }).sort((a, b) => a.pct - b.pct);
+  }, [studies, year]);
+
+  // Agrupar dots muy cercanos para evitar overlap
+  // (gap mínimo 2.5% del ancho — ~9 días).
+  const grouped = useMemo(() => {
+    const out: { pct: number; items: typeof positioned }[] = [];
+    for (const p of positioned) {
+      const last = out[out.length - 1];
+      if (last && p.pct - last.pct < 2.5) {
+        last.items.push(p);
+      } else {
+        out.push({ pct: p.pct, items: [p] });
+      }
+    }
+    return out;
+  }, [positioned]);
 
   return (
-    <div style={{ padding: '0 20px 12px' }}>
-      {/* Año selector — solo si hay más de uno */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+    <div style={{ padding: '0 20px 14px' }}>
+      {/* Año selector + contador */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
         <div style={{ display: 'flex', gap: 6, alignItems: 'baseline' }}>
           {availableYears.length > 1 ? (
             availableYears.map(y => (
@@ -277,70 +310,95 @@ function MonthTimeline({
                 key={y}
                 onClick={() => onSelectYear(y)}
                 style={{
-                  background: 'none',
-                  border: 'none',
-                  fontSize: y === year ? 15 : 13,
+                  background: 'none', border: 'none',
+                  fontSize: y === year ? 16 : 13,
                   fontWeight: y === year ? 700 : 500,
                   color: y === year ? c.text : c.textMuted,
-                  cursor: 'pointer',
-                  padding: '4px 6px',
-                  minHeight: 32,
+                  cursor: 'pointer', padding: '4px 6px', minHeight: 32,
                 }}
-              >
-                {y}
-              </button>
+              >{y}</button>
             ))
           ) : (
-            <span style={{ fontSize: 15, fontWeight: 700, color: c.text }}>{year}</span>
+            <span style={{ fontSize: 16, fontWeight: 700, color: c.text }}>{year}</span>
           )}
         </div>
         <span style={{ fontSize: 11, color: c.textMuted, letterSpacing: '0.04em' }}>
-          {totalThisYear} {totalThisYear === 1 ? 'estudio' : 'estudios'}
+          {studies.length} {studies.length === 1 ? 'estudio' : 'estudios'}
         </span>
       </div>
 
-      {/* Strip de 12 meses */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: 4 }}>
+      {/* Eje + dots */}
+      <div style={{ position: 'relative', height: 48, marginBottom: 6 }}>
+        {/* Línea base */}
+        <div style={{ position: 'absolute', left: 0, right: 0, top: 21, height: 2, background: c.borderLight, borderRadius: 2 }} />
+        {/* Línea progresada (hasta hoy si es año actual) */}
+        {year === currentYear && (
+          <div style={{
+            position: 'absolute', left: 0, top: 21, height: 2,
+            width: `${((new Date().getTime() - new Date(year, 0, 1).getTime()) / (1000 * 60 * 60 * 24 * 365)) * 100}%`,
+            background: '#00C87A', opacity: 0.4, borderRadius: 2,
+          }} />
+        )}
+
+        {/* Dots por estudio */}
+        {grouped.map((g, i) => {
+          const isMulti = g.items.length > 1;
+          const firstColor = categoryColor(g.items[0].category);
+          return (
+            <button
+              key={i}
+              onClick={() => {
+                // Si hay varios, abrir el más reciente (ordenamos ya por pct; el último es el más reciente)
+                const target = isMulti ? g.items[g.items.length - 1] : g.items[0];
+                onSelectStudy(target.id);
+              }}
+              style={{
+                position: 'absolute',
+                left: `${g.pct}%`,
+                top: 12,
+                transform: 'translateX(-50%)',
+                width: isMulti ? 22 : 16, height: isMulti ? 22 : 16,
+                borderRadius: '50%',
+                background: firstColor,
+                border: `2px solid ${c.bg}`,
+                boxShadow: `0 0 0 1px ${firstColor}50`,
+                cursor: 'pointer',
+                padding: 0,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: '#fff', fontSize: 10, fontWeight: 700,
+                transition: 'transform 120ms',
+              }}
+              title={isMulti
+                ? `${g.items.length} estudios cerca de ${g.items[0].date.toLocaleDateString('es-AR', { day: '2-digit', month: 'short' })}`
+                : `${g.items[0].type} · ${g.items[0].date.toLocaleDateString('es-AR', { day: '2-digit', month: 'short' })}`}
+            >
+              {isMulti ? g.items.length : ''}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Labels de meses (filtro al hacer click) */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: 0 }}>
         {MONTH_LABELS.map((label, i) => {
-          const count = monthCounts[i];
           const isSelected = selectedMonth === i;
-          const isCurrent = year === currentYear && i === currentMonth;
-          const hasStudies = count > 0;
-
-          // Intensidad del bg según count (max 5)
-          const intensity = Math.min(count, 5) / 5;
-          const bgColor = hasStudies
-            ? (isSelected
-                ? '#00C87A'
-                : `rgba(0,200,122,${0.10 + intensity * 0.25})`)
-            : 'transparent';
-          const textColor = isSelected ? '#fff' : (hasStudies ? c.text : c.textMuted);
-
+          const isCurrent  = year === currentYear && i === currentMonth;
           return (
             <button
               key={label}
-              onClick={() => hasStudies && onSelectMonth(i)}
-              disabled={!hasStudies}
+              onClick={() => onSelectMonth(i)}
               style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: 2,
-                padding: '6px 0',
-                background: bgColor,
-                border: `1px solid ${isCurrent && !isSelected ? '#00C87A' : 'transparent'}`,
-                borderRadius: 8,
-                cursor: hasStudies ? 'pointer' : 'default',
-                color: textColor,
+                background: 'none', border: 'none', cursor: 'pointer',
                 fontSize: 10,
-                fontWeight: 600,
-                opacity: hasStudies ? 1 : 0.45,
-                transition: 'background 120ms',
+                fontWeight: isSelected ? 700 : (isCurrent ? 600 : 500),
+                color: isSelected ? '#00C87A' : (isCurrent ? c.text : c.textMuted),
+                padding: '4px 0', minHeight: 28,
+                letterSpacing: '0.02em',
+                textAlign: 'center',
               }}
-              title={hasStudies ? `${count} ${count === 1 ? 'estudio' : 'estudios'} en ${label}` : `Sin estudios en ${label}`}
+              title={`Filtrar ${label} ${year}`}
             >
-              <span style={{ letterSpacing: '0.02em' }}>{label}</span>
-              <span style={{ fontSize: 11, fontWeight: 700, minHeight: 12 }}>{count > 0 ? count : ''}</span>
+              {label}
             </button>
           );
         })}
@@ -349,9 +407,9 @@ function MonthTimeline({
       {selectedMonth != null && (
         <button
           onClick={() => onSelectMonth(selectedMonth)}
-          style={{ marginTop: 8, background: 'none', border: 'none', color: '#00C87A', fontSize: 12, fontWeight: 600, cursor: 'pointer', padding: '4px 0' }}
+          style={{ marginTop: 4, background: 'none', border: 'none', color: '#00C87A', fontSize: 12, fontWeight: 600, cursor: 'pointer', padding: '2px 0' }}
         >
-          Limpiar filtro de mes ×
+          Mostrar todo el año ×
         </button>
       )}
     </div>
