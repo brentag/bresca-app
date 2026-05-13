@@ -156,77 +156,46 @@ QR_TOKEN_SECRET            → rotación semestral
 
 ## Pendientes de código (backlog)
 
+### Fixes y deuda técnica
 | Item | Severidad | Estado |
 |---|---|---|
-| `Menu.tsx` — reemplazar número WA placeholder `5491100000000` | 🔴 | ⏸️ Bloqueado — número real pendiente |
-| Migración `UNIQUE(user_id) WHERE user_id IS NOT NULL` en `profiles` | 🟠 | ⏳ Pendiente — previene duplicados a nivel DB |
-| Dark mode en `ConsentCenter.tsx` (353 líneas, no migrada todavía) | 🟡 | 📋 Backlog |
-| Dark mode en flujo de auth (`Welcome`, `Email`, `Verify`) y onboarding | 🔵 | 📋 Backlog (debatible — primer impresión usual en light) |
+| `Menu.tsx` — reemplazar número WA `5491100000000` | 🔴 | ⏸️ Bloqueado — número real pendiente |
+| Dark mode en `ConsentCenter.tsx` | 🟡 | ⏳ Esperando diseño oscuro |
+| Dark mode auth/onboarding (`Welcome`, `Email`, `Verify`) | 🔵 | 📋 Backlog |
 
-### Resueltos (historial)
+### Próximas funcionalidades (plan aprobado)
+Orden de implementación: Logging → Mover estudios → Recetas → Asistente Soporte
 
-| Item | Commit | Fecha |
+| Item | Archivos clave | Esfuerzo |
 |---|---|---|
-| `Family.tsx` — multi-perfil (TS-015/016) | `6bad579` | 2026-05-04 |
-| `QRGenerate.tsx` — componente faltante (TS-011) | `7c9f799` | 2026-05-04 |
-| OCR timeout — UX de error + non-blocking (TS-006) | `b885b1d` | 2026-05-04 |
-| `ConsentGateway` — redirect a onboarding si sin perfil | `cf50f75` | 2026-05-10 |
-| `Welcome.tsx` — captura `?ref=TOKEN` + `register_referral()` | `980284b` | 2026-05-10 |
-| Dark mode global — Vault, Copilot, Upload, Family | `980284b` | 2026-05-10 |
-| Upload 404 `profile_not_found` — redirect en lugar de error genérico | `7bc1300` | 2026-05-10 |
-| Copilot Consent Gate — disclaimer legal obligatorio antes del Asistente IA | `69af32db` | 2026-05-11 |
-| Copilot consent — localStorage → sessionStorage (por sesión, no permanente) | `fdd5f574` | 2026-05-12 |
-| Upload loop → onboarding por perfiles duplicados — fix API + Upload + useProfile | `fdd5f574` | 2026-05-12 |
-| `Email.tsx` — unificar /welcome: Acceder no falla con email nuevo | `fa2c3a29` | 2026-05-12 |
-| `/qr/:token` — incluir archivo embebido + greeting personalizado | `e9fd4681` | 2026-05-12 |
-| `reset-user.mjs` + migración defensiva `handle_account_deletion` | `95685de4` | 2026-05-12 |
-| Edge Function `process-study-draft` redeploy con `--no-verify-jwt` (regresión) | deploy manual | 2026-05-12 |
-| StudyCard marco color OCR + dark mode + Home/StudyDetail/QRGenerate dark mode | `5b28d011`, `3a597d4e` | 2026-05-13 |
-| StudyDetail — navegación ant/post entre estudios del mismo tipo | `5b28d011` | 2026-05-13 |
-| Vault — timeline anual con dots por estudio (navegación clickeable) | `8115d833` | 2026-05-13 |
-| Auto-detect category en OCR + auto-confirm si confianza ≥95 | `1db4e9a6` | 2026-05-13 |
+| **Logging por sesión** — `session_id` + `duration_ms` en events, `page_exit` event, `buildUserContext()` | `useTrackNode.ts`, migration events, `user-context.ts`, `Admin.tsx` | Medio |
+| **Mover estudios entre perfiles** — bidireccional, `PATCH /studies/:id/move`, kebab menu en StudyDetail | `apps/api/src/studies/router.ts`, `StudyDetail.tsx` | Bajo |
+| **Módulo Recetas** — categoría `receta` + OCR + notif. vencimiento (pg_cron diario) | `vault.ts`, Edge Function, `StudyDetail.tsx`, migration prescriptions | Medio |
+| **Asistente Soporte XYZ** — `POST /support/chat`, reutiliza rate-limit y DeepSeek, sin vault context | `apps/api/src/support/`, `Support.tsx`, `Menu.tsx` | Medio |
 
-## Skills disponibles (cargar con @skill nombre)
-```
-@skill bresca-architecture    → estructura completa, rutas, deploy actual
-@skill supabase-rls           → patrones RLS, políticas multi-perfil, QR, CRO
-@skill ocr-pipeline           → schema de campos clínicos, extracción async, Edge Function
-@skill copilot-context        → contexto del vault, DeepSeek API, rate limiting
-@skill consent-system         → schema consent_audit, 3 capas, auditoría append-only
-@skill cro-matching           → fit score, anonimización, vistas SQL
-@skill react-native-patterns  → navegación Expo, push notifications, EAS Build (mobile pendiente)
-@skill testing-patterns       → E2E flows críticos, RLS tests, Copilot rule tests
-@skill post-deploy-qa         → runner QA post-deploy, 14 tests, análisis Haiku
-```
+> Historial de resueltos: `git log --oneline` — último relevante `2479b850` (2026-05-13)
 
-## Slash commands disponibles
+## Skills disponibles (`@skill nombre`)
 ```
-/brainstorm  → marco estructurado: reformulación + 3-5 enfoques + recomendación
+bresca-architecture · supabase-rls · ocr-pipeline · copilot-context
+consent-system · cro-matching · react-native-patterns · testing-patterns · post-deploy-qa
 ```
 
 ## Diseño UX/UI
 ```
-Design System/Bresca App Prototype.html  → prototipo B2C + CRO completo (abrir en browser)
-Design System/prototype/                 → componentes JSX por pantalla
+Design System/Bresca App Prototype.html  → prototipo completo (abrir en browser)
 Design System/colors_and_type.css        → tokens de color, tipografía, spacing
 Design System/assets/                    → logos en todos los formatos
-Design System/README.md                  → voice & tone, color system, iconografía (Lucide)
+Design System/README.md                  → voice & tone, iconografía (Lucide)
 ```
 
 ## Documentación de referencia
 ```
-docs/01_RFC-001_Bresca.md          → por qué existe Bresca, problema y solución
-docs/02_ADR_Bresca.md              → decisiones técnicas (ADR-001 a ADR-006)
-docs/03_PRD_Bresca.md              → features, criterios de éxito
-docs/04_TechSpec_Bresca.md         → schema DB, RLS policies, flujos de datos
-docs/05_SystemDesign_Bresca.md     → arquitectura, escalabilidad, seguridad
-docs/06_Runbook_Bresca.md          → operaciones, deploys, incidentes
-docs/09_TestPlan_Bresca.md         → plan de pruebas MVP (26 escenarios)
-docs/10_TestResults_Bresca.md      → resultados QA (25/26 OK, issues abiertos)
-docs/14_Security_Audit_2026-05-07  → 15 findings de seguridad, estado
-docs/15_Incident_Response_Plan.md  → 4 playbooks (breach, down, vuln, DoS)
-docs/16_Prod_Setup_Guide.md        → setup paso a paso para producción
-docs/17_PreLaunch_Checklist.md     → 7 bloques, 24 ítems BLOQUEANTE
+docs/01_RFC-001_Bresca.md · docs/02_ADR_Bresca.md · docs/03_PRD_Bresca.md
+docs/04_TechSpec_Bresca.md · docs/05_SystemDesign_Bresca.md · docs/06_Runbook_Bresca.md
+docs/09_TestPlan_Bresca.md · docs/10_TestResults_Bresca.md
+docs/14_Security_Audit_2026-05-07 · docs/15_Incident_Response_Plan.md
+docs/16_Prod_Setup_Guide.md · docs/17_PreLaunch_Checklist.md  ← 24 ítems BLOQUEANTE
 ```
 
 ## Comportamiento del agente
