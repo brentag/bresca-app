@@ -9,7 +9,9 @@ const router = Router();
 const ExtractSchema = z.object({
   storage_paths: z.array(z.string().min(1)).min(1).max(20),
   mime_type: z.enum(['image/jpeg', 'image/png', 'image/webp', 'application/pdf', 'application/dicom']),
-  category: z.string().min(1),
+  // category opcional: si no se envía, la Edge Function la detecta del contenido.
+  // Si se envía, sirve como hint y se respeta como override.
+  category: z.string().min(1).optional(),
   profile_id: z.string().uuid().optional(), // perfil familiar — omitir para perfil propio
 });
 
@@ -69,7 +71,7 @@ router.post('/', requireAuth, async (req, res) => {
       storage_path:  parse.data.storage_paths[0],   // primary (trigger + backward compat)
       storage_paths: parse.data.storage_paths,
       mime_type:     parse.data.mime_type,
-      category:      parse.data.category,
+      category:      parse.data.category ?? null,   // null → la Edge Function detecta del contenido
       status:        'pending',
     })
     .select('id')

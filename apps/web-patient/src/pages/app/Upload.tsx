@@ -4,11 +4,9 @@ import { Camera, Image, ArrowLeft, ScanLine, Plus, X, FileText, Activity } from 
 import { supabase } from '../../lib/supabase';
 import { useProfile } from '../../lib/useProfile';
 import { useSession } from '../../lib/session';
-import { CATEGORIES } from '../../lib/vault';
 import { enqueueExtract } from '../../lib/api';
 import { useTrackNode } from '../../lib/useTrackNode';
 import { useTheme, themeColors } from '../../lib/theme';
-import { CategoryChip } from '../../components/CategoryChip';
 import { Spinner } from '../../components/Spinner';
 import FeedbackSheet from '../../components/FeedbackSheet';
 import type { Database } from '@bresca/shared';
@@ -65,7 +63,6 @@ export default function Upload() {
   const [uploading, setUploading]     = useState(false);
   const [files, setFiles]             = useState<SelectedFile[]>([]);
   const [draft, setDraft]             = useState<Draft | null>(null);
-  const [category, setCategory]       = useState('hematología');
   const [saving, setSaving]           = useState(false);
   const [saveError, setSaveError]     = useState('');
   const [extractError, setExtractError] = useState('');
@@ -96,11 +93,10 @@ export default function Upload() {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const d = data as any;
         const today = new Date().toISOString().slice(0, 10);
-        setCategory(d.category ?? 'hematología');
         setDraft({
           profileId:        d.profile_id,
           draftId:          d.id,
-          category:         d.category ?? 'hematología',
+          category:         d.category ?? 'otro',
           study_type:       d.study_type ?? 'Estudio clínico',
           lab_name:         d.lab_name ?? '',
           study_date:       d.study_date ?? today,
@@ -161,7 +157,8 @@ export default function Upload() {
       setUploadPct(100);
       const storagePaths = uploads.map(u => u.path);
       const primaryMime  = uploads[0].mime;
-      const { job_id }   = await enqueueExtract(storagePaths, primaryMime, category, familyProfileId);
+      // Sin category → la Edge Function la detecta automáticamente del contenido.
+      const { job_id }   = await enqueueExtract(storagePaths, primaryMime, undefined, familyProfileId);
 
       const vaultPath = familyProfileId ? `/app/vault?p=${familyProfileId}` : '/app/vault';
       nav(vaultPath, { replace: true, state: { pendingDraftId: job_id } });
@@ -257,16 +254,6 @@ export default function Upload() {
               {extractError}
             </div>
           )}
-
-          {/* Selector de categoría */}
-          <div>
-            <h2 style={{ fontSize: 17, fontWeight: 700, color: c.text, marginBottom: 12 }}>¿Qué tipo de estudio es?</h2>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-              {CATEGORIES.filter(cat => cat.id !== 'all').map(cat => (
-                <CategoryChip key={cat.id} label={cat.label} color={cat.color} active={category === cat.id} onClick={() => setCategory(cat.id)} />
-              ))}
-            </div>
-          </div>
 
           {/* Selector de origen */}
           <div>

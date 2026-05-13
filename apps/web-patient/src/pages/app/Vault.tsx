@@ -17,7 +17,13 @@ const DicomViewer = lazy(() => import('../../components/DicomViewer').then(m => 
 
 type Study = Database['public']['Tables']['studies']['Row'];
 type DraftStatus = 'pending' | 'processing' | 'done' | 'completed' | 'error' | 'failed';
-type PendingDraft = { id: string; status: DraftStatus; study_type: string | null; category: string | null };
+type PendingDraft = {
+  id: string;
+  status: DraftStatus;
+  study_type: string | null;
+  category: string | null;
+  ocr_score: number | null;
+};
 
 const DONE: DraftStatus[] = ['done', 'completed'];
 const IN_PROGRESS: DraftStatus[] = ['pending', 'processing'];
@@ -72,14 +78,14 @@ export default function Vault() {
 
     supabase
       .from('study_drafts')
-      .select('id,status,study_type,category')
+      .select('id,status,study_type,category,ocr_score')
       .eq('profile_id', activeProfileId)
       .in('status', [...IN_PROGRESS, ...DONE, ...FAILED])
       .then(({ data }) => {
         if (!isMounted.current) return;
         let drafts = (data ?? []) as PendingDraft[];
         if (navState?.pendingDraftId && !drafts.find(d => d.id === navState.pendingDraftId)) {
-          drafts = [{ id: navState.pendingDraftId, status: 'pending', study_type: null, category: null }, ...drafts];
+          drafts = [{ id: navState.pendingDraftId, status: 'pending', study_type: null, category: null, ocr_score: null }, ...drafts];
         }
         setPendingDrafts(drafts);
       });
@@ -123,6 +129,45 @@ export default function Vault() {
   function dismissDraft(draftId: string) {
     setPendingDrafts(prev => prev.filter(d => d.id !== draftId));
     supabase.from('study_drafts').delete().eq('id', draftId);
+  }
+
+  // Auto-confirm: cuando ocr_score >= 95, el usuario confirma con un click sin
+  // pasar por la pantalla de review. Crea el study + borra el draft.
+  async function autoConfirmDraft(draftId: string) {
+    const { data: d } = await supabase
+      .from('study_drafts')
+      .select('profile_id,study_type,category,study_date,lab_name,extracted_fields,storage_path,storage_paths,ocr_score')
+      .eq('id', draftId)
+      .single();
+    if (!d) return;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const draft = d as any;
+    const { error } = await supabase.from('studies').insert({
+      profile_id:       draft.profile_id,
+      study_type:       draft.study_type ?? 'Estudio clínico',
+      category:         draft.category   ?? 'otro',
+      study_date:       draft.study_date ?? new Date().toISOString().slice(0, 10),
+      lab_name:         draft.lab_name,
+      extracted_fields: draft.extracted_fields ?? {},
+      confirmed:        true,
+      storage_path:     draft.storage_path,
+      storage_paths:    draft.storage_paths ?? [],
+      ocr_score:        draft.ocr_score,
+    });
+    if (error) {
+      // Si falla, fallback al flujo de review manual.
+      reviewDraft(draftId);
+      return;
+    }
+    setPendingDrafts(prev => prev.filter(x => x.id !== draftId));
+    await supabase.from('study_drafts').delete().eq('id', draftId);
+    // Recargar studies
+    if (activeProfileId) {
+      let q = supabase.from('studies').select('*').eq('profile_id', activeProfileId).order('study_date', { ascending: false });
+      if (filter !== 'all') q = q.eq('category', filter);
+      const { data } = await q;
+      if (isMounted.current) setStudies(data ?? []);
+    }
   }
 
   // Estudios del año seleccionado, agrupados por mes (para timeline navegable).
@@ -218,6 +263,7 @@ export default function Vault() {
                     key={d.id}
                     draft={d}
                     onReview={() => reviewDraft(d.id)}
+                    onAutoConfirm={autoConfirmDraft}
                     onDismiss={() => dismissDraft(d.id)}
                   />
                 ))}

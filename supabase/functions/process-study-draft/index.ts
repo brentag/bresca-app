@@ -24,15 +24,31 @@ const mistral = MISTRAL_API_KEY
   : null;
 
 // confidence_score: el modelo reporta su confianza (0=ilegible, 100=perfectamente legible y completo)
+// category: una de las 7 categorías Bresca; default 'otro' si no encaja.
+const ALLOWED_CATEGORIES = [
+  'hematología', 'bioquímica', 'imágenes', 'cardiología',
+  'endocrinología', 'respiratorio', 'otro',
+] as const;
+type Category = typeof ALLOWED_CATEGORIES[number];
+
 const SYSTEM_PROMPT = `Sos un experto en análisis de estudios médicos latinoamericanos.
 Respondé SIEMPRE con JSON válido, sin markdown, sin explicaciones:
 {
   "study_type": "nombre del estudio",
+  "category": "hematología" | "bioquímica" | "imágenes" | "cardiología" | "endocrinología" | "respiratorio" | "otro",
   "lab_name": "laboratorio o centro médico" | null,
   "study_date": "YYYY-MM-DD" | null,
   "extracted_fields": { "Campo en español": "valor con unidad" },
   "confidence_score": 85
 }
+category: clasificá el estudio en una sola categoría:
+  - hematología: hemograma, plaquetas, coagulación, ferrocinética, eritrosedimentación
+  - bioquímica: glucemia, urea, creatinina, lípidos, función hepática, orina, electrolitos
+  - imágenes: radiografía, ecografía, tomografía, resonancia, mamografía
+  - cardiología: ECG, ecocardiograma, holter, ergometría
+  - endocrinología: tiroides (TSH/T4/T3), hormonas (FSH/LH/cortisol/testosterona), HOMA, insulina
+  - respiratorio: espirometría, función pulmonar, gases en sangre
+  - otro: cualquier estudio que no encaje claramente arriba
 confidence_score: tu nivel de confianza en la extracción (0=documento ilegible, 100=todo perfectamente legible y completo).
 Reglas: solo campos con valores concretos del documento, nunca inventes,
 si no hay año tomá el actual, extracted_fields vacío si el texto es ilegible.`;
@@ -42,11 +58,12 @@ type DraftRow = {
   storage_path: string;
   storage_paths: string[] | null;
   mime_type: string;
-  category: string;
+  category: string | null;
 };
 
 type Structured = {
   study_type: string;
+  category: Category;
   lab_name: string | null;
   study_date: string;
   extracted_fields: Record<string, string>;
@@ -58,6 +75,23 @@ type PageResult = Omit<Structured, 'raw_text' | 'ocr_score'> & {
   raw_text?: string;
   confidence_score?: number;
 };
+
+function normalizeCategory(raw: unknown): Category {
+  if (typeof raw !== 'string') return 'otro';
+  const trimmed = raw.trim().toLowerCase();
+  // tolera acentos opcionales y variantes comunes
+  const map: Record<string, Category> = {
+    'hematologia': 'hematología', 'hematología': 'hematología', 'sangre': 'hematología',
+    'bioquimica': 'bioquímica', 'bioquímica': 'bioquímica', 'quimica': 'bioquímica',
+    'imagenes': 'imágenes', 'imágenes': 'imágenes', 'imagen': 'imágenes',
+    'radiologia': 'imágenes', 'radiología': 'imágenes',
+    'cardiologia': 'cardiología', 'cardiología': 'cardiología', 'corazon': 'cardiología', 'corazón': 'cardiología',
+    'endocrinologia': 'endocrinología', 'endocrinología': 'endocrinología', 'endocrino': 'endocrinología',
+    'respiratorio': 'respiratorio', 'respiratoria': 'respiratorio', 'pulmonar': 'respiratorio',
+    'otro': 'otro', 'otros': 'otro',
+  };
+  return map[trimmed] ?? 'otro';
+}
 
 Deno.serve(async (req) => {
   const body = await req.json().catch(() => ({}));
@@ -84,11 +118,18 @@ async function processAndSave(draft: DraftRow): Promise<void> {
   try {
     const result = await process(draft);
 
+    // Si el cliente no envió category (auto-detect), persistimos la detectada.
+    // Si la envió, respetamos el override del usuario.
+    const finalCategory = draft.category && draft.category.length > 0
+      ? draft.category
+      : result.category;
+
     await supabase
       .from('study_drafts')
       .update({
         status:           'completed',
         study_type:       result.study_type,
+        category:         finalCategory,
         lab_name:         result.lab_name,
         study_date:       result.study_date,
         extracted_fields: result.extracted_fields,
@@ -153,7 +194,7 @@ async function runSecondPass(draft: DraftRow, pass1: Structured): Promise<void> 
             content: [
               {
                 type: 'text',
-                text: `Categoría: ${draft.category}. Hoy: ${today}. Analizá este estudio médico con máxima atención al detalle. Extraé TODOS los valores numéricos y referencias que puedas identificar.`,
+                text: `${draft.category ? `Pista de categoría: ${draft.category}. ` : ''}Hoy: ${today}. Analizá este estudio médico con máxima atención al detalle. Extraé TODOS los valores numéricos y referencias que puedas identificar.`,
               },
               { type: 'image_url', image_url: { url: dataUrl } },
             ] as never,
@@ -206,15 +247,18 @@ async function runSecondPass(draft: DraftRow, pass1: Structured): Promise<void> 
 async function process(draft: DraftRow): Promise<Structured> {
   const today = new Date().toISOString().slice(0, 10);
   const paths = draft.storage_paths ?? [draft.storage_path];
+  // Hint para el LLM: si el usuario seleccionó categoría, la pasamos como pista.
+  // Si vino NULL (auto-detect), pasamos string vacío — el modelo clasifica desde cero.
+  const categoryHint = draft.category ?? '';
 
   if (paths.length === 1) {
-    return processSinglePath(paths[0], draft.mime_type, draft.category, today);
+    return processSinglePath(paths[0], draft.mime_type, categoryHint, today);
   }
 
   const results: PageResult[] = [];
   for (const path of paths) {
     const mime = mimeFromPath(path);
-    const r = await processSinglePath(path, mime, draft.category, today);
+    const r = await processSinglePath(path, mime, categoryHint, today);
     results.push({ ...r, confidence_score: r.ocr_score });
   }
   const merged = mergeResults(results);
@@ -293,6 +337,7 @@ async function structureFromText(
   category: string,
   today: string,
 ): Promise<Omit<Structured, 'raw_text' | 'ocr_score'> & { confidence_score?: number }> {
+  const hint = category ? `Pista de categoría: ${category}\n` : '';
   const resp = await deepseek.chat.completions.create({
     model: 'deepseek-chat',
     max_tokens: 1024,
@@ -301,7 +346,7 @@ async function structureFromText(
       { role: 'system', content: SYSTEM_PROMPT },
       {
         role: 'user',
-        content: `Categoría: ${category}\nHoy: ${today}\n\nTexto:\n---\n${text.slice(0, 4000)}\n---`,
+        content: `${hint}Hoy: ${today}\n\nTexto:\n---\n${text.slice(0, 4000)}\n---`,
       },
     ],
   });
@@ -324,7 +369,7 @@ async function structureFromImage(
         content: [
           {
             type: 'text',
-            text: `Categoría: ${category}. Hoy: ${today}. Extraé los datos del estudio en la imagen.`,
+            text: `${category ? `Pista de categoría: ${category}. ` : ''}Hoy: ${today}. Clasificá y extraé los datos del estudio en la imagen.`,
           },
           { type: 'image_url', image_url: { url: dataUrl } },
         ] as never,
@@ -342,6 +387,7 @@ function parseStructured(
   const parsed = JSON.parse(clean);
   return {
     study_type:       parsed.study_type ?? 'Estudio clínico',
+    category:         normalizeCategory(parsed.category),
     lab_name:         parsed.lab_name   ?? null,
     study_date:       parsed.study_date ?? today,
     extracted_fields: parsed.extracted_fields ?? {},
@@ -351,11 +397,22 @@ function parseStructured(
 
 // ── Merge multi-page ─────────────────────────────────────────────────────────
 
+// Categoría más frecuente entre páginas, excluyendo 'otro' si hay alternativas concretas.
+function pickCategory(pages: { category?: Category }[]): Category {
+  const counts: Record<string, number> = {};
+  for (const p of pages) if (p.category) counts[p.category] = (counts[p.category] ?? 0) + 1;
+  const entries = Object.entries(counts).filter(([k]) => k !== 'otro');
+  if (entries.length === 0) return (counts['otro'] ? 'otro' : 'otro');
+  entries.sort((a, b) => b[1] - a[1]);
+  return entries[0][0] as Category;
+}
+
 function mergePageResults(
   pages: (Omit<Structured, 'raw_text' | 'ocr_score'> & { confidence_score?: number })[],
 ): Omit<Structured, 'raw_text' | 'ocr_score'> & { confidence_score?: number } {
   const merged: Omit<Structured, 'raw_text' | 'ocr_score'> & { confidence_score?: number } = {
     study_type:       '',
+    category:         'otro',
     lab_name:         null,
     study_date:       '',
     extracted_fields: {},
@@ -372,6 +429,7 @@ function mergePageResults(
   }
 
   merged.study_type       = merged.study_type || 'Estudio clínico';
+  merged.category         = pickCategory(pages);
   if (scores.length > 0) merged.confidence_score = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
 
   return merged;
@@ -380,6 +438,7 @@ function mergePageResults(
 function mergeResults(pages: PageResult[]): Structured {
   const merged: Structured = {
     study_type:       '',
+    category:         'otro',
     lab_name:         null,
     study_date:       '',
     extracted_fields: {},
@@ -398,6 +457,7 @@ function mergeResults(pages: PageResult[]): Structured {
   }
 
   merged.study_type = merged.study_type || 'Estudio clínico';
+  merged.category   = pickCategory(pages);
   merged.ocr_score  = scores.length > 0
     ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length)
     : 50;
@@ -451,6 +511,7 @@ async function processDicom(buffer: Uint8Array, today: string): Promise<Omit<Str
 
   return {
     study_type: study_type || 'Imagen DICOM',
+    category:   'imágenes',
     lab_name:   null,
     study_date: studyDate,
     extracted_fields,

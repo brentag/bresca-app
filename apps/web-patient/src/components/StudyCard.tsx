@@ -120,22 +120,33 @@ export function StudyCardSkeleton() {
 }
 
 type DraftStatus = 'pending' | 'processing' | 'completed' | 'done' | 'failed' | 'error';
-type PendingDraft = { id: string; status: DraftStatus; study_type: string | null; category: string | null };
+type PendingDraft = {
+  id: string;
+  status: DraftStatus;
+  study_type: string | null;
+  category: string | null;
+  ocr_score?: number | null;
+};
 
 export function DraftStudyCard({
   draft,
   onReview,
+  onAutoConfirm,
   onDismiss,
 }: {
   draft: PendingDraft;
   onReview: () => void;
+  // Solo se llama cuando ocr_score >= 95 (alta confianza → 1 click).
+  onAutoConfirm?: (draftId: string) => void;
   onDismiss: () => void;
 }) {
   const { isDark } = useTheme();
   const t = themeColors(isDark);
-  const color = categoryColor(draft.category ?? 'hematología');
+  const color = categoryColor(draft.category ?? 'otro');
   const isDone   = draft.status === 'completed' || draft.status === 'done';
   const isFailed = draft.status === 'failed'    || draft.status === 'error';
+  const score    = typeof draft.ocr_score === 'number' ? draft.ocr_score : null;
+  const isHighConfidence = score != null && score >= 95;
 
   if (isFailed) {
     return (
@@ -161,23 +172,42 @@ export function DraftStudyCard({
   }
 
   if (isDone) {
+    // Alta confianza (>=95): un click → agrega al Vault sin pantalla de review.
+    // Score medio o sin score → flujo de review actual.
+    const primaryAction = isHighConfidence && onAutoConfirm
+      ? () => onAutoConfirm(draft.id)
+      : onReview;
+    const ctaLabel = isHighConfidence ? 'Agregar al Vault →' : 'Revisá →';
+    const subLabel = isHighConfidence
+      ? `Lectura confiable (${Math.round(score!)}%)`
+      : 'Revisá los datos extraídos';
+
     return (
-      <button
-        onClick={onReview}
-        style={{ width: '100%', background: isDark ? 'rgba(34,197,94,0.13)' : '#F0FDF4', border: `1px solid ${isDark ? 'rgba(34,197,94,0.4)' : '#86EFAC'}`, borderRadius: 14, display: 'flex', overflow: 'hidden', minHeight: 70, cursor: 'pointer', textAlign: 'left' }}
-      >
-        <div style={{ width: 4, background: '#00C87A', flexShrink: 0 }} />
-        <div style={{ flex: 1, padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 12 }}>
+      <div style={{ width: '100%', background: isDark ? 'rgba(34,197,94,0.13)' : '#F0FDF4', border: `1px solid ${isDark ? 'rgba(34,197,94,0.4)' : '#86EFAC'}`, borderRadius: 14, display: 'flex', overflow: 'hidden', minHeight: 70 }}>
+        <button
+          onClick={primaryAction}
+          style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', minWidth: 0 }}
+        >
+          <div style={{ width: 4, background: '#00C87A', flexShrink: 0, alignSelf: 'stretch', marginLeft: -14, marginTop: -12, marginBottom: -12 }} />
           <div style={{ width: 22, height: 22, borderRadius: '50%', background: '#00C87A', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: '#fff', fontSize: 12, fontWeight: 700 }}>✓</div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <span style={{ fontSize: 14, fontWeight: 600, color: t.text, display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {draft.study_type ?? '¡Resultado listo!'}
             </span>
-            <span style={{ fontSize: 12, color: isDark ? '#86EFAC' : '#16A34A' }}>Revisá los datos extraídos</span>
+            <span style={{ fontSize: 12, color: isDark ? '#86EFAC' : '#16A34A' }}>{subLabel}</span>
           </div>
-          <span style={{ fontSize: 13, fontWeight: 600, color: isDark ? '#86EFAC' : '#00A663', whiteSpace: 'nowrap', flexShrink: 0 }}>Revisá →</span>
-        </div>
-      </button>
+          <span style={{ fontSize: 13, fontWeight: 600, color: isDark ? '#86EFAC' : '#00A663', whiteSpace: 'nowrap', flexShrink: 0 }}>{ctaLabel}</span>
+        </button>
+        {isHighConfidence && (
+          <button
+            onClick={onReview}
+            style={{ background: 'none', border: 'none', borderLeft: `1px solid ${isDark ? 'rgba(34,197,94,0.3)' : '#86EFAC'}`, padding: '0 14px', color: isDark ? '#86EFAC' : '#16A34A', fontSize: 12, fontWeight: 500, cursor: 'pointer' }}
+            title="Revisar antes de guardar"
+          >
+            Revisar
+          </button>
+        )}
+      </div>
     );
   }
 

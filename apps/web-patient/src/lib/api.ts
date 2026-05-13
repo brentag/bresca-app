@@ -76,10 +76,12 @@ export type DraftRealtimeRow = {
 export async function enqueueExtract(
   storage_paths: string[],
   mime_type: string,
-  category: string,
+  // category opcional: si se omite, la Edge Function detecta del contenido (auto-detect).
+  category?: string,
   profile_id?: string,
 ): Promise<{ job_id: string }> {
-  const body: Record<string, unknown> = { storage_paths, mime_type, category };
+  const body: Record<string, unknown> = { storage_paths, mime_type };
+  if (category)   body.category   = category;
   if (profile_id) body.profile_id = profile_id;
 
   const attempt = async () => {
