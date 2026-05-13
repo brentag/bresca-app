@@ -163,17 +163,12 @@ QR_TOKEN_SECRET            → rotación semestral
 | Dark mode en `ConsentCenter.tsx` | 🟡 | ⏳ Esperando diseño oscuro |
 | Dark mode auth/onboarding (`Welcome`, `Email`, `Verify`) | 🔵 | 📋 Backlog |
 
-### Próximas funcionalidades (plan aprobado)
-Orden de implementación: Logging → Mover estudios → Recetas → Asistente Soporte
+### Próximas funcionalidades
+> Todo el backlog 2026-05-13 completado y en producción (`8a62d7d2`). Próximo sprint por definir.
 
-| Item | Archivos clave | Esfuerzo |
-|---|---|---|
-| **Logging por sesión** — `session_id` + `duration_ms` en events, `page_exit` event, `buildUserContext()` | `useTrackNode.ts`, migration events, `user-context.ts`, `Admin.tsx` | Medio |
-| **Mover estudios entre perfiles** — bidireccional, `PATCH /studies/:id/move`, kebab menu en StudyDetail | `apps/api/src/studies/router.ts`, `StudyDetail.tsx` | Bajo |
-| **Módulo Recetas** — categoría `receta` + OCR + notif. vencimiento (pg_cron diario) | `vault.ts`, Edge Function, `StudyDetail.tsx`, migration prescriptions | Medio |
-| **Asistente Soporte XYZ** — `POST /support/chat`, reutiliza rate-limit y DeepSeek, sin vault context | `apps/api/src/support/`, `Support.tsx`, `Menu.tsx` | Medio |
+Pendiente de naming: Asistente Soporte usa placeholder "XYZ" — definir nombre en sesión de branding antes de lanzar UI al usuario.
 
-> Historial de resueltos: `git log --oneline` — último relevante `2479b850` (2026-05-13)
+Admin.tsx: métricas de sesión (`avg duration_ms por node`, funnel) — quedó fuera del sprint, datos ya se persisten en DB.
 
 ## Skills disponibles (`@skill nombre`)
 ```
