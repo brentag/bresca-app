@@ -132,3 +132,65 @@ export function ybrFullToRgb(ybr: Uint8Array, pixelCount: number): Uint8Array {
   }
   return rgb;
 }
+
+// ── RLE Lossless — DICOM PS3.5 G.3 (pure JS, no WASM) ───────────────────────
+// PackBits decoder: n>=0 → copy n+1 literal bytes; n<-128 noop; else repeat next byte (-n+1) times
+
+function rleDecodeSegment(data: Uint8Array, pixelCount: number): Uint8Array {
+  const out = new Uint8Array(pixelCount);
+  let inp = 0, outp = 0;
+  while (outp < pixelCount && inp < data.length) {
+    const raw = data[inp++];
+    const n = raw > 127 ? raw - 256 : raw;
+    if (n >= 0) {
+      for (let i = 0; i <= n && outp < pixelCount; i++) out[outp++] = data[inp++];
+    } else if (n !== -128) {
+      const byte = data[inp++];
+      const count = 1 - n;
+      for (let i = 0; i < count && outp < pixelCount; i++) out[outp++] = byte;
+    }
+  }
+  return out;
+}
+
+export function decodeRleLossless(
+  rleData: Uint8Array,
+  rows: number,
+  cols: number,
+  bitsAllocated: number,
+  samplesPerPixel: number,
+): Uint8Array {
+  const pixelCount     = rows * cols;
+  const bytesPerSample = bitsAllocated >> 3;
+  const view = new DataView(rleData.buffer, rleData.byteOffset, rleData.byteLength);
+  const numSegments = view.getUint32(0, true);
+
+  const segments: Uint8Array[] = [];
+  for (let s = 0; s < numSegments; s++) {
+    const start = view.getUint32(4 + s * 4, true);
+    const end   = s + 1 < numSegments ? view.getUint32(4 + (s + 1) * 4, true) : rleData.length;
+    segments.push(rleDecodeSegment(rleData.subarray(start, end), pixelCount));
+  }
+
+  const output = new Uint8Array(pixelCount * bytesPerSample * samplesPerPixel);
+
+  if (samplesPerPixel === 1 && bytesPerSample === 1) {
+    output.set(segments[0]);
+  } else if (samplesPerPixel === 1 && bytesPerSample === 2) {
+    // DICOM RLE stores high byte first; reassemble as little-endian for Int16/Uint16Array
+    const hi = segments[0], lo = segments[1];
+    for (let i = 0; i < pixelCount; i++) {
+      output[i * 2]     = lo[i];
+      output[i * 2 + 1] = hi[i];
+    }
+  } else if (samplesPerPixel === 3) {
+    const [r, g, b] = segments;
+    for (let i = 0; i < pixelCount; i++) {
+      output[i * 3]     = r[i];
+      output[i * 3 + 1] = g[i];
+      output[i * 3 + 2] = b[i];
+    }
+  }
+
+  return output;
+}

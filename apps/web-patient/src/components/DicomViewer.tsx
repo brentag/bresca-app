@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { X, ZoomIn, ZoomOut, RefreshCw, Play, Pause, SkipBack, SkipForward } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { decodeJpegLs, decodeJpeg2000, decodeJpegBaseline, ybrFullToRgb } from '../lib/dicom-codecs';
+import { decodeJpegLs, decodeJpeg2000, decodeJpegBaseline, decodeRleLossless, ybrFullToRgb } from '../lib/dicom-codecs';
 
 // ── Transfer Syntax classification ───────────────────────────────────────────
 
@@ -9,8 +9,9 @@ const TS_UNCOMPRESSED  = new Set(['1.2.840.10008.1.2', '1.2.840.10008.1.2.1', '1
 const TS_JPEG_BASELINE = new Set(['1.2.840.10008.1.2.4.50']);
 const TS_JPEG_LS       = new Set(['1.2.840.10008.1.2.4.80', '1.2.840.10008.1.2.4.81']);
 const TS_JPEG_2000     = new Set(['1.2.840.10008.1.2.4.90', '1.2.840.10008.1.2.4.91']);
+const TS_RLE           = new Set(['1.2.840.10008.1.2.5']);
 const TS_SUPPORTED     = new Set([
-  ...TS_UNCOMPRESSED, ...TS_JPEG_BASELINE, ...TS_JPEG_LS, ...TS_JPEG_2000,
+  ...TS_UNCOMPRESSED, ...TS_JPEG_BASELINE, ...TS_JPEG_LS, ...TS_JPEG_2000, ...TS_RLE,
   '',  // No File Meta = assume uncompressed
 ]);
 
@@ -61,6 +62,8 @@ export function DicomViewer({
   const [status, setStatus]   = useState<'loading' | 'ready' | 'error' | 'unsupported'>('loading');
   const [progress, setProgress] = useState({ done: 0, total: Math.min(storagePaths.length, MAX_FRAMES) });
   const [errorMsg, setErrorMsg] = useState('');
+  const [unsupportedTs, setUnsupportedTs] = useState('');
+  const seenUnsupportedTs = useRef<Set<string>>(new Set());
   const [meta, setMeta] = useState<FrameMeta>({ modality: '', bodyPart: '', studyDate: '' });
 
   // Windowing (gray frames only)
@@ -127,7 +130,12 @@ export function DicomViewer({
         .filter((f): f is NonNullable<typeof f> => f !== null)
         .map(({ modality: _m, bodyPart: _b, studyDate: _s, wc: _wc, ww: _ww, ...frame }) => frame as Frame);
 
-      if (!frames.length) { setStatus('unsupported'); return; }
+      if (!frames.length) {
+        const tsList = [...seenUnsupportedTs.current];
+        if (tsList.length) setUnsupportedTs(tsList.join(', '));
+        setStatus('unsupported');
+        return;
+      }
 
       frames.sort((a, b) => a.instanceNumber - b.instanceNumber);
       framesRef.current = frames;
@@ -175,7 +183,11 @@ export function DicomViewer({
       const ds: any = dicomParser.parseDicom(byteArray);
 
       const ts = dcmStr(ds, 'x00020010');
-      if (ts && !TS_SUPPORTED.has(ts)) return null; // Unsupported TS (MPEG, HT-J2K, etc.)
+      if (ts && !TS_SUPPORTED.has(ts)) {
+        console.warn('[DicomViewer] Unsupported Transfer Syntax:', ts);
+        seenUnsupportedTs.current.add(ts);
+        return null;
+      }
 
       const rows           = ds.uint16('x00280010') ?? 0;
       const cols           = ds.uint16('x00280011') ?? 0;
@@ -239,6 +251,11 @@ export function DicomViewer({
         const fragment = (dicomParser as any).readEncapsulatedPixelData(ds, el, 0) as Uint8Array;
         const res = await decodeJpeg2000(fragment);
         pixelBytes = res.pixels; decodedBits = res.bitsPerSample; decodedComponents = res.componentCount;
+      } else if (TS_RLE.has(ts)) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const fragment = (dicomParser as any).readEncapsulatedPixelData(ds, el, 0) as Uint8Array;
+        pixelBytes = decodeRleLossless(fragment, rows, cols, bitsAllocated, samplesPerPixel);
+        decodedComponents = samplesPerPixel;
       } else {
         return null;
       }
@@ -275,7 +292,8 @@ export function DicomViewer({
 
       const isMonochrome1 = photometric === 'MONOCHROME1';
       return { kind: 'gray', data, rows, cols, instanceNumber, isMonochrome1, modality, bodyPart, studyDate, wc, ww };
-    } catch {
+    } catch (err) {
+      console.warn('[DicomViewer] parseDicomFile error:', err);
       return null;
     }
   }
@@ -375,12 +393,18 @@ export function DicomViewer({
         )}
 
         {status === 'unsupported' && (
-          <div style={{ position: 'absolute', textAlign: 'center', maxWidth: 320 }}>
+          <div style={{ position: 'absolute', textAlign: 'center', maxWidth: 360 }}>
             <span style={{ fontSize: 32, display: 'block', marginBottom: 8 }}>🔬</span>
             <p style={{ color: '#94A3B8', fontSize: 14, fontWeight: 600, marginBottom: 4 }}>Formato no soportado</p>
             <p style={{ color: '#64748B', fontSize: 13, lineHeight: 1.5 }}>
-              Esta serie usa un Transfer Syntax que requiere un visor especializado (RadiAnt, Horos u OsiriX).
+              Este archivo DICOM usa una codificación que no puede mostrarse en el navegador.
+              Para verlo, usá RadiAnt (Windows), Horos u OsiriX (Mac).
             </p>
+            {unsupportedTs && (
+              <p style={{ color: '#475569', fontSize: 11, marginTop: 10, fontFamily: 'monospace', wordBreak: 'break-all' }}>
+                TS: {unsupportedTs}
+              </p>
+            )}
           </div>
         )}
       </div>
