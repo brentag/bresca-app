@@ -46,12 +46,14 @@ export default function Vault() {
   const [familyName, setFamilyName] = useState<string | null>(null);
   const [dicomStudy, setDicomStudy] = useState<Study | null>(null);
   const isMounted = useRef(true);
+  const pendingDraftsRef = useRef<PendingDraft[]>([]);
 
   // profileId activo: el de la URL (?p=) o el del usuario
   const familyProfileId = searchParams.get('p');
   const activeProfileId = familyProfileId ?? profile?.id;
 
   useEffect(() => { isMounted.current = true; return () => { isMounted.current = false; }; }, []);
+  useEffect(() => { pendingDraftsRef.current = pendingDrafts; }, [pendingDrafts]);
 
   useEffect(() => {
     if (!familyProfileId) { setFamilyName(null); return; }
@@ -108,6 +110,27 @@ export default function Vault() {
 
     return () => { supabase.removeChannel(channel); };
   }, [activeProfileId]);
+
+  // Polling fallback: por si Realtime pierde un UPDATE, refresca cada 5s mientras haya drafts en progreso.
+  const inProgressIds = pendingDrafts.filter(d => IN_PROGRESS.includes(d.status)).map(d => d.id).join(',');
+  useEffect(() => {
+    if (!inProgressIds) return;
+    const timer = setInterval(async () => {
+      const current = pendingDraftsRef.current.filter(d => IN_PROGRESS.includes(d.status));
+      if (!current.length) return;
+      const { data } = await supabase
+        .from('study_drafts')
+        .select('id,status,study_type,category,ocr_score')
+        .in('id', current.map(d => d.id));
+      if (data?.length && isMounted.current) {
+        setPendingDrafts(prev => prev.map(d => {
+          const u = data.find(x => x.id === d.id);
+          return u ? { ...d, ...u } as PendingDraft : d;
+        }));
+      }
+    }, 5000);
+    return () => clearInterval(timer);
+  }, [inProgressIds]);
 
   function handleQR(studyId: string) {
     nav('/app/vault/qr', { state: { study_ids: [studyId] } });

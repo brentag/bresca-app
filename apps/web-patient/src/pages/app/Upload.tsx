@@ -239,10 +239,59 @@ export default function Upload() {
       setUploadPct(100);
       const storagePaths = uploads.map(u => u.path);
       const primaryMime  = uploads[0].mime;
-      // Sin category → la Edge Function la detecta automáticamente del contenido.
-      const { job_id }   = await enqueueExtract(storagePaths, primaryMime, undefined, familyProfileId);
+      const vaultPath    = familyProfileId ? `/app/vault?p=${familyProfileId}` : '/app/vault';
 
-      const vaultPath = familyProfileId ? `/app/vault?p=${familyProfileId}` : '/app/vault';
+      // DICOM: metadata está embebida — procesamos en cliente, sin Edge Function ni cola OCR.
+      const allDicom = files.every(f => isDicomFile(f.file.name));
+      if (allDicom) {
+        try {
+          const buffer = await files[0].file.arrayBuffer();
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const { default: dicomParser } = await import('dicom-parser') as any;
+          const dataset = dicomParser.parseDicom(new Uint8Array(buffer));
+
+          const str = (tag: string) => { try { return dataset.string(tag)?.trim() ?? ''; } catch { return ''; } };
+          const u16 = (tag: string) => { try { return dataset.uint16(tag) ?? null; } catch { return null; } };
+
+          const modality  = str('x00080060');
+          const bodyPart  = str('x00180015');
+          const rawDate   = str('x00080020');  // YYYYMMDD
+          const studyDesc = str('x0008103e') || str('x00081030');
+          const rows      = u16('x00280010');
+          const cols      = u16('x00280011');
+
+          const today   = new Date().toISOString().slice(0, 10);
+          const studyDate = rawDate.length === 8
+            ? `${rawDate.slice(0, 4)}-${rawDate.slice(4, 6)}-${rawDate.slice(6, 8)}`
+            : today;
+
+          const extracted: Record<string, string> = {};
+          if (modality) extracted['Modalidad'] = modality;
+          if (bodyPart) extracted['Región anatómica'] = bodyPart;
+          if (rows && cols) extracted['Resolución'] = `${rows}×${cols}`;
+
+          const { error: insertErr } = await supabase.from('studies').insert({
+            profile_id:       targetProfileId,
+            study_type:       studyDesc || (modality ? `DICOM ${modality}` : 'Estudio DICOM'),
+            category:         'imágenes',
+            study_date:       studyDate,
+            lab_name:         null,
+            extracted_fields: extracted as Database['public']['Tables']['studies']['Row']['extracted_fields'],
+            confirmed:        true,
+            storage_path:     storagePaths[0] ?? null,
+            storage_paths:    storagePaths,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            ocr_score:        95 as any,
+          });
+          if (!insertErr) {
+            nav(vaultPath, { replace: true });
+            return;
+          }
+        } catch { /* dicom-parser falló — fallback al path OCR */ }
+      }
+
+      // Path OCR: Edge Function procesa PDF e imágenes.
+      const { job_id } = await enqueueExtract(storagePaths, primaryMime, undefined, familyProfileId);
       nav(vaultPath, { replace: true, state: { pendingDraftId: job_id } });
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : String(err);
