@@ -11,7 +11,7 @@
       "headers": [
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://api.fontshare.com; font-src 'self' https://fonts.gstatic.com https://api.fontshare.com; img-src 'self' data: blob: https://mkacuagcvwxoduhdthwg.supabase.co; connect-src 'self' https://mkacuagcvwxoduhdthwg.supabase.co wss://mkacuagcvwxoduhdthwg.supabase.co https://bresca-api.onrender.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'"
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://api.fontshare.com; font-src 'self' https://fonts.gstatic.com https://api.fontshare.com; img-src 'self' data: blob: https://mkacuagcvwxoduhdthwg.supabase.co; connect-src 'self' https://mkacuagcvwxoduhdthwg.supabase.co wss://mkacuagcvwxoduhdthwg.supabase.co https://bresca-api.onrender.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; frame-src https://mkacuagcvwxoduhdthwg.supabase.co; object-src 'none'"
         },
         {
           "key": "X-Frame-Options",

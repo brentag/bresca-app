@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
-import { Camera, Upload, FolderOpen, ArrowLeft, ScanLine, Plus, X, FileText, Activity } from 'lucide-react';
+import { Camera, Upload as UploadIcon, FolderOpen, ArrowLeft, ScanLine, Plus, X, FileText, Activity } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useProfile } from '../../lib/useProfile';
 import { useSession } from '../../lib/session';
 import { enqueueExtract } from '../../lib/api';
 import { useTrackNode } from '../../lib/useTrackNode';
 import { useTheme, themeColors } from '../../lib/theme';
+import { CATEGORIES } from '../../lib/vault';
 import { Spinner } from '../../components/Spinner';
 import FeedbackSheet from '../../components/FeedbackSheet';
 import type { Database } from '@bresca/shared';
@@ -80,11 +81,34 @@ export default function Upload() {
   const [uploadingFileName, setUploadingFileName] = useState<string | null>(null);
   const [showFeedback, setShowFeedback] = useState(false);
   const [savedVaultPath, setSavedVaultPath] = useState('/app/vault');
+  const [draftSignedUrls, setDraftSignedUrls] = useState<{ path: string; url: string; isPdf: boolean; isDicom: boolean }[]>([]);
   const folderRef = React.useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (folderRef.current) folderRef.current.setAttribute('webkitdirectory', '');
   }, []);
+
+  // Genera signed URLs del draft para mostrar preview en el review screen
+  useEffect(() => {
+    const paths = draft?.storagePaths;
+    if (!paths?.length) { setDraftSignedUrls([]); return; }
+    supabase.storage.from('studies')
+      .createSignedUrls(paths, 3600)
+      .then(({ data }) => {
+        if (!data) return;
+        setDraftSignedUrls(
+          data.filter(d => d.signedUrl && d.path).map(d => {
+            const ext = d.path!.toLowerCase().split('.').pop() ?? '';
+            return {
+              path: d.path!,
+              url: d.signedUrl!,
+              isPdf: ext === 'pdf',
+              isDicom: ['dcm', 'dicom', 'dco', 'dic'].includes(ext),
+            };
+          }),
+        );
+      });
+  }, [draft?.storagePaths?.join(',')]);
 
   useEffect(() => {
     if (!familyProfileId) return;
@@ -332,7 +356,7 @@ export default function Upload() {
                 <input type="file" accept="image/jpeg,image/png,image/webp" capture="environment" onChange={addFiles} style={{ display: 'none' }} />
               </label>
               <label style={{ ...sourceCardStyle, flex: 2 }}>
-                <Upload size={28} color="#4B6EF5" />
+                <UploadIcon size={28} color="#4B6EF5" />
                 <span style={{ fontSize: 13, fontWeight: 600, color: c.text }}>Subir archivo</span>
                 <span style={{ fontSize: 10, color: c.textMuted }}>PDF · Imagen · DICOM</span>
                 <input type="file" accept="image/*,application/pdf,.dcm,.dicom,.dco,.dic" multiple onChange={addFiles} style={{ display: 'none' }} />
@@ -467,7 +491,38 @@ export default function Upload() {
             </div>
           )}
 
+          {/* Preview de archivos del draft */}
+          {draftSignedUrls.length > 0 && (
+            <div style={{ marginBottom: 16 }}>
+              <p style={{ fontSize: 11, fontWeight: 600, color: c.textMuted, letterSpacing: '0.08em', marginBottom: 8 }}>
+                {draftSignedUrls.length === 1 ? 'ARCHIVO' : `ARCHIVOS (${draftSignedUrls.length})`}
+              </p>
+              <div style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 4, scrollbarWidth: 'none' }}>
+                {draftSignedUrls.map((f, i) => (
+                  f.isPdf ? (
+                    <a key={f.path} href={f.url} target="_blank" rel="noopener noreferrer"
+                       style={{ flexShrink: 0, width: 80, height: 100, borderRadius: 10, background: '#FEF2F2', border: '1.5px solid #FECACA', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, textDecoration: 'none' }}>
+                      <FileText size={24} color="#EF4444" />
+                      <span style={{ fontSize: 9, color: '#EF4444', fontWeight: 600 }}>Ver PDF ↗</span>
+                    </a>
+                  ) : f.isDicom ? (
+                    <div key={f.path} style={{ flexShrink: 0, width: 80, height: 100, borderRadius: 10, background: '#EFF6FF', border: '1.5px solid #BFDBFE', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+                      <Activity size={24} color="#3B82F6" />
+                      <span style={{ fontSize: 9, color: '#3B82F6', fontWeight: 600 }}>DICOM {i + 1}</span>
+                    </div>
+                  ) : (
+                    <a key={f.path} href={f.url} target="_blank" rel="noopener noreferrer"
+                       style={{ flexShrink: 0, width: 80, height: 100, borderRadius: 10, overflow: 'hidden', border: `1.5px solid ${c.border}`, display: 'block', textDecoration: 'none' }}>
+                      <img src={f.url} alt={`Archivo ${i + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    </a>
+                  )
+                ))}
+              </div>
+            </div>
+          )}
+
           <div style={fieldGroupStyle}>
+            <CategorySelectRow value={draft.category} onChange={v => setDraft({ ...draft, category: v })} />
             <FieldRow label="Tipo de estudio"    value={draft.study_type}  onChange={v => setDraft({ ...draft, study_type: v })} />
             <FieldRow label="Laboratorio / Centro" value={draft.lab_name}  onChange={v => setDraft({ ...draft, lab_name: v })} />
             <FieldRow label="Fecha"               value={draft.study_date} onChange={v => setDraft({ ...draft, study_date: v })} type="date" />
@@ -540,6 +595,27 @@ function FieldRow({ label, value, onChange, type = 'text' }: { label: string; va
     <div style={{ padding: '10px 14px', borderBottom: `1px solid ${c.borderLight}` }}>
       <label style={{ display: 'block', fontSize: 10, fontWeight: 600, color: c.textMuted, letterSpacing: '0.08em', marginBottom: 4, textTransform: 'uppercase' }}>{label}</label>
       <input type={type} value={value} onChange={e => onChange(e.target.value)} style={{ width: '100%', border: 'none', outline: 'none', fontSize: 15, color: c.text, background: 'transparent', minHeight: 28 }} />
+    </div>
+  );
+}
+
+function CategorySelectRow({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const { isDark } = useTheme();
+  const c = themeColors(isDark);
+  return (
+    <div style={{ padding: '10px 14px', borderBottom: `1px solid ${c.borderLight}` }}>
+      <label style={{ display: 'block', fontSize: 10, fontWeight: 600, color: c.textMuted, letterSpacing: '0.08em', marginBottom: 4, textTransform: 'uppercase' }}>
+        Categoría
+      </label>
+      <select
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        style={{ width: '100%', border: 'none', outline: 'none', fontSize: 15, color: c.text, background: 'transparent', minHeight: 28, cursor: 'pointer' }}
+      >
+        {CATEGORIES.filter(cat => cat.id !== 'all').map(cat => (
+          <option key={cat.id} value={cat.id}>{cat.label}</option>
+        ))}
+      </select>
     </div>
   );
 }

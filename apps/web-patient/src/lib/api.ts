@@ -137,6 +137,25 @@ export async function enqueueExtract(
   }
 }
 
+export async function updateStudy(
+  studyId: string,
+  patch: {
+    study_type?: string;
+    category?: string;
+    study_date?: string;
+    lab_name?: string | null;
+    extracted_fields?: Record<string, string>;
+  },
+) {
+  const res = await fetch(`${BASE}/studies/${studyId}`, {
+    method: 'PATCH',
+    headers: await authHeaders(),
+    body: JSON.stringify(patch),
+  });
+  if (!res.ok) throw new Error(`update_study ${res.status}`);
+  return res.json() as Promise<{ ok: boolean }>;
+}
+
 export function waitForDraft(jobId: string, timeoutMs: number): Promise<DraftRealtimeRow> {
   return new Promise((resolve, reject) => {
     let settled = false;

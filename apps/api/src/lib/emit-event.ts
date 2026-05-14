@@ -11,7 +11,8 @@ type EventType =
   | 'cro_search'
   | 'cro_view'
   | 'support_query'
-  | 'study_moved';
+  | 'study_moved'
+  | 'study_updated';
 
 type Node = 'home' | 'vault' | 'upload' | 'copilot' | 'qr' | 'family' | 'cro' | 'api' | 'onboarding' | 'support';
 

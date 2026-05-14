@@ -1,13 +1,17 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState, lazy, Suspense } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, ChevronLeft, ChevronRight, QrCode, FileText, X, RefreshCw, Printer, MoreHorizontal, MoveRight } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, ChevronRight, QrCode, FileText, X, RefreshCw, Printer, MoreHorizontal, MoveRight, Activity, Pencil, Check } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
-import { categoryColor, formatStudyDate } from '../../lib/vault';
+import { CATEGORIES, categoryColor, formatStudyDate } from '../../lib/vault';
 import { useTheme, themeColors } from '../../lib/theme';
 import { FullPageSpinner } from '../../components/Spinner';
 import { exportStudyPDF } from '../../lib/export-pdf';
-import { moveStudy } from '../../lib/api';
+import { moveStudy, updateStudy } from '../../lib/api';
 import type { Database } from '@bresca/shared';
+
+const DicomViewer = lazy(() =>
+  import('../../components/DicomViewer').then(m => ({ default: m.DicomViewer }))
+);
 
 type Study = Database['public']['Tables']['studies']['Row'];
 type SiblingStudy = Pick<Study, 'id' | 'study_type' | 'study_date' | 'category'>;
@@ -36,7 +40,7 @@ function useSiblings(study: Study | null) {
         const idx = data.findIndex(s => s.id === study.id);
         if (idx === -1) return;
         setResult({
-          prev: idx > 0           ? data[idx - 1] as SiblingStudy : null,
+          prev: idx > 0               ? data[idx - 1] as SiblingStudy : null,
           next: idx < data.length - 1 ? data[idx + 1] as SiblingStudy : null,
           position: idx + 1,
           total: data.length,
@@ -48,11 +52,10 @@ function useSiblings(study: Study | null) {
 }
 
 function useStudyFiles(study: Study | null) {
-  const [signedUrls, setSignedUrls] = useState<{ path: string; url: string; isPdf: boolean }[]>([]);
+  const [signedUrls, setSignedUrls] = useState<{ path: string; url: string; isPdf: boolean; isDicom: boolean }[]>([]);
 
   useEffect(() => {
     if (!study) return;
-    // Obtener paths: priorizar storage_paths (multi), fallback a storage_path
     const paths: string[] = study.storage_paths?.length
       ? study.storage_paths
       : study.storage_path ? [study.storage_path] : [];
@@ -63,11 +66,12 @@ function useStudyFiles(study: Study | null) {
       setSignedUrls(
         data
           .filter(d => d.signedUrl && d.path)
-          .map(d => ({
-            path: d.path!,
-            url: d.signedUrl!,
-            isPdf: d.path!.toLowerCase().endsWith('.pdf'),
-          })),
+          .map(d => {
+            const ext = d.path!.toLowerCase().split('.').pop() ?? '';
+            const isPdf   = ext === 'pdf';
+            const isDicom = ['dcm', 'dicom', 'dco', 'dic'].includes(ext);
+            return { path: d.path!, url: d.signedUrl!, isPdf, isDicom };
+          }),
       );
     });
   }, [study?.id]);
@@ -76,26 +80,47 @@ function useStudyFiles(study: Study | null) {
 }
 
 type ProfileOption = { id: string; display_name: string | null };
+type EditDraft = {
+  study_type: string;
+  category: string;
+  study_date: string;
+  lab_name: string;
+  extracted_fields: Record<string, string>;
+};
 
 export default function StudyDetail() {
   const { id } = useParams<{ id: string }>();
   const nav = useNavigate();
   const { isDark } = useTheme();
   const t = themeColors(isDark);
-  const [study, setStudy] = useState<Study | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [study, setStudy]         = useState<Study | null>(null);
+  const [loading, setLoading]     = useState(true);
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+  const [pdfUrl, setPdfUrl]           = useState<string | null>(null);
+  const [dicomOpen, setDicomOpen]     = useState(false);
   const [touchStartX, setTouchStartX] = useState<number | null>(null);
   const [showMoveSheet, setShowMoveSheet] = useState(false);
-  const [moveProfiles, setMoveProfiles] = useState<ProfileOption[]>([]);
-  const [moveLoading, setMoveLoading] = useState(false);
-  const [moveToast, setMoveToast] = useState('');
+  const [moveProfiles, setMoveProfiles]   = useState<ProfileOption[]>([]);
+  const [moveLoading, setMoveLoading]     = useState(false);
+  const [moveToast, setMoveToast]         = useState('');
+  const [editMode, setEditMode]       = useState(false);
+  const [editDraft, setEditDraft]     = useState<EditDraft | null>(null);
+  const [editSaving, setEditSaving]   = useState(false);
+  const [editError, setEditError]     = useState('');
 
   useEffect(() => {
     if (!id) return;
     supabase.from('studies').select('*').eq('id', id).single()
       .then(({ data }) => { setStudy(data); setLoading(false); });
   }, [id]);
+
+  // Cerrar PDF modal con Escape
+  useEffect(() => {
+    if (!pdfUrl) return;
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') setPdfUrl(null); };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [pdfUrl]);
 
   const files = useStudyFiles(study);
   const { prev, next, position, total } = useSiblings(study);
@@ -109,6 +134,46 @@ export default function StudyDetail() {
     if (delta > 60 && next) nav(`/app/vault/${next.id}`);
     else if (delta < -60 && prev) nav(`/app/vault/${prev.id}`);
     setTouchStartX(null);
+  }
+
+  function enterEdit() {
+    if (!study) return;
+    setEditDraft({
+      study_type:       study.study_type,
+      category:         study.category,
+      study_date:       study.study_date,
+      lab_name:         study.lab_name ?? '',
+      extracted_fields: (study.extracted_fields as Record<string, string>) ?? {},
+    });
+    setEditMode(true);
+    setEditError('');
+  }
+
+  async function saveEdit() {
+    if (!editDraft || !study) return;
+    setEditSaving(true);
+    setEditError('');
+    try {
+      await updateStudy(study.id, {
+        study_type:       editDraft.study_type,
+        category:         editDraft.category,
+        study_date:       editDraft.study_date,
+        lab_name:         editDraft.lab_name || null,
+        extracted_fields: editDraft.extracted_fields,
+      });
+      setStudy({ ...study, ...editDraft, lab_name: editDraft.lab_name || null });
+      setEditMode(false);
+      setEditDraft(null);
+    } catch {
+      setEditError('No se pudo guardar. Intentá de nuevo.');
+    }
+    setEditSaving(false);
+  }
+
+  function cancelEdit() {
+    setEditMode(false);
+    setEditDraft(null);
+    setEditError('');
   }
 
   async function openMoveSheet() {
@@ -141,10 +206,14 @@ export default function StudyDetail() {
   if (loading) return <FullPageSpinner />;
   if (!study) return <div style={{ padding: 24, color: t.textSub, background: t.bg, minHeight: '100dvh' }}>Estudio no encontrado.</div>;
 
-  const color = categoryColor(study.category);
+  const color = categoryColor(editMode && editDraft ? editDraft.category : study.category);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const ocrScore: number | null | undefined = (study as any).ocr_score;
   const needsReview = ocrScore != null && ocrScore < 80;
+
+  const activeExtracted = editMode && editDraft
+    ? editDraft.extracted_fields
+    : (study.extracted_fields as Record<string, string>) ?? {};
 
   return (
     <div
@@ -152,31 +221,59 @@ export default function StudyDetail() {
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >
+      {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', background: t.card, borderBottom: `1px solid ${t.border}` }}>
         <button onClick={() => nav(-1)} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: t.textSub, fontSize: 15, cursor: 'pointer', minHeight: 44 }}>
           <ArrowLeft size={18} /> Vault
         </button>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          <button
-            onClick={() => exportStudyPDF(study)}
-            style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'none', border: 'none', color: t.textSub, fontSize: 13, fontWeight: 500, cursor: 'pointer', minHeight: 44, padding: '0 8px' }}
-            title="Exportar para médico"
-          >
-            <Printer size={17} /> Para médico
-          </button>
-          <button
-            onClick={() => nav('/app/vault/qr', { state: { study_id: study.id } })}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: '#00C87A', fontSize: 14, fontWeight: 600, cursor: 'pointer', minHeight: 44 }}
-          >
-            <QrCode size={18} /> Compartir QR
-          </button>
-          <button
-            onClick={openMoveSheet}
-            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', color: t.textSub, cursor: 'pointer', minHeight: 44, padding: '0 4px' }}
-            title="Más opciones"
-          >
-            <MoreHorizontal size={20} />
-          </button>
+          {!editMode ? (
+            <>
+              <button
+                onClick={() => exportStudyPDF(study)}
+                style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'none', border: 'none', color: t.textSub, fontSize: 13, fontWeight: 500, cursor: 'pointer', minHeight: 44, padding: '0 8px' }}
+                title="Exportar para médico"
+              >
+                <Printer size={17} /> Para médico
+              </button>
+              <button
+                onClick={() => nav('/app/vault/qr', { state: { study_id: study.id } })}
+                style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: '#00C87A', fontSize: 14, fontWeight: 600, cursor: 'pointer', minHeight: 44 }}
+              >
+                <QrCode size={18} /> Compartir QR
+              </button>
+              <button
+                onClick={enterEdit}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', color: t.textSub, cursor: 'pointer', minHeight: 44, padding: '0 4px' }}
+                title="Editar estudio"
+              >
+                <Pencil size={18} />
+              </button>
+              <button
+                onClick={openMoveSheet}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', color: t.textSub, cursor: 'pointer', minHeight: 44, padding: '0 4px' }}
+                title="Más opciones"
+              >
+                <MoreHorizontal size={20} />
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                onClick={cancelEdit}
+                style={{ background: 'none', border: 'none', color: t.textSub, fontSize: 14, cursor: 'pointer', minHeight: 44, padding: '0 10px' }}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={saveEdit}
+                disabled={editSaving}
+                style={{ display: 'flex', alignItems: 'center', gap: 5, background: '#00C87A', border: 'none', color: '#fff', fontSize: 14, fontWeight: 600, cursor: editSaving ? 'not-allowed' : 'pointer', minHeight: 36, padding: '0 14px', borderRadius: 20, opacity: editSaving ? 0.65 : 1 }}
+              >
+                <Check size={15} /> Guardar
+              </button>
+            </>
+          )}
         </div>
       </div>
 
@@ -269,38 +366,89 @@ export default function StudyDetail() {
           </div>
         )}
 
+        {/* Tarjeta principal del estudio */}
         <div style={{ background: t.card, borderRadius: 16, overflow: 'hidden', border: `1px solid ${t.border}`, marginBottom: 16 }}>
           <div style={{ height: 4, background: color }} />
           <div style={{ padding: '16px 20px' }}>
-            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, marginBottom: 4 }}>
-              <h1 style={{ fontSize: 20, fontWeight: 700, color: t.text, margin: 0 }}>{study.study_type}</h1>
-              {ocrScore != null && <OcrScoreBadge score={ocrScore} />}
-            </div>
-            <p style={{ fontSize: 14, color: t.textSub, marginTop: 4 }}>{formatStudyDate(study.study_date)}</p>
-            {study.lab_name && <p style={{ fontSize: 13, color: t.textMuted }}>{study.lab_name}</p>}
-
-            {needsReview && (
-              <div style={{ background: isDark ? 'rgba(249,115,22,0.15)' : '#FFF7ED', border: `1px solid ${isDark ? 'rgba(249,115,22,0.4)' : '#FED7AA'}`, borderRadius: 10, padding: '10px 14px', marginTop: 12, display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-                <div style={{ flex: 1 }}>
-                  <p style={{ fontSize: 13, fontWeight: 600, color: isDark ? '#FDBA74' : '#92400E', margin: '0 0 2px' }}>Calidad de lectura baja</p>
-                  <p style={{ fontSize: 12, color: isDark ? '#FED7AA' : '#B45309', margin: 0, lineHeight: 1.5 }}>
-                    El análisis automático tuvo dificultades con este documento. Verificá los valores o resubí con mejor calidad.
-                  </p>
+            {editMode && editDraft ? (
+              /* ── Modo edición ── */
+              <>
+                <div style={{ marginBottom: 12 }}>
+                  <label style={labelStyle}>Tipo de estudio</label>
+                  <input
+                    value={editDraft.study_type}
+                    onChange={e => setEditDraft({ ...editDraft, study_type: e.target.value })}
+                    style={{ ...editInputStyle(t), fontSize: 16, fontWeight: 600 }}
+                  />
                 </div>
-                <button
-                  onClick={() => nav('/app/vault/upload')}
-                  style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 10px', borderRadius: 8, border: 'none', background: '#F97316', color: '#fff', fontSize: 11, fontWeight: 600, cursor: 'pointer', flexShrink: 0, whiteSpace: 'nowrap' }}
-                >
-                  <RefreshCw size={11} /> Resubir
-                </button>
-              </div>
-            )}
+                <div style={{ marginBottom: 12 }}>
+                  <label style={labelStyle}>Categoría</label>
+                  <select
+                    value={editDraft.category}
+                    onChange={e => setEditDraft({ ...editDraft, category: e.target.value })}
+                    style={editInputStyle(t)}
+                  >
+                    {CATEGORIES.filter(c => c.id !== 'all').map(c => (
+                      <option key={c.id} value={c.id}>{c.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div style={{ marginBottom: 12 }}>
+                  <label style={labelStyle}>Fecha</label>
+                  <input
+                    type="date"
+                    value={editDraft.study_date}
+                    onChange={e => setEditDraft({ ...editDraft, study_date: e.target.value })}
+                    style={editInputStyle(t)}
+                  />
+                </div>
+                <div>
+                  <label style={labelStyle}>Laboratorio / Centro</label>
+                  <input
+                    value={editDraft.lab_name}
+                    onChange={e => setEditDraft({ ...editDraft, lab_name: e.target.value })}
+                    style={editInputStyle(t)}
+                    placeholder="Opcional"
+                  />
+                </div>
+                {editError && (
+                  <p style={{ fontSize: 13, color: '#EF4444', marginTop: 10, marginBottom: 0 }}>{editError}</p>
+                )}
+              </>
+            ) : (
+              /* ── Modo vista ── */
+              <>
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, marginBottom: 4 }}>
+                  <h1 style={{ fontSize: 20, fontWeight: 700, color: t.text, margin: 0 }}>{study.study_type}</h1>
+                  {ocrScore != null && <OcrScoreBadge score={ocrScore} />}
+                </div>
+                <p style={{ fontSize: 14, color: t.textSub, marginTop: 4 }}>{formatStudyDate(study.study_date)}</p>
+                {study.lab_name && <p style={{ fontSize: 13, color: t.textMuted }}>{study.lab_name}</p>}
 
-            {study.category === 'receta' && (
-              <RecetaValidityBadge
-                fields={study.extracted_fields as Record<string, string>}
-                isDark={isDark}
-              />
+                {needsReview && (
+                  <div style={{ background: isDark ? 'rgba(249,115,22,0.15)' : '#FFF7ED', border: `1px solid ${isDark ? 'rgba(249,115,22,0.4)' : '#FED7AA'}`, borderRadius: 10, padding: '10px 14px', marginTop: 12, display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                    <div style={{ flex: 1 }}>
+                      <p style={{ fontSize: 13, fontWeight: 600, color: isDark ? '#FDBA74' : '#92400E', margin: '0 0 2px' }}>Calidad de lectura baja</p>
+                      <p style={{ fontSize: 12, color: isDark ? '#FED7AA' : '#B45309', margin: 0, lineHeight: 1.5 }}>
+                        El análisis automático tuvo dificultades con este documento. Verificá los valores o resubí con mejor calidad.
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => nav('/app/vault/upload')}
+                      style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 10px', borderRadius: 8, border: 'none', background: '#F97316', color: '#fff', fontSize: 11, fontWeight: 600, cursor: 'pointer', flexShrink: 0, whiteSpace: 'nowrap' }}
+                    >
+                      <RefreshCw size={11} /> Resubir
+                    </button>
+                  </div>
+                )}
+
+                {study.category === 'receta' && (
+                  <RecetaValidityBadge
+                    fields={study.extracted_fields as Record<string, string>}
+                    isDark={isDark}
+                  />
+                )}
+              </>
             )}
           </div>
         </div>
@@ -313,18 +461,28 @@ export default function StudyDetail() {
             </p>
             <div style={{ display: 'flex', gap: 10, overflowX: 'auto', marginBottom: 16, paddingBottom: 4, scrollbarWidth: 'none' }}>
               {files.map((f, i) => (
-                f.isPdf ? (
-                  <a
+                f.isDicom ? (
+                  <button
                     key={f.path}
-                    href={f.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{ flexShrink: 0, width: 90, height: 110, borderRadius: 12, background: t.cardAlt, border: `1.5px solid ${t.border}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, textDecoration: 'none', color: t.textSub }}
+                    onClick={() => setDicomOpen(true)}
+                    style={{ flexShrink: 0, width: 90, height: 110, borderRadius: 12, border: 'none', background: '#EFF6FF', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+                  >
+                    <Activity size={28} color="#3B82F6" />
+                    <span style={{ fontSize: 10, fontWeight: 600, color: '#3B82F6' }}>Ver DICOM</span>
+                    {files.length > 1 && (
+                      <span style={{ fontSize: 9, color: '#93C5FD' }}>{i + 1}</span>
+                    )}
+                  </button>
+                ) : f.isPdf ? (
+                  <button
+                    key={f.path}
+                    onClick={() => setPdfUrl(f.url)}
+                    style={{ flexShrink: 0, width: 90, height: 110, borderRadius: 12, background: t.cardAlt, border: `1.5px solid ${t.border}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, cursor: 'pointer' }}
                   >
                     <FileText size={28} color="#4B6EF5" />
-                    <span style={{ fontSize: 10, fontWeight: 600 }}>Pág. {i + 1}</span>
-                    <span style={{ fontSize: 9, color: t.textMuted }}>Abrir PDF</span>
-                  </a>
+                    <span style={{ fontSize: 10, fontWeight: 600, color: t.textSub }}>Pág. {i + 1}</span>
+                    <span style={{ fontSize: 9, color: t.textMuted }}>Ver PDF</span>
+                  </button>
                 ) : (
                   <button
                     key={f.path}
@@ -344,20 +502,31 @@ export default function StudyDetail() {
           </>
         )}
 
-        {Object.entries((study.extracted_fields as Record<string, string>) ?? {}).length > 0 && (
+        {/* Resultados extraídos */}
+        {Object.entries(activeExtracted).length > 0 && (
           <>
             <p style={{ fontSize: 11, fontWeight: 600, color: t.textMuted, letterSpacing: '0.08em', marginBottom: 10 }}>RESULTADOS</p>
-            <div style={{ background: isDark ? 'rgba(249,115,22,0.12)' : '#FFF7ED', border: `1px solid ${isDark ? 'rgba(249,115,22,0.35)' : '#FED7AA'}`, borderRadius: 12, padding: '10px 14px', marginBottom: 10, display: 'flex', gap: 8, alignItems: 'flex-start' }}>
-              <span style={{ fontSize: 14, flexShrink: 0, marginTop: 1 }}>⚕️</span>
-              <p style={{ fontSize: 12, color: isDark ? '#FDBA74' : '#92400E', lineHeight: 1.55, margin: 0 }}>
-                Este resumen es <strong>asistivo, no diagnóstico</strong>. Siempre verificá los valores con tu médico antes de tomar decisiones de salud.
-              </p>
-            </div>
+            {!editMode && (
+              <div style={{ background: isDark ? 'rgba(249,115,22,0.12)' : '#FFF7ED', border: `1px solid ${isDark ? 'rgba(249,115,22,0.35)' : '#FED7AA'}`, borderRadius: 12, padding: '10px 14px', marginBottom: 10, display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+                <span style={{ fontSize: 14, flexShrink: 0, marginTop: 1 }}>⚕️</span>
+                <p style={{ fontSize: 12, color: isDark ? '#FDBA74' : '#92400E', lineHeight: 1.55, margin: 0 }}>
+                  Este resumen es <strong>asistivo, no diagnóstico</strong>. Siempre verificá los valores con tu médico antes de tomar decisiones de salud.
+                </p>
+              </div>
+            )}
             <div style={{ background: t.card, borderRadius: 14, overflow: 'hidden', border: `1px solid ${t.border}` }}>
-              {Object.entries(study.extracted_fields as Record<string, string>).map(([key, val], i, arr) => (
-                <div key={key} style={{ padding: '12px 16px', borderBottom: i < arr.length - 1 ? `1px solid ${t.borderLight}` : 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: 13, color: t.textSub }}>{key}</span>
-                  <span style={{ fontSize: 14, fontWeight: 600, color: t.text }}>{val}</span>
+              {Object.entries(activeExtracted).map(([key, val], i, arr) => (
+                <div key={key} style={{ padding: '12px 16px', borderBottom: i < arr.length - 1 ? `1px solid ${t.borderLight}` : 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: 13, color: t.textSub, flexShrink: 0 }}>{key}</span>
+                  {editMode && editDraft ? (
+                    <input
+                      value={editDraft.extracted_fields[key] ?? ''}
+                      onChange={e => setEditDraft({ ...editDraft, extracted_fields: { ...editDraft.extracted_fields, [key]: e.target.value } })}
+                      style={{ textAlign: 'right', border: 'none', borderBottom: `1px solid ${t.border}`, outline: 'none', fontSize: 14, fontWeight: 600, color: t.text, background: 'transparent', minWidth: 0, flex: 1 }}
+                    />
+                  ) : (
+                    <span style={{ fontSize: 14, fontWeight: 600, color: t.text }}>{val}</span>
+                  )}
                 </div>
               ))}
             </div>
@@ -365,7 +534,7 @@ export default function StudyDetail() {
         )}
       </div>
 
-      {/* Lightbox */}
+      {/* Lightbox de imágenes */}
       {lightboxUrl && (
         <div
           onClick={() => setLightboxUrl(null)}
@@ -384,6 +553,43 @@ export default function StudyDetail() {
             onClick={e => e.stopPropagation()}
           />
         </div>
+      )}
+
+      {/* Modal PDF in-app */}
+      {pdfUrl && (
+        <div style={{ position: 'fixed', inset: 0, background: '#000', zIndex: 110, display: 'flex', flexDirection: 'column' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: '#111', flexShrink: 0 }}>
+            <button
+              onClick={() => setPdfUrl(null)}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '50%', width: 36, height: 36, cursor: 'pointer' }}
+            >
+              <X size={18} color="#fff" />
+            </button>
+            <a
+              href={pdfUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ color: '#93C5FD', fontSize: 13, fontWeight: 500, textDecoration: 'none' }}
+            >
+              Abrir en nueva pestaña ↗
+            </a>
+          </div>
+          <iframe
+            src={pdfUrl}
+            title="PDF del estudio"
+            style={{ flex: 1, border: 'none', width: '100%', background: '#fff' }}
+          />
+        </div>
+      )}
+
+      {/* Visor DICOM */}
+      {dicomOpen && files.some(f => f.isDicom) && (
+        <Suspense fallback={null}>
+          <DicomViewer
+            storagePaths={files.filter(f => f.isDicom).map(f => f.path)}
+            onClose={() => setDicomOpen(false)}
+          />
+        </Suspense>
       )}
 
       {/* Move sheet */}
@@ -451,8 +657,24 @@ export default function StudyDetail() {
   );
 }
 
+// ── Helpers de estilo para modo edición ──────────────────────────────────────
+
+const labelStyle: React.CSSProperties = {
+  display: 'block', fontSize: 10, fontWeight: 600, color: '#94A3B8',
+  letterSpacing: '0.08em', marginBottom: 4, textTransform: 'uppercase',
+};
+
+function editInputStyle(t: ReturnType<typeof themeColors>): React.CSSProperties {
+  return {
+    width: '100%', border: `1px solid ${t.border}`, borderRadius: 8,
+    padding: '8px 12px', fontSize: 15, color: t.text, background: t.bg,
+    boxSizing: 'border-box' as const, outline: 'none',
+  };
+}
+
+// ── Helpers de dominio ───────────────────────────────────────────────────────
+
 function parseValidDate(val: string): Date | null {
-  // Accepts YYYY-MM-DD or DD/MM/YYYY
   if (/^\d{4}-\d{2}-\d{2}$/.test(val)) return new Date(val + 'T00:00:00');
   const parts = val.split('/');
   if (parts.length === 3) {
