@@ -1,33 +1,29 @@
-# CLAUDE.md
-
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
-
 # Bresca — Claude Code Context
 
-## Estado del proyecto
-**Fase actual: MVP en producción.** web-patient + API + web-cro live. Mobile no iniciado.
+## Proyecto
+**MVP en producción.** Plataforma two-sided de datos de salud en LATAM.
+- **B2C `web-patient`:** health vault, DICOM viewer, OCR, copilot IA, QR sharing, familia, consentimiento
+- **B2B `web-cro`:** dashboard anónimo, cohortes (k-anon ≥5), matching, monitoring admin
 
-## Producto
-Plataforma two-sided de datos de salud en LATAM.
-- **B2C:** web app pacientes (health vault, copilot IA, QR sharing, familia, consentimiento)
-- **B2B:** panel CRO (dashboard, matching anónimo, funnel de estudios clínicos, monitoring)
+---
 
 ## Comandos
 
 ```bash
-# Desarrollo
-pnpm dev                          # Levanta todos los apps (Turborepo)
-pnpm dev --filter=web-cro         # Solo panel CRO
-pnpm dev --filter=api             # Solo backend
+# Desarrollo (Turborepo — nombres de paquete exactos)
+pnpm dev                                  # todos los apps
+pnpm dev --filter=@bresca/web-patient     # solo B2C  → localhost:5174
+pnpm dev --filter=@bresca/web-cro         # solo CRO  → localhost:5173
+pnpm dev --filter=@bresca/api             # solo API
 
 # Supabase local
 supabase start
-supabase db reset --local         # Reset completo + seed
+supabase db reset --local
 supabase gen types typescript --project-id mkacuagcvwxoduhdthwg \
   > packages/shared/src/database.types.ts
 
 # Deploy
-supabase db push --linked         # Aplica migraciones pendientes al remoto
+supabase db push --linked                 # NO usar --project-ref junto con --linked
 supabase functions deploy process-study-draft \
   --no-verify-jwt --project-ref mkacuagcvwxoduhdthwg --use-api
 
@@ -35,36 +31,42 @@ supabase functions deploy process-study-draft \
 pnpm test
 npx jest --testPathPattern=rls
 npx vitest run --reporter=verbose
-node scripts/post-deploy-qa.mjs   # 14 tests — mínimo 12/14 aceptable
+node scripts/post-deploy-qa.mjs           # 14 tests — mínimo 12/14 aceptable
 
 # Lint + tipos
 npx eslint apps/
 npx tsc --noEmit
 ```
 
+---
+
 ## Monorepo
+
 ```
-apps/web-patient  → React + Vite — app paciente B2C (Vercel: bresca-app-api.vercel.app)
-apps/web-cro      → React + Vite — panel investigador B2B (Vercel: bresca-cro.vercel.app)
-apps/api          → Node.js + Express — backend REST (Render: bresca-api.onrender.com)
-packages/shared   → Supabase singleton, tipos TS, utils
-supabase/         → migraciones SQL, seed, Edge Functions
-scripts/          → post-deploy-qa.mjs y otros scripts operacionales
-.claude/          → commands/, skills/, settings.json, hooks/
+apps/web-patient   @bresca/web-patient  → React 18 + Vite 5 + TS  (Vercel: bresca-app-api.vercel.app)
+apps/web-cro       @bresca/web-cro      → React 18 + Vite 5 + TS  (Vercel: bresca-cro.vercel.app)
+apps/api           @bresca/api          → Node.js 20 + Express      (Render: bresca-api.onrender.com)
+packages/shared                         → Supabase singleton, tipos TS, utils
+supabase/                               → migraciones SQL, seed, Edge Functions
+scripts/                                → post-deploy-qa.mjs y operacionales
+.claude/                                → skills/, settings.json, hooks/, statusline-command.sh
 ```
 
 ## Stack
+
 | Capa | Tech |
 |---|---|
-| Web B2C (paciente) | React 18 + Vite 5 + TypeScript — puerto 5174 dev |
-| Web CRO | React 18 + Vite 5 + TypeScript — puerto 5173 dev |
+| Web B2C | React 18 + Vite 5 + TypeScript · puerto 5174 dev |
+| Web CRO | React 18 + Vite 5 + TypeScript · puerto 5173 dev |
 | Backend | Node.js 20 LTS + Express |
-| DB | PostgreSQL 15 vía Supabase (project: `mkacuagcvwxoduhdthwg` us-east-2) |
-| Auth + Storage | Supabase (anon sign-in, RLS, buckets) |
+| DB | PostgreSQL 15 vía Supabase — project `mkacuagcvwxoduhdthwg` us-east-2 |
+| Auth + Storage | Supabase (magic link OTP, RLS, bucket `studies`) |
 | OCR | DeepSeek Vision + pdf-parse — Edge Function `process-study-draft` (async, no-verify-jwt) |
-| AI Copilot | DeepSeek `deepseek-chat` (API OpenAI-compatible) |
-| Monitoring | Tabla `events` + `/admin/*` en API + `Admin.tsx` en web-cro |
-| Deploy API | Render.com free tier (cold start ~30s — upgrade a Starter $7/mo pendiente) |
+| AI Copilot + Soporte | DeepSeek `deepseek-chat` (API OpenAI-compatible) |
+| Monitoring | Tabla `events` · `/admin/*` en API · `Admin.tsx` en web-cro |
+| Deploy API | Render.com free tier (cold start ~30 s) |
+
+---
 
 ## Reglas absolutas — nunca violar
 
@@ -84,14 +86,13 @@ CONSENTIMIENTO
 
 OCR / EDGE FUNCTION
 - NUNCA auto-commit de datos extraídos — siempre requiere confirmed=true del usuario
-- study_drafts tiene TTL de 24h — pg_cron cleanup a las :17 de cada hora
-- OCR es async — el frontend navega al Vault inmediatamente post-enqueue
-- Edge Function deployada con --no-verify-jwt (auth propia por UUID de draft)
+- study_drafts TTL 24 h — pg_cron cleanup a las :17 de cada hora
+- OCR es async — frontend navega al Vault inmediatamente post-enqueue
+- Edge Function con --no-verify-jwt; auth propia via UUID de draft
 
-COPILOT
+COPILOT / SOPORTE
 - System prompt en COPILOT_SYSTEM_PROMPT_V1 (apps/api/src/copilot/system-prompt.ts)
-- max_tokens: 1024
-- Rate limit: 20 queries/usuario/hora — hardcodeado, no configurable
+- max_tokens: 1024 · Rate limit: 20 queries/usuario/hora (hardcodeado)
 - NUNCA incluir PII del usuario en el contexto enviado a DeepSeek API
 
 MONITORING / ADMIN
@@ -100,33 +101,36 @@ MONITORING / ADMIN
 - events tabla: INSERT para todos autenticados, SELECT solo @bresca.io o service_role
 ```
 
+---
+
 ## Patrones de código
 
 ```typescript
 // Error handling — Result pattern, nunca throw en lógica de negocio
 type Result<T, E = Error> = { ok: true; data: T } | { ok: false; error: E }
 
-// Supabase — singleton, pero web-patient importa local (no @bresca/shared/supabase)
-// apps/web-patient y apps/web-cro: import { supabase } from '../lib/supabase'
-// apps/api:                        import { supabase } from '@bresca/shared/supabase'
+// Supabase imports
+// apps/web-patient, apps/web-cro: import { supabase } from '../lib/supabase'
+// apps/api:                       import { supabase } from '@bresca/shared/supabase'
 
 // Commits
 feat|fix|chore|docs|test(scope): descripción en español
 
 // Eventos de monitoreo (fire-and-forget desde API)
 import { emitEvent } from '../lib/emit-event';
-emitEvent('upload_start', 'upload');   // no bloquea el response
+emitEvent('upload_start', 'upload');
 
-// Tracking de página (web-patient)
-useTrackNode('home');  // en el top de cada page component
+// Tracking de página (web-patient) — top de cada page component
+useTrackNode('home');
 ```
+
+---
 
 ## Migraciones SQL
 - Formato: `YYYYMMDDHHMMSS_descripcion.sql` en `supabase/migrations/`
 - Nunca editar migración existente — cambios en migración nueva
 - RLS policies en la misma migración que la tabla
 - Migraciones van ANTES del deploy del código que las usa
-- Aplicar: `supabase db push --linked`  ← NO usar `--project-ref` con `--linked`
 
 ## Variables de entorno sensibles
 ```
@@ -135,79 +139,90 @@ DEEPSEEK_API_KEY           → rotación mensual (OCR Vision + Copilot)
 QR_TOKEN_SECRET            → rotación semestral
 ```
 
-## Sistemas activos en producción
+---
+
+## Sistemas en producción
 
 ### Pipeline OCR
-- INSERT en `study_drafts` → trigger pg_net → Edge Function `process-study-draft`
-- La Edge Function usa `--no-verify-jwt`; la auth la hace el trigger con un secret hardcodeado en la función del trigger
-- Status pipeline: `pending → processing → completed | failed`
-- Drafts expirados/fallidos se limpian con pg_cron (cada hora, minuto :17)
+`study_drafts` INSERT → trigger pg_net → Edge Function `process-study-draft`  
+Status: `pending → processing → completed | failed`  
+Drafts expirados se limpian con pg_cron (cada hora, minuto :17).  
+Edge Function auth: secret hardcodeado en función de trigger (no JWT de usuario).
+
+### DICOM Viewer + Upload
+**Detección:** por magic bytes — `DICM` en offset 128-131 (`isDicomBuffer()`). No se usa la extensión del archivo. Archivos sin extensión (Linux/Mac) son válidos.
+
+**Transfer Syntax soportados:**
+- Uncompressed: Implicit LE · Explicit LE · Explicit BE
+- `1.2.840.10008.1.2.4.50` JPEG Baseline (browser native)
+- `1.2.840.10008.1.2.4.80/81` JPEG-LS (CharLS WASM `/wasm/charlswasm_decode.js`)
+- `1.2.840.10008.1.2.4.90/91` JPEG 2000 (OpenJPEG WASM `/wasm/openjpegwasm_decode.js`)
+- `1.2.840.10008.1.2.5` RLE Lossless (pure JS, sin WASM)
+
+**Windowing:** percentiles p2–p98 muestreando desde el cuarto medio de la serie (frames con señal, no aire). Fallback a presets clínicos por modalidad si WW < 50: CT(40/400), MR(500/1000), CR/DX(128/256), MG(2048/4096).
+
+**Límites:** MAX_FRAMES = 200 slices en viewer · MAX_SERIES_FILES = 200 archivos por carpeta.
+
+**Upload carpeta:** `addFolderFiles` acepta cualquier archivo sin filtro de extensión. `isDicomBuffer(files[0])` decide si tomar el path DICOM (sin OCR) o el path OCR. Archivos sin extensión se guardan sin sufijo en storage.
 
 ### Monitoring
 - `apps/api/src/lib/emit-event.ts` — helper fire-and-forget
-- `apps/api/src/admin/router.ts` — `GET /admin/metrics?period=day|week|month`, `GET /admin/live`
-- `apps/web-cro/src/pages/Admin.tsx` — BarChart Recharts + KPI cards + Supabase Realtime
-- `get_kpis(period TEXT)` — función SQL SECURITY DEFINER en la DB
+- `GET /admin/metrics?period=day|week|month` · `GET /admin/live`
+- `apps/web-cro/src/pages/Admin.tsx` — Recharts + KPI cards + Supabase Realtime
+- `get_kpis(period TEXT)` — función SQL SECURITY DEFINER
 
 ### Auth / Redirect URLs
-- Supabase Site URL apunta a web-patient (B2C)
+- Supabase Site URL → web-patient (B2C)
 - web-cro login usa `emailRedirectTo: window.location.origin`
-- `http://localhost:5173` debe estar en Supabase Auth → Redirect URLs allow-list para testing local
+- `http://localhost:5173` debe estar en Supabase Auth → Redirect URLs (testing local)
 
-## Pendientes de código (backlog)
+---
 
-### Fixes y deuda técnica
+## Backlog
+
+### Fixes pendientes
 | Item | Severidad | Estado |
 |---|---|---|
-| `Menu.tsx` — reemplazar número WA `5491100000000` | 🔴 | ⏸️ Bloqueado — número real pendiente |
-| Dark mode en `ConsentCenter.tsx` | 🟡 | ⏳ Esperando diseño oscuro |
+| `Menu.tsx` — reemplazar número WA placeholder `5491100000000` | 🔴 | ⏸️ Bloqueado — número real pendiente |
+| Nombre del Asistente Soporte (placeholder "XYZ") | 🔴 | ⏸️ Bloqueado — decisión de branding |
+| Dark mode en `ConsentCenter.tsx` | 🟡 | ⏳ Pendiente diseño |
 | Dark mode auth/onboarding (`Welcome`, `Email`, `Verify`) | 🔵 | 📋 Backlog |
 
-### Próximas funcionalidades
-> Todo el backlog 2026-05-13 completado y en producción (`8a62d7d2`). Próximo sprint por definir.
+### Funcionalidades próximas
+- **Admin funnel:** métricas de sesión (`avg duration_ms por node`) — datos ya en DB, falta la vista en `Admin.tsx`
+- **Copilot deep link:** cuando el asistente identifica un documento del vault del usuario, devuelve chip accionable "Ir al estudio →" (ruta interna `/app/vault/:id`). Requiere query a tabla `studies` filtrada por `profile_id` del JWT. Solo para documentos del usuario autenticado (no familiares sin consent en sesión).
 
-Pendiente de naming: Asistente Soporte usa placeholder "XYZ" — definir nombre en sesión de branding antes de lanzar UI al usuario.
+---
 
-Admin.tsx: métricas de sesión (`avg duration_ms por node`, funnel) — quedó fuera del sprint, datos ya se persisten en DB.
-
-#### Copilot — respuestas con deep link accionable (1 click)
-- **Trigger:** el usuario pregunta al asistente sobre un documento específico de su vault (ej: "cómo comparto la última mamografía de Monica")
-- **Comportamiento actual:** el asistente responde con los pasos correctos en texto
-- **Mejora:** cuando el asistente identifica un documento concreto del vault del usuario, además de los pasos devuelve un botón/chip "Ir a la mamografía →" que lleva directo al documento
-- **Implementación:**
-  - El copilot necesita acceso al vault del usuario autenticado (query `vault_documents` filtrado por `profile_id` del JWT, con RLS activo)
-  - El system prompt debe incluir instrucción: si la respuesta refiere a un documento existente, retornar un JSON estructurado con `{ text, actionLink: { label, path } }` además del texto
-  - El frontend parsea ese campo y renderiza un chip accionable bajo la respuesta
-  - El link es una ruta interna (`/vault/document/:id`) — no se expone URL externa
-  - Sin cambios de RLS necesarios — el usuario accede solo a sus propios docs
-- **Restricciones:** solo para documentos del propio usuario autenticado; nunca para documentos de familiares sin consent explícito en esa sesión
-- **Estado:** 📋 Backlog — pendiente sprint
-
-## Skills disponibles (`@skill nombre`)
+## Documentación de referencia
 ```
-bresca-architecture · supabase-rls · ocr-pipeline · copilot-context
-consent-system · cro-matching · react-native-patterns · testing-patterns · post-deploy-qa
+docs/01_RFC-001_Bresca.md        RFC técnico inicial
+docs/02_ADR_Bresca.md            Architecture Decision Records
+docs/03_PRD_Bresca.md            Product Requirements
+docs/04_TechSpec_Bresca.md       Especificación técnica
+docs/05_SystemDesign_Bresca.md   Diseño de sistema
+docs/06_Runbook_Bresca.md        Operaciones y runbook
+docs/09_TestPlan_Bresca.md       Plan de pruebas
+docs/10_TestResults_Bresca.md    Resultados de testing
+docs/14_Security_Audit_2026-05-07.md  Auditoría de seguridad
+docs/15_Incident_Response_Plan.md
+docs/16_Prod_Setup_Guide.md
+docs/17_PreLaunch_Checklist.md   24 ítems BLOQUEANTES para launch
+docs/18_UserTestingChecklist.md  ~180 ítems con checkbox — pruebas de usuario completas
 ```
 
-## Diseño UX/UI
+## Design System
 ```
-Design System/Bresca App Prototype.html  → prototipo completo (abrir en browser)
+Design System/Bresca App Prototype.html  → prototipo completo
 Design System/colors_and_type.css        → tokens de color, tipografía, spacing
 Design System/assets/                    → logos en todos los formatos
 Design System/README.md                  → voice & tone, iconografía (Lucide)
 ```
 
-## Documentación de referencia
-```
-docs/01_RFC-001_Bresca.md · docs/02_ADR_Bresca.md · docs/03_PRD_Bresca.md
-docs/04_TechSpec_Bresca.md · docs/05_SystemDesign_Bresca.md · docs/06_Runbook_Bresca.md
-docs/09_TestPlan_Bresca.md · docs/10_TestResults_Bresca.md
-docs/14_Security_Audit_2026-05-07 · docs/15_Incident_Response_Plan.md
-docs/16_Prod_Setup_Guide.md · docs/17_PreLaunch_Checklist.md  ← 24 ítems BLOQUEANTE
-```
+---
 
 ## Comportamiento del agente
-Ver `AGENTS.md` para zonas de autonomía completas. Resumen:
+Ver `AGENTS.md` para zonas de autonomía completas.
 - UI + lógica de negocio → autonomía total
 - Migraciones SQL, RLS policies, system prompt Copilot → confirmación previa
 - `.env*`, `git push --force`, reducir `MINIMUM_COHORT_SIZE` < 5 → prohibido
