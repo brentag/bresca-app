@@ -45,6 +45,40 @@ function dcmStr(ds: any, tag: string): string {
   try { return (ds.string(tag) ?? '').replace(/\0/g, '').trim(); } catch { return ''; }
 }
 
+// Modality presets (clinical defaults when auto-detection is unreliable)
+const MODALITY_PRESETS: Record<string, { wc: number; ww: number }> = {
+  CT: { wc: 40,   ww: 400  },  // soft tissue
+  MR: { wc: 500,  ww: 1000 },
+  CR: { wc: 128,  ww: 256  },
+  DX: { wc: 128,  ww: 256  },
+  MG: { wc: 2048, ww: 4096 },
+  PT: { wc: 128,  ww: 256  },
+};
+
+function computeAutoWindow(frames: Frame[], modality?: string): { wc: number; ww: number } {
+  const grayFrames = frames.filter((f): f is GrayFrame => f.kind === 'gray');
+  if (!grayFrames.length) return { wc: 128, ww: 256 };
+
+  // Sample from the middle quarter — more likely to contain signal than air slices at edges
+  const start = Math.floor(grayFrames.length * 0.25);
+  const sample = grayFrames.slice(start, start + 3);
+  const pixels: number[] = [];
+  for (const f of sample) {
+    // Step to cap at ~50k samples per frame for performance
+    const step = Math.max(1, Math.floor(f.data.length / 50000));
+    for (let i = 0; i < f.data.length; i += step) pixels.push(f.data[i]);
+  }
+  pixels.sort((a, b) => a - b);
+
+  const p2  = pixels[Math.floor(pixels.length * 0.02)];
+  const p98 = pixels[Math.floor(pixels.length * 0.98)];
+  const ww  = Math.max(p98 - p2, 1);
+
+  // If range is too narrow (all-air CT slice, blank scan) fall back to modality preset
+  if (ww < 50) return MODALITY_PRESETS[modality ?? ''] ?? { wc: 128, ww: 256 };
+  return { wc: (p2 + p98) / 2, ww };
+}
+
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export function DicomViewer({
@@ -147,11 +181,9 @@ export function DicomViewer({
         defWC = refMeta.wc;
         defWW = refMeta.ww;
       } else if (frames[0].kind === 'gray') {
-        let pMin = Infinity, pMax = -Infinity;
-        const d = frames[0].data;
-        for (let i = 0; i < d.length; i++) { if (d[i] < pMin) pMin = d[i]; if (d[i] > pMax) pMax = d[i]; }
-        defWC = (pMin + pMax) / 2;
-        defWW = Math.max(pMax - pMin, 1);
+        const auto = computeAutoWindow(frames, refMeta?.modality);
+        defWC = auto.wc;
+        defWW = auto.ww;
       } else {
         defWC = 128; defWW = 256;
       }
