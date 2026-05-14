@@ -28,6 +28,7 @@ type Draft = {
 type SelectedFile = { id: string; file: File; preview: string };
 
 const MAX_FILES = 10;
+const MAX_SERIES_FILES = 200; // DICOM series: CT/MR slices can reach 500+
 
 const MIME_MAP: Record<string, string> = {
   jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp',
@@ -82,6 +83,7 @@ export default function Upload() {
   const [showFeedback, setShowFeedback] = useState(false);
   const [savedVaultPath, setSavedVaultPath] = useState('/app/vault');
   const [draftSignedUrls, setDraftSignedUrls] = useState<{ path: string; url: string; isPdf: boolean; isDicom: boolean }[]>([]);
+  const [seriesName, setSeriesName] = useState<string | null>(null);
   const folderRef = React.useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -185,26 +187,25 @@ export default function Upload() {
       e.target.value = '';
       return;
     }
-    setFiles(prev => {
-      const remaining = MAX_FILES - prev.length;
-      if (remaining <= 0) {
-        setExtractError(`Máximo ${MAX_FILES} archivos por envío. Procesá los actuales primero.`);
-        return prev;
-      }
-      const toAdd = dicomFiles.slice(0, remaining);
-      if (toAdd.length < dicomFiles.length) {
-        setExtractError(`Se agregaron ${toAdd.length} de ${dicomFiles.length} archivos DICOM (límite: ${MAX_FILES}).`);
-      }
-      return [
-        ...prev,
-        ...toAdd.map(file => ({ id: `${Date.now()}-${Math.random()}`, file, preview: '' })),
-      ];
-    });
+    // Extract folder name from webkitRelativePath (e.g. "SERIE_CT_CABEZA/IM-0001.dcm" → "SERIE_CT_CABEZA")
+    const relPath = (dicomFiles[0] as File & { webkitRelativePath?: string }).webkitRelativePath ?? '';
+    const detected = relPath ? relPath.split('/')[0] : null;
+    if (detected) setSeriesName(detected);
+
+    const toAdd = dicomFiles.slice(0, MAX_SERIES_FILES);
+    if (toAdd.length < dicomFiles.length) {
+      setExtractError(`Serie grande: se cargarán los primeros ${toAdd.length} de ${dicomFiles.length} archivos.`);
+    }
+    setFiles(toAdd.map(file => ({ id: `${Date.now()}-${Math.random()}`, file, preview: '' })));
     e.target.value = '';
   }
 
   function removeFile(id: string) {
-    setFiles(prev => prev.filter(f => f.id !== id));
+    setFiles(prev => {
+      const next = prev.filter(f => f.id !== id);
+      if (!next.length) setSeriesName(null);
+      return next;
+    });
   }
 
   async function processFiles() {
@@ -341,7 +342,9 @@ export default function Upload() {
     setShowFeedback(true);
   }
 
-  const fileLabel = files.length === 1 ? '1 archivo' : `${files.length} archivos`;
+  const fileLabel = seriesName
+    ? `serie (${files.length} archivos)`
+    : files.length === 1 ? '1 archivo' : `${files.length} archivos`;
 
   const sourceCardStyle: React.CSSProperties = {
     flex: 1, background: c.card, borderRadius: 16, padding: '20px 16px',
@@ -414,66 +417,92 @@ export default function Upload() {
             <button
               type="button"
               onClick={() => folderRef.current?.click()}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', padding: '2px 0', alignSelf: 'flex-start' }}
+              style={{ ...sourceCardStyle, width: '100%', flexDirection: 'row', justifyContent: 'flex-start', gap: 14, padding: '14px 16px', border: `1.5px solid ${c.border}` }}
             >
-              <FolderOpen size={14} color={c.textMuted} />
-              <span style={{ fontSize: 12, color: c.textMuted }}>Serie DICOM — seleccionar carpeta</span>
+              <FolderOpen size={26} color="#8B5CF6" style={{ flexShrink: 0 }} />
+              <div style={{ textAlign: 'left' }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: c.text }}>Serie DICOM</div>
+                <div style={{ fontSize: 11, color: c.textMuted }}>Seleccionar carpeta — CT, MR, PET, US</div>
+              </div>
             </button>
             <input ref={folderRef} type="file" multiple onChange={addFolderFiles} style={{ display: 'none' }} />
           </div>
 
-          {/* Thumbnails */}
+          {/* Thumbnails / Serie card */}
           {files.length > 0 && (
             <div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
                 <span style={{ fontSize: 13, fontWeight: 600, color: c.textSub }}>
-                  {fileLabel} seleccionado{files.length !== 1 ? 's' : ''}
+                  {seriesName ? `Serie: ${seriesName}` : `${fileLabel} seleccionado${files.length !== 1 ? 's' : ''}`}
                 </span>
-                <button onClick={() => setFiles([])} style={{ fontSize: 12, color: c.textMuted, background: 'none', border: 'none', cursor: 'pointer' }}>
+                <button onClick={() => { setFiles([]); setSeriesName(null); }} style={{ fontSize: 12, color: c.textMuted, background: 'none', border: 'none', cursor: 'pointer' }}>
                   Limpiar todo
                 </button>
               </div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-                {files.map((f, i) => (
-                  <div key={f.id} style={{ position: 'relative', width: 72, height: 72 }}>
-                    {f.preview ? (
-                      <img src={f.preview} alt={`Página ${i + 1}`} style={{ width: 72, height: 72, objectFit: 'cover', borderRadius: 10, border: `1.5px solid ${c.border}` }} />
-                    ) : isDicomFile(f.file.name) ? (
-                      <div style={{ width: 72, height: 72, borderRadius: 10, background: '#EFF6FF', border: '1.5px solid #BFDBFE', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
-                        <Activity size={22} color="#3B82F6" />
-                        <span style={{ fontSize: 9, color: '#3B82F6', fontWeight: 600, textAlign: 'center' }}>DICOM</span>
-                      </div>
-                    ) : f.file.name.toLowerCase().endsWith('.pdf') ? (
-                      <div style={{ width: 72, height: 72, borderRadius: 10, background: '#FEF2F2', border: '1.5px solid #FECACA', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
-                        <FileText size={22} color="#EF4444" />
-                        <span style={{ fontSize: 9, color: '#EF4444', fontWeight: 600, textAlign: 'center' }}>PDF</span>
-                      </div>
-                    ) : (
-                      <div style={{ width: 72, height: 72, borderRadius: 10, background: c.cardAlt, border: `1.5px solid ${c.border}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
-                        <FileText size={22} color={c.textMuted} />
-                        <span style={{ fontSize: 9, color: c.textMuted, textAlign: 'center', padding: '0 4px', lineHeight: 1.2 }}>
-                          {f.file.name.slice(-12)}
-                        </span>
-                      </div>
-                    )}
-                    <div style={{ position: 'absolute', bottom: 4, left: 4, background: 'rgba(0,0,0,0.55)', borderRadius: 4, padding: '1px 5px', fontSize: 10, color: '#fff', fontWeight: 600 }}>
-                      {i + 1}
-                    </div>
-                    <button
-                      onClick={() => removeFile(f.id)}
-                      style={{ position: 'absolute', top: -6, right: -6, width: 20, height: 20, borderRadius: '50%', background: '#EF4444', border: '2px solid #fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0 }}
-                    >
-                      <X size={10} color="#fff" strokeWidth={3} />
-                    </button>
-                  </div>
-                ))}
 
-                <label style={{ width: 72, height: 72, borderRadius: 10, border: `1.5px dashed ${c.border}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, cursor: 'pointer', background: c.cardAlt }}>
-                  <Plus size={20} color={c.textMuted} />
-                  <span style={{ fontSize: 10, color: c.textMuted }}>Agregar</span>
-                  <input type="file" accept="image/*,application/pdf,.dcm,.dicom,.dco,.dic" multiple onChange={addFiles} style={{ display: 'none' }} />
-                </label>
-              </div>
+              {/* Serie DICOM: card única en lugar de N thumbnails */}
+              {seriesName ? (
+                <div style={{ background: '#F5F3FF', border: '1.5px solid #DDD6FE', borderRadius: 14, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 14 }}>
+                  <FolderOpen size={32} color="#7C3AED" style={{ flexShrink: 0 }} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: '#4C1D95', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {seriesName}
+                    </div>
+                    <div style={{ fontSize: 12, color: '#6D28D9', marginTop: 2 }}>
+                      {files.length} archivos DICOM
+                      {files.length === MAX_SERIES_FILES && <span style={{ color: '#F59E0B', marginLeft: 6 }}>· límite {MAX_SERIES_FILES}</span>}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => { setFiles([]); setSeriesName(null); }}
+                    style={{ width: 28, height: 28, borderRadius: '50%', background: '#EDE9FE', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}
+                  >
+                    <X size={13} color="#7C3AED" strokeWidth={2.5} />
+                  </button>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+                  {files.map((f, i) => (
+                    <div key={f.id} style={{ position: 'relative', width: 72, height: 72 }}>
+                      {f.preview ? (
+                        <img src={f.preview} alt={`Página ${i + 1}`} style={{ width: 72, height: 72, objectFit: 'cover', borderRadius: 10, border: `1.5px solid ${c.border}` }} />
+                      ) : isDicomFile(f.file.name) ? (
+                        <div style={{ width: 72, height: 72, borderRadius: 10, background: '#EFF6FF', border: '1.5px solid #BFDBFE', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+                          <Activity size={22} color="#3B82F6" />
+                          <span style={{ fontSize: 9, color: '#3B82F6', fontWeight: 600, textAlign: 'center' }}>DICOM</span>
+                        </div>
+                      ) : f.file.name.toLowerCase().endsWith('.pdf') ? (
+                        <div style={{ width: 72, height: 72, borderRadius: 10, background: '#FEF2F2', border: '1.5px solid #FECACA', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+                          <FileText size={22} color="#EF4444" />
+                          <span style={{ fontSize: 9, color: '#EF4444', fontWeight: 600, textAlign: 'center' }}>PDF</span>
+                        </div>
+                      ) : (
+                        <div style={{ width: 72, height: 72, borderRadius: 10, background: c.cardAlt, border: `1.5px solid ${c.border}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+                          <FileText size={22} color={c.textMuted} />
+                          <span style={{ fontSize: 9, color: c.textMuted, textAlign: 'center', padding: '0 4px', lineHeight: 1.2 }}>
+                            {f.file.name.slice(-12)}
+                          </span>
+                        </div>
+                      )}
+                      <div style={{ position: 'absolute', bottom: 4, left: 4, background: 'rgba(0,0,0,0.55)', borderRadius: 4, padding: '1px 5px', fontSize: 10, color: '#fff', fontWeight: 600 }}>
+                        {i + 1}
+                      </div>
+                      <button
+                        onClick={() => removeFile(f.id)}
+                        style={{ position: 'absolute', top: -6, right: -6, width: 20, height: 20, borderRadius: '50%', background: '#EF4444', border: '2px solid #fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0 }}
+                      >
+                        <X size={10} color="#fff" strokeWidth={3} />
+                      </button>
+                    </div>
+                  ))}
+
+                  <label style={{ width: 72, height: 72, borderRadius: 10, border: `1.5px dashed ${c.border}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, cursor: 'pointer', background: c.cardAlt }}>
+                    <Plus size={20} color={c.textMuted} />
+                    <span style={{ fontSize: 10, color: c.textMuted }}>Agregar</span>
+                    <input type="file" accept="image/*,application/pdf,.dcm,.dicom,.dco,.dic" multiple onChange={addFiles} style={{ display: 'none' }} />
+                  </label>
+                </div>
+              )}
             </div>
           )}
 
