@@ -250,13 +250,13 @@ export default function Upload() {
           const { default: dicomParser } = await import('dicom-parser') as any;
           const dataset = dicomParser.parseDicom(new Uint8Array(buffer));
 
-          const str = (tag: string) => { try { return dataset.string(tag)?.trim() ?? ''; } catch { return ''; } };
+          const str = (tag: string) => { try { return (dataset.string(tag) ?? '').replace(/\0/g, '').trim(); } catch { return ''; } };
           const u16 = (tag: string) => { try { return dataset.uint16(tag) ?? null; } catch { return null; } };
 
           const modality  = str('x00080060');
           const bodyPart  = str('x00180015');
           const rawDate   = str('x00080020');  // YYYYMMDD
-          const studyDesc = str('x0008103e') || str('x00081030');
+          const studyDesc = str('x0008103e') || str('x00081030') || str('x00080104');
           const rows      = u16('x00280010');
           const cols      = u16('x00280011');
 
