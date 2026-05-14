@@ -36,11 +36,25 @@ const MIME_MAP: Record<string, string> = {
   dcm: 'application/dicom', dicom: 'application/dicom', dco: 'application/dicom', dic: 'application/dicom',
 };
 
-function isDicomFile(name: string): boolean {
+// Detección visual para thumbnails (heurística rápida, sin leer el archivo)
+function looksLikeDicom(name: string): boolean {
   const lower = name.toLowerCase();
-  if (!lower.includes('.')) return true; // sin extensión → DICOM de serie/carpeta
+  if (!lower.includes('.')) return true; // sin extensión → típico en Linux/Mac DICOM
   const ext = lower.split('.').pop() ?? '';
-  return ['dcm', 'dicom', 'dco', 'dic'].includes(ext);
+  return ['dcm', 'dicom', 'dco', 'dic', 'ima', 'img'].includes(ext);
+}
+
+// Detección real por magic bytes — lee solo los primeros 132 bytes del archivo
+async function isDicomBuffer(file: File): Promise<boolean> {
+  try {
+    const buf = await file.slice(0, 132).arrayBuffer();
+    const b = new Uint8Array(buf);
+    // DICOM preamble: 128 bytes + "DICM" en bytes 128-131
+    return b.length >= 132 &&
+      b[128] === 0x44 && b[129] === 0x49 && b[130] === 0x43 && b[131] === 0x4D;
+  } catch {
+    return false;
+  }
 }
 
 async function uploadFileStorage(
@@ -181,20 +195,15 @@ export default function Upload() {
     const incoming = Array.from(e.target.files ?? []);
     if (!incoming.length) return;
     setExtractError('');
-    const dicomFiles = incoming.filter(f => isDicomFile(f.name));
-    if (!dicomFiles.length) {
-      setExtractError('La carpeta no contiene archivos DICOM reconocidos (.dcm, .dicom o sin extensión).');
-      e.target.value = '';
-      return;
-    }
-    // Extract folder name from webkitRelativePath (e.g. "SERIE_CT_CABEZA/IM-0001.dcm" → "SERIE_CT_CABEZA")
-    const relPath = (dicomFiles[0] as File & { webkitRelativePath?: string }).webkitRelativePath ?? '';
+
+    // Acepta cualquier archivo — la detección DICOM ocurre por magic bytes al procesar
+    const relPath = (incoming[0] as File & { webkitRelativePath?: string }).webkitRelativePath ?? '';
     const detected = relPath ? relPath.split('/')[0] : null;
     if (detected) setSeriesName(detected);
 
-    const toAdd = dicomFiles.slice(0, MAX_SERIES_FILES);
-    if (toAdd.length < dicomFiles.length) {
-      setExtractError(`Serie grande: se cargarán los primeros ${toAdd.length} de ${dicomFiles.length} archivos.`);
+    const toAdd = incoming.slice(0, MAX_SERIES_FILES);
+    if (toAdd.length < incoming.length) {
+      setExtractError(`Serie grande: se cargarán los primeros ${toAdd.length} de ${incoming.length} archivos.`);
     }
     setFiles(toAdd.map(file => ({ id: `${Date.now()}-${Math.random()}`, file, preview: '' })));
     e.target.value = '';
@@ -222,9 +231,10 @@ export default function Upload() {
 
       const uploads = await Promise.all(
         files.map(async ({ file }, idx) => {
-          const ext  = file.name.split('.').pop()?.toLowerCase() ?? '';
-          const mime = MIME_MAP[ext] ?? 'application/octet-stream';
-          const path = `${user!.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+          const ext     = file.name.includes('.') ? (file.name.split('.').pop()?.toLowerCase() ?? '') : '';
+          const mime    = MIME_MAP[ext] ?? 'application/octet-stream';
+          const suffix  = ext ? `.${ext}` : '';
+          const path    = `${user!.id}/${Date.now()}-${Math.random().toString(36).slice(2)}${suffix}`;
           setUploadingFileName(file.name.length > 30 ? `…${file.name.slice(-27)}` : file.name);
 
           await uploadFileStorage(file, path, mime, (pct) => {
@@ -242,8 +252,9 @@ export default function Upload() {
       const primaryMime  = uploads[0].mime;
       const vaultPath    = familyProfileId ? `/app/vault?p=${familyProfileId}` : '/app/vault';
 
-      // DICOM: metadata está embebida — procesamos en cliente, sin Edge Function ni cola OCR.
-      const allDicom = files.every(f => isDicomFile(f.file.name));
+      // DICOM: detección por magic bytes (DICM en offset 128) — ignora la extensión del archivo.
+      // Basta con verificar el primer archivo; si es DICOM asumimos serie homogénea.
+      const allDicom = await isDicomBuffer(files[0].file);
       if (allDicom) {
         try {
           const buffer = await files[0].file.arrayBuffer();
@@ -466,7 +477,7 @@ export default function Upload() {
                     <div key={f.id} style={{ position: 'relative', width: 72, height: 72 }}>
                       {f.preview ? (
                         <img src={f.preview} alt={`Página ${i + 1}`} style={{ width: 72, height: 72, objectFit: 'cover', borderRadius: 10, border: `1.5px solid ${c.border}` }} />
-                      ) : isDicomFile(f.file.name) ? (
+                      ) : looksLikeDicom(f.file.name) ? (
                         <div style={{ width: 72, height: 72, borderRadius: 10, background: '#EFF6FF', border: '1.5px solid #BFDBFE', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
                           <Activity size={22} color="#3B82F6" />
                           <span style={{ fontSize: 9, color: '#3B82F6', fontWeight: 600, textAlign: 'center' }}>DICOM</span>
