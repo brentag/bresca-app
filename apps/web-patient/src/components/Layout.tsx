@@ -1,15 +1,15 @@
 import React from 'react';
 import { Outlet, NavLink } from 'react-router-dom';
-import { Home, Archive, MessageCircle, Users, Menu } from 'lucide-react';
+import { Home, Archive, Users, Menu } from 'lucide-react';
 import { useNotifications } from '../lib/notifications';
 import { useTheme } from '../lib/theme';
+import UnifiedAssistant from './UnifiedAssistant';
 
 const NAV = [
-  { to: '/app/home',    label: 'Inicio',    Icon: Home },
-  { to: '/app/vault',   label: 'Vault',     Icon: Archive },
-  { to: '/app/copilot', label: 'Asistente', Icon: MessageCircle },
-  { to: '/app/family',  label: 'Familia',   Icon: Users },
-  { to: '/app/menu',    label: 'Menú',      Icon: Menu, showDot: true },
+  { to: '/app/home',   label: 'Inicio',  Icon: Home },
+  { to: '/app/vault',  label: 'Vault',   Icon: Archive },
+  { to: '/app/family', label: 'Familia', Icon: Users },
+  { to: '/app/menu',   label: 'Menú',    Icon: Menu, showDot: true },
 ];
 
 export default function Layout() {
@@ -24,6 +24,7 @@ export default function Layout() {
       <main style={{ flex: 1, overflowY: 'auto', paddingBottom: 'calc(64px + env(safe-area-inset-bottom, 0px))' }}>
         <Outlet />
       </main>
+      <UnifiedAssistant />
       <nav style={{ ...navStyle, backgroundColor: navBg, borderTop: `1px solid ${navBorder}` }}>
         <span style={{ position: 'absolute', top: 3, right: 6, fontSize: 8, color: isDark ? '#334155' : '#E2E8F0', fontFamily: 'monospace', userSelect: 'none', pointerEvents: 'none', zIndex: 1 }}>
           {__BUILD_VERSION__}
