@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, Plus, ChevronRight, X } from 'lucide-react';
+import { Users, Plus, ChevronRight, X, Pencil } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useSession } from '../../lib/session';
 import { useTheme, themeColors } from '../../lib/theme';
@@ -38,6 +38,7 @@ export default function Family() {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [editProfile, setEditProfile] = useState<Profile | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -113,6 +114,7 @@ export default function Family() {
                       profile={p}
                       isOwner={false}
                       onViewVault={() => viewVault(p.id)}
+                      onEdit={() => setEditProfile(p)}
                     />
                   ))}
                   <button
@@ -135,14 +137,23 @@ export default function Family() {
           onAdded={() => { setShowModal(false); loadProfiles(); }}
         />
       )}
+
+      {editProfile && (
+        <EditFamilyModal
+          profile={editProfile}
+          onClose={() => setEditProfile(null)}
+          onSaved={() => { setEditProfile(null); loadProfiles(); }}
+        />
+      )}
     </div>
   );
 }
 
-function ProfileCard({ profile, isOwner, onViewVault }: {
+function ProfileCard({ profile, isOwner, onViewVault, onEdit }: {
   profile: Profile;
   isOwner: boolean;
   onViewVault: () => void;
+  onEdit?: () => void;
 }) {
   const { isDark } = useTheme();
   const c = themeColors(isDark);
@@ -172,6 +183,17 @@ function ProfileCard({ profile, isOwner, onViewVault }: {
           {[profile.relationship, age ? `${age} años` : null].filter(Boolean).join(' · ') || 'Sin información adicional'}
         </p>
       </div>
+
+      {/* Edit (family only) */}
+      {onEdit && (
+        <button
+          onClick={onEdit}
+          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: `1px solid ${c.border}`, borderRadius: 10, width: 32, height: 32, cursor: 'pointer', flexShrink: 0, color: c.textSub }}
+          aria-label="Editar perfil"
+        >
+          <Pencil size={14} />
+        </button>
+      )}
 
       {/* CTA */}
       <button
@@ -337,6 +359,107 @@ function AddFamilyModal({ userId, onClose, onAdded }: {
           style={{ width: '100%', padding: '15px', borderRadius: 14, border: 'none', background: saving ? '#94A3B8' : '#4B6EF5', color: '#fff', fontSize: 16, fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, minHeight: 52 }}
         >
           {saving ? <><Spinner /> Guardando…</> : 'Guardar familiar'}
+        </button>
+      </div>
+    </>
+  );
+}
+
+function EditFamilyModal({ profile, onClose, onSaved }: {
+  profile: Profile;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const { isDark } = useTheme();
+  const c = themeColors(isDark);
+  const [name, setName]           = useState(profile.display_name);
+  const [relationship, setRel]    = useState(profile.relationship ?? '');
+  const [birthYear, setBirthYear] = useState(profile.birth_year ? String(profile.birth_year) : '');
+  const [saving, setSaving]       = useState(false);
+  const [error, setError]         = useState('');
+
+  async function save() {
+    if (!name.trim()) { setError('El nombre es obligatorio.'); return; }
+    if (!relationship) { setError('Seleccioná el parentesco.'); return; }
+    setSaving(true);
+    setError('');
+    const { error: err } = await supabase.from('profiles').update({
+      display_name: name.trim(),
+      relationship,
+      birth_year: birthYear ? parseInt(birthYear, 10) : null,
+    }).eq('id', profile.id);
+    setSaving(false);
+    if (err) { setError('No pudimos guardar los cambios. Intentá de nuevo.'); return; }
+    onSaved();
+  }
+
+  const inputStyle: React.CSSProperties = {
+    width: '100%', padding: '12px 14px', border: `1.5px solid ${c.border}`,
+    borderRadius: 12, fontSize: 15, color: c.text, background: c.cardAlt,
+    outline: 'none', boxSizing: 'border-box',
+  };
+
+  return (
+    <>
+      <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 50 }} />
+      <div style={{
+        position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 51,
+        background: c.card, borderRadius: '20px 20px 0 0',
+        padding: '20px 20px calc(20px + env(safe-area-inset-bottom, 0px))',
+        display: 'flex', flexDirection: 'column', gap: 16,
+        maxHeight: '80dvh', overflowY: 'auto',
+      }}>
+        <div>
+          <div style={{ width: 36, height: 4, borderRadius: 2, background: c.border, margin: '0 auto 16px' }} />
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <h2 style={{ fontSize: 18, fontWeight: 700, color: c.text, margin: 0 }}>Editar {profile.display_name}</h2>
+            <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
+              <X size={20} color={c.textMuted} />
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: c.textSub, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 6 }}>Nombre</label>
+          <input type="text" placeholder="Nombre completo" value={name} onChange={e => setName(e.target.value)} style={inputStyle} />
+        </div>
+
+        <div>
+          <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: c.textSub, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 6 }}>Parentesco</label>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 4 }}>
+            {RELATIONSHIPS.map(r => (
+              <button
+                key={r}
+                onClick={() => setRel(r)}
+                style={{
+                  padding: '8px 14px', borderRadius: 100, fontSize: 13, fontWeight: 500, cursor: 'pointer', border: 'none',
+                  background: relationship === r ? '#4B6EF5' : c.cardAlt,
+                  color: relationship === r ? '#fff' : c.textSub,
+                }}
+              >
+                {r}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: c.textSub, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 6 }}>
+            Año de nacimiento <span style={{ color: c.textMuted, fontWeight: 400 }}>(opcional)</span>
+          </label>
+          <input type="number" placeholder="Ej: 1985" value={birthYear} onChange={e => setBirthYear(e.target.value)} min={1900} max={new Date().getFullYear()} style={inputStyle} />
+        </div>
+
+        {error && (
+          <p style={{ fontSize: 13, color: '#EF4444', background: '#FEF2F2', padding: '10px 14px', borderRadius: 10, margin: 0 }}>{error}</p>
+        )}
+
+        <button
+          onClick={save}
+          disabled={saving}
+          style={{ width: '100%', padding: '15px', borderRadius: 14, border: 'none', background: saving ? '#94A3B8' : '#4B6EF5', color: '#fff', fontSize: 16, fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, minHeight: 52 }}
+        >
+          {saving ? <><Spinner /> Guardando…</> : 'Guardar cambios'}
         </button>
       </div>
     </>

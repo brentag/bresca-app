@@ -78,7 +78,7 @@ export default function Menu() {
       sub: profile?.display_name ?? '',
       badge: null,
       iconBg: t.iconBg,
-      action: () => {},
+      action: () => nav('/app/settings'),
     },
     {
       icon: <Shield size={20} color={t.textSub} />,
