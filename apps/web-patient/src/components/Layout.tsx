@@ -54,18 +54,30 @@ export default function Layout() {
 
           {/* Brand */}
           <div style={{ padding: '18px 16px 14px', borderBottom: `1px solid ${t.border}` }}>
-            <img
-              src={isDark ? '/logo-horizontal-negative.png' : '/logo-horizontal-bicolor.png'}
-              alt="Bresca"
-              style={{
-                width: '100%',
-                maxHeight: 34,
-                objectFit: 'contain',
-                objectPosition: 'left center',
-                display: 'block',
-                mixBlendMode: isDark ? 'normal' : 'multiply',
-              }}
-            />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <defs>
+                  <linearGradient id="sidebar-logo-grad" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" stopColor="#00C87A" />
+                    <stop offset="100%" stopColor="#4B6EF5" />
+                  </linearGradient>
+                </defs>
+                <rect x="9" y="0" width="6" height="24" rx="2" fill="url(#sidebar-logo-grad)" />
+                <rect x="0" y="9" width="24" height="6" rx="2" fill="url(#sidebar-logo-grad)" />
+              </svg>
+              <span style={{
+                fontFamily: "'Space Grotesk', sans-serif",
+                fontSize: 19, fontWeight: 800,
+                letterSpacing: '0.05em', lineHeight: 1,
+                userSelect: 'none',
+                background: 'linear-gradient(90deg, #00C87A 0%, #00B8D4 45%, #4B6EF5 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+              }}>
+                BRESCA
+              </span>
+            </div>
           </div>
 
           {/* Nav items */}
