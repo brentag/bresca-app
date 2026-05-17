@@ -53,11 +53,18 @@ export default function Layout() {
         }}>
 
           {/* Brand */}
-          <div style={{ padding: '22px 20px 16px', borderBottom: `1px solid ${t.border}` }}>
+          <div style={{ padding: '18px 16px 14px', borderBottom: `1px solid ${t.border}` }}>
             <img
               src={isDark ? '/logo-horizontal-negative.png' : '/logo-horizontal-bicolor.png'}
               alt="Bresca"
-              style={{ height: 28, objectFit: 'contain', maxWidth: '100%', display: 'block' }}
+              style={{
+                width: '100%',
+                maxHeight: 34,
+                objectFit: 'contain',
+                objectPosition: 'left center',
+                display: 'block',
+                mixBlendMode: isDark ? 'normal' : 'multiply',
+              }}
             />
           </div>
 
