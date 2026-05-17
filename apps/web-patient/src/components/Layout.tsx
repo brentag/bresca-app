@@ -53,22 +53,12 @@ export default function Layout() {
         }}>
 
           {/* Brand */}
-          <div style={{ padding: '24px 20px 16px', borderBottom: `1px solid ${t.border}` }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div style={{
-                width: 36, height: 36, borderRadius: 10,
-                background: 'linear-gradient(135deg, #00C87A, #4B6EF5)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}>
-                <span style={{ fontSize: 18 }}>⚕️</span>
-              </div>
-              <span style={{
-                fontSize: 18, fontWeight: 700, color: t.text,
-                fontFamily: "'Space Grotesk', sans-serif",
-              }}>
-                Bresca
-              </span>
-            </div>
+          <div style={{ padding: '22px 20px 16px', borderBottom: `1px solid ${t.border}` }}>
+            <img
+              src={isDark ? '/logo-horizontal-negative.png' : '/logo-horizontal-bicolor.png'}
+              alt="Bresca"
+              style={{ height: 28, objectFit: 'contain', maxWidth: '100%', display: 'block' }}
+            />
           </div>
 
           {/* Nav items */}

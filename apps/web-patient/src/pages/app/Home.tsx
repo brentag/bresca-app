@@ -126,10 +126,10 @@ export default function Home() {
   const firstName = displayName.split(' ')[0];
 
   const quickActions = [
-    { icon: Upload,        label: 'Subir estudio',       color: '#00C87A', bg: 'rgba(0,200,122,0.1)',  action: () => nav('/app/vault/upload') },
-    { icon: MessageCircle, label: 'Preguntar al\nAsistente', color: '#4B6EF5', bg: 'rgba(75,110,245,0.1)', action: () => nav('/app/copilot') },
-    { icon: QrCode,        label: 'Compartir\nvía QR',   color: '#00B8D4', bg: 'rgba(0,184,212,0.1)',  action: () => nav('/app/vault/qr') },
-    { icon: FolderOpen,    label: 'Mis estudios',        color: '#F59E0B', bg: 'rgba(245,158,11,0.1)', action: () => nav('/app/vault') },
+    { icon: Upload,        label: 'Subir\nestudio',   color: '#00C87A', bg: 'rgba(0,200,122,0.1)',  action: () => nav('/app/vault/upload') },
+    { icon: MessageCircle, label: 'Asistente',        color: '#4B6EF5', bg: 'rgba(75,110,245,0.1)', action: () => nav('/app/copilot') },
+    { icon: QrCode,        label: 'Compartir\nQR',   color: '#00B8D4', bg: 'rgba(0,184,212,0.1)',  action: () => nav('/app/vault/qr') },
+    { icon: FolderOpen,    label: 'Mis\nestudios',   color: '#F59E0B', bg: 'rgba(245,158,11,0.1)', action: () => nav('/app/vault') },
   ];
 
   return (
@@ -222,17 +222,22 @@ export default function Home() {
 
         {/* ─── Acciones rápidas ────────────────────────────────── */}
         <p style={sectionLabelStyle}>Acciones rápidas</p>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 16 }}>
           {quickActions.map(({ icon: Icon, label, color, bg, action }) => (
             <button
               key={label}
               onClick={action}
-              style={{ background: t.card, border: `1px solid ${t.border}`, borderRadius: 16, padding: '16px 14px', display: 'flex', flexDirection: 'column', gap: 10, cursor: 'pointer', textAlign: 'left', boxShadow: isDark ? 'none' : '0 1px 4px rgba(0,0,0,0.04)', minHeight: 90 }}
+              style={{
+                background: t.card, border: `1px solid ${t.border}`, borderRadius: 14,
+                padding: '12px 6px 10px', display: 'flex', flexDirection: 'column',
+                alignItems: 'center', gap: 8, cursor: 'pointer', textAlign: 'center',
+                boxShadow: isDark ? 'none' : '0 1px 4px rgba(0,0,0,0.04)',
+              }}
             >
-              <div style={{ width: 38, height: 38, borderRadius: 12, background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Icon size={19} color={color} strokeWidth={2} />
+              <div style={{ width: 36, height: 36, borderRadius: 10, background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Icon size={18} color={color} strokeWidth={2} />
               </div>
-              <span style={{ fontSize: 13, fontWeight: 600, color: t.text, lineHeight: 1.35, whiteSpace: 'pre-line' }}>{label}</span>
+              <span style={{ fontSize: 11, fontWeight: 600, color: t.text, lineHeight: 1.3, whiteSpace: 'pre-line' }}>{label}</span>
             </button>
           ))}
         </div>
