@@ -1,19 +1,19 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { MessageCircle, ChevronDown, Send } from 'lucide-react';
+import { MessageCircle, ChevronDown, Send, X } from 'lucide-react';
 import { useTheme } from '../lib/theme';
+import { useIsDesktop } from '../lib/responsive';
 import { sendSupportMessage } from '../lib/api';
 
 type Message = { role: 'user' | 'assistant'; content: string };
 
 const QUICK_ACTIONS = [
-  { label: '📤 Subir un estudio',    message: '¿Cómo subo un estudio?' },
-  { label: '🔗 Compartir con QR',    message: '¿Cómo comparto un estudio con mi médico?' },
-  { label: '👨‍👩‍👧 Gestionar familiar', message: '¿Cómo agrego un familiar?' },
-  { label: '❓ ¿Qué hace el OCR?',   message: '¿Qué hace el OCR automáticamente?' },
+  { label: '📤 Subir un estudio',     message: '¿Cómo subo un estudio?' },
+  { label: '🔗 Compartir con QR',     message: '¿Cómo comparto un estudio con mi médico?' },
+  { label: '👨‍👩‍👧 Gestionar familiar',  message: '¿Cómo agrego un familiar?' },
+  { label: '❓ ¿Qué hace el OCR?',    message: '¿Qué hace el OCR automáticamente?' },
 ];
 
-// Parse [label →](/path) deep-link markdown into segments
 function parseLinks(text: string) {
   const parts: { type: 'text' | 'link'; content: string; path?: string }[] = [];
   const re = /\[([^\]]+)\]\((\/[^)]*)\)/g;
@@ -39,10 +39,11 @@ export default function UnifiedAssistant() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const { isDark } = useTheme();
+  const isDesktop = useIsDesktop();
 
   useEffect(() => {
-    if (open) setTimeout(() => inputRef.current?.focus(), 320);
-  }, [open]);
+    if (open) setTimeout(() => inputRef.current?.focus(), isDesktop ? 50 : 320);
+  }, [open, isDesktop]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -55,7 +56,6 @@ export default function UnifiedAssistant() {
     setLoading(true);
     try {
       const history = messages.map(m => ({ role: m.role, content: m.content }));
-      // Inject current screen context into the first message (not shown in UI)
       const apiText = messages.length === 0
         ? `${text}\n\n[Pantalla actual: ${pathname}]`
         : text;
@@ -82,283 +82,266 @@ export default function UnifiedAssistant() {
   const chipBorder = isDark ? '#334155' : '#C7D2FE';
   const chipText  = isDark ? '#A5B4FC' : '#4B6EF5';
 
+  /* ── Shared chat content ── */
+  const chatContent = (
+    <>
+      {/* Header */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: '16px 20px 14px',
+        background: 'linear-gradient(135deg, #4B6EF5, #818CF8)',
+        flexShrink: 0,
+        borderRadius: isDesktop ? '16px 16px 0 0' : '20px 20px 0 0',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span style={{ fontSize: 22 }}>🛟</span>
+          <div>
+            <div style={{ color: '#fff', fontWeight: 700, fontSize: 16, fontFamily: "'Space Grotesk', sans-serif" }}>
+              Asistente Bresca
+            </div>
+            <div style={{ color: 'rgba(255,255,255,0.75)', fontSize: 12, fontFamily: "'Space Grotesk', sans-serif" }}>
+              {remaining !== null ? `${remaining} consultas restantes` : 'Aquí para ayudarte'}
+            </div>
+          </div>
+        </div>
+        <button
+          onClick={() => setOpen(false)}
+          aria-label="Cerrar"
+          style={{
+            background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: '50%',
+            width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'pointer',
+          }}
+        >
+          {isDesktop ? <X size={16} color="#fff" /> : <ChevronDown size={18} color="#fff" />}
+        </button>
+      </div>
+
+      {/* Messages */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: '16px 16px 8px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {messages.length === 0 && (
+          <>
+            <div style={{
+              background: bgMsg, borderRadius: '18px 18px 18px 4px',
+              padding: '12px 16px', color: textMain, fontSize: 14, lineHeight: 1.55,
+              alignSelf: 'flex-start', maxWidth: '85%',
+              fontFamily: "'Space Grotesk', sans-serif",
+            }}>
+              ¡Hola! Soy el asistente de Bresca. ¿En qué te puedo ayudar?
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              {QUICK_ACTIONS.map(qa => (
+                <button
+                  key={qa.label}
+                  onClick={() => send(qa.message)}
+                  style={{
+                    background: chipBg, border: `1px solid ${chipBorder}`,
+                    borderRadius: 20, padding: '8px 14px', fontSize: 13,
+                    color: chipText, cursor: 'pointer',
+                    fontFamily: "'Space Grotesk', sans-serif",
+                  }}
+                >
+                  {qa.label}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+
+        {messages.map((msg, i) => (
+          <div key={i} style={{ alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start', maxWidth: '85%' }}>
+            <div style={{
+              background: msg.role === 'user' ? 'linear-gradient(135deg, #4B6EF5, #818CF8)' : bgMsg,
+              color: msg.role === 'user' ? '#fff' : textMain,
+              borderRadius: msg.role === 'user' ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
+              padding: '10px 14px', fontSize: 14, lineHeight: 1.55,
+              fontFamily: "'Space Grotesk', sans-serif",
+            }}>
+              {msg.role === 'assistant'
+                ? parseLinks(msg.content).map((part, j) =>
+                    part.type === 'link' ? (
+                      <button
+                        key={j}
+                        onClick={() => handleLink(part.path!)}
+                        style={{
+                          display: 'inline-block',
+                          background: isDark ? '#4B6EF5' : '#EEF2FF',
+                          color: isDark ? '#fff' : '#4B6EF5',
+                          border: 'none', borderRadius: 12,
+                          padding: '3px 10px', fontSize: 13,
+                          cursor: 'pointer', margin: '2px 2px',
+                          fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600,
+                        }}
+                      >
+                        {part.content}
+                      </button>
+                    ) : (
+                      <span key={j}>{part.content}</span>
+                    )
+                  )
+                : msg.content}
+            </div>
+          </div>
+        ))}
+
+        {loading && (
+          <div style={{
+            alignSelf: 'flex-start', display: 'flex', gap: 5,
+            padding: '12px 16px', background: bgMsg, borderRadius: '18px 18px 18px 4px',
+          }}>
+            {[0, 1, 2].map(i => (
+              <span
+                key={i}
+                style={{
+                  width: 7, height: 7, borderRadius: '50%',
+                  background: isDark ? '#475569' : '#94A3B8',
+                  display: 'inline-block',
+                  animation: `ua-bounce 1s ${i * 0.15}s infinite`,
+                }}
+              />
+            ))}
+          </div>
+        )}
+        <div ref={bottomRef} />
+      </div>
+
+      {/* Input bar */}
+      <div style={{
+        padding: '10px 12px',
+        paddingBottom: isDesktop ? '10px' : 'calc(10px + env(safe-area-inset-bottom, 0px))',
+        borderTop: `1px solid ${border}`,
+        display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0,
+        background: bg,
+        borderRadius: isDesktop ? '0 0 16px 16px' : undefined,
+      }}>
+        <input
+          ref={inputRef}
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(input); } }}
+          placeholder="Escribí tu consulta..."
+          style={{
+            flex: 1, border: `1px solid ${border}`, borderRadius: 22,
+            padding: '10px 16px', fontSize: 14, outline: 'none',
+            background: isDark ? '#1E293B' : '#F8FAFC',
+            color: textMain, fontFamily: "'Space Grotesk', sans-serif",
+          }}
+        />
+        <button
+          onClick={() => send(input)}
+          disabled={!input.trim() || loading}
+          aria-label="Enviar"
+          style={{
+            width: 40, height: 40, borderRadius: '50%', border: 'none',
+            background: !input.trim() || loading
+              ? (isDark ? '#334155' : '#E2E8F0')
+              : 'linear-gradient(135deg, #4B6EF5, #818CF8)',
+            cursor: !input.trim() || loading ? 'default' : 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            flexShrink: 0, transition: 'background 150ms ease-out',
+          }}
+        >
+          <Send size={16} color={!input.trim() || loading ? (isDark ? '#475569' : '#94A3B8') : '#fff'} />
+        </button>
+      </div>
+    </>
+  );
+
   return (
     <>
-      {/* FAB */}
+      {/* FAB — visible when closed */}
       {!open && (
         <button
           onClick={() => setOpen(true)}
           aria-label="Abrir asistente"
           style={{
             position: 'fixed',
-            bottom: 'calc(64px + env(safe-area-inset-bottom, 0px) + 16px)',
-            right: 'max(16px, calc(50% - 240px + 16px))',
+            bottom: isDesktop ? 24 : ('calc(64px + env(safe-area-inset-bottom, 0px) + 16px)' as unknown as number),
+            right: isDesktop ? 24 : 16,
             zIndex: 200,
-            width: 56,
-            height: 56,
-            borderRadius: '50%',
-            border: 'none',
-            cursor: 'pointer',
+            width: 56, height: 56, borderRadius: '50%',
+            border: 'none', cursor: 'pointer',
             background: 'linear-gradient(135deg, #4B6EF5, #818CF8)',
             boxShadow: '0 4px 20px rgba(75,110,245,0.4)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
             transition: 'transform 150ms ease-out, box-shadow 150ms ease-out',
           }}
-          onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.08)'; e.currentTarget.style.boxShadow = '0 6px 28px rgba(75,110,245,0.55)'; }}
-          onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 4px 20px rgba(75,110,245,0.4)'; }}
+          onMouseEnter={e => {
+            e.currentTarget.style.transform = 'scale(1.08)';
+            e.currentTarget.style.boxShadow = '0 6px 28px rgba(75,110,245,0.55)';
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.transform = 'scale(1)';
+            e.currentTarget.style.boxShadow = '0 4px 20px rgba(75,110,245,0.4)';
+          }}
         >
           <MessageCircle size={24} color="#fff" strokeWidth={1.8} />
         </button>
       )}
 
-      {/* Backdrop */}
-      {open && (
+      {/* DESKTOP: floating panel (scale+opacity from bottom-right corner) */}
+      {isDesktop && (
         <div
-          onClick={() => setOpen(false)}
-          style={{ position: 'fixed', inset: 0, zIndex: 149, background: 'rgba(0,0,0,0.4)' }}
-        />
+          style={{
+            position: 'fixed',
+            right: 24,
+            bottom: 24,
+            width: 380,
+            height: 520,
+            borderRadius: 16,
+            background: bg,
+            boxShadow: '0 24px 64px rgba(0,0,0,0.2), 0 4px 16px rgba(0,0,0,0.08)',
+            border: `1px solid ${border}`,
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
+            zIndex: 200,
+            opacity: open ? 1 : 0,
+            transform: open ? 'scale(1) translateY(0)' : 'scale(0.88) translateY(16px)',
+            pointerEvents: open ? 'auto' : 'none',
+            transformOrigin: 'bottom right',
+            transition: 'opacity 220ms ease-out, transform 220ms ease-out',
+          }}
+        >
+          {chatContent}
+        </div>
       )}
 
-      {/* Bottom sheet */}
-      <div
-        style={{
-          position: 'fixed',
-          left: '50%',
-          bottom: 0,
-          width: '100%',
-          maxWidth: 480,
-          height: '85vh',
-          zIndex: 150,
-          background: bg,
-          borderTopLeftRadius: 20,
-          borderTopRightRadius: 20,
-          boxShadow: '0 -8px 40px rgba(0,0,0,0.18)',
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
-          transform: open ? 'translateX(-50%)' : 'translateX(-50%) translateY(100%)',
-          transition: 'transform 320ms cubic-bezier(0.32,0,0.67,0)',
-        }}
-      >
-        {/* Header */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '16px 20px 14px',
-          background: 'linear-gradient(135deg, #4B6EF5, #818CF8)',
-          flexShrink: 0,
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span style={{ fontSize: 22 }}>🛟</span>
-            <div>
-              <div style={{ color: '#fff', fontWeight: 700, fontSize: 16, fontFamily: "'Space Grotesk', sans-serif" }}>
-                Asistente Bresca
-              </div>
-              <div style={{ color: 'rgba(255,255,255,0.75)', fontSize: 12, fontFamily: "'Space Grotesk', sans-serif" }}>
-                {remaining !== null ? `${remaining} consultas restantes` : 'Aquí para ayudarte'}
-              </div>
-            </div>
-          </div>
-          <button
-            onClick={() => setOpen(false)}
-            aria-label="Cerrar"
-            style={{
-              background: 'rgba(255,255,255,0.2)',
-              border: 'none',
-              borderRadius: '50%',
-              width: 32, height: 32,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              cursor: 'pointer',
-            }}
-          >
-            <ChevronDown size={18} color="#fff" />
-          </button>
-        </div>
-
-        {/* Messages */}
-        <div style={{
-          flex: 1,
-          overflowY: 'auto',
-          padding: '16px 16px 8px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 12,
-        }}>
-          {/* Empty state: greeting + quick actions */}
-          {messages.length === 0 && (
-            <>
-              <div style={{
-                background: bgMsg,
-                borderRadius: '18px 18px 18px 4px',
-                padding: '12px 16px',
-                color: textMain,
-                fontSize: 14,
-                lineHeight: 1.55,
-                alignSelf: 'flex-start',
-                maxWidth: '85%',
-                fontFamily: "'Space Grotesk', sans-serif",
-              }}>
-                ¡Hola! Soy el asistente de Bresca. ¿En qué te puedo ayudar?
-              </div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                {QUICK_ACTIONS.map(qa => (
-                  <button
-                    key={qa.label}
-                    onClick={() => send(qa.message)}
-                    style={{
-                      background: chipBg,
-                      border: `1px solid ${chipBorder}`,
-                      borderRadius: 20,
-                      padding: '8px 14px',
-                      fontSize: 13,
-                      color: chipText,
-                      cursor: 'pointer',
-                      fontFamily: "'Space Grotesk', sans-serif",
-                    }}
-                  >
-                    {qa.label}
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
-
-          {/* Message bubbles */}
-          {messages.map((msg, i) => (
+      {/* MOBILE: backdrop + bottom sheet */}
+      {!isDesktop && (
+        <>
+          {open && (
             <div
-              key={i}
-              style={{
-                alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start',
-                maxWidth: '85%',
-              }}
-            >
-              <div style={{
-                background: msg.role === 'user'
-                  ? 'linear-gradient(135deg, #4B6EF5, #818CF8)'
-                  : bgMsg,
-                color: msg.role === 'user' ? '#fff' : textMain,
-                borderRadius: msg.role === 'user'
-                  ? '18px 18px 4px 18px'
-                  : '18px 18px 18px 4px',
-                padding: '10px 14px',
-                fontSize: 14,
-                lineHeight: 1.55,
-                fontFamily: "'Space Grotesk', sans-serif",
-              }}>
-                {msg.role === 'assistant'
-                  ? parseLinks(msg.content).map((part, j) =>
-                      part.type === 'link' ? (
-                        <button
-                          key={j}
-                          onClick={() => handleLink(part.path!)}
-                          style={{
-                            display: 'inline-block',
-                            background: isDark ? '#4B6EF5' : '#EEF2FF',
-                            color: isDark ? '#fff' : '#4B6EF5',
-                            border: 'none',
-                            borderRadius: 12,
-                            padding: '3px 10px',
-                            fontSize: 13,
-                            cursor: 'pointer',
-                            margin: '2px 2px',
-                            fontFamily: "'Space Grotesk', sans-serif",
-                            fontWeight: 600,
-                          }}
-                        >
-                          {part.content}
-                        </button>
-                      ) : (
-                        <span key={j}>{part.content}</span>
-                      )
-                    )
-                  : msg.content}
-              </div>
-            </div>
-          ))}
-
-          {/* Typing indicator */}
-          {loading && (
-            <div style={{
-              alignSelf: 'flex-start',
-              display: 'flex',
-              gap: 5,
-              padding: '12px 16px',
-              background: bgMsg,
-              borderRadius: '18px 18px 18px 4px',
-            }}>
-              {[0, 1, 2].map(i => (
-                <span
-                  key={i}
-                  style={{
-                    width: 7, height: 7,
-                    borderRadius: '50%',
-                    background: isDark ? '#475569' : '#94A3B8',
-                    display: 'inline-block',
-                    animation: `ua-bounce 1s ${i * 0.15}s infinite`,
-                  }}
-                />
-              ))}
-            </div>
+              onClick={() => setOpen(false)}
+              style={{ position: 'fixed', inset: 0, zIndex: 149, background: 'rgba(0,0,0,0.4)' }}
+            />
           )}
-
-          <div ref={bottomRef} />
-        </div>
-
-        {/* Input bar */}
-        <div style={{
-          padding: '10px 12px',
-          paddingBottom: 'calc(10px + env(safe-area-inset-bottom, 0px))',
-          borderTop: `1px solid ${border}`,
-          display: 'flex',
-          gap: 8,
-          alignItems: 'center',
-          flexShrink: 0,
-          background: bg,
-        }}>
-          <input
-            ref={inputRef}
-            value={input}
-            onChange={e => setInput(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(input); } }}
-            placeholder="Escribí tu consulta..."
+          <div
             style={{
-              flex: 1,
-              border: `1px solid ${border}`,
-              borderRadius: 22,
-              padding: '10px 16px',
-              fontSize: 14,
-              outline: 'none',
-              background: isDark ? '#1E293B' : '#F8FAFC',
-              color: textMain,
-              fontFamily: "'Space Grotesk', sans-serif",
-            }}
-          />
-          <button
-            onClick={() => send(input)}
-            disabled={!input.trim() || loading}
-            aria-label="Enviar"
-            style={{
-              width: 40, height: 40,
-              borderRadius: '50%',
-              border: 'none',
-              background: !input.trim() || loading
-                ? (isDark ? '#334155' : '#E2E8F0')
-                : 'linear-gradient(135deg, #4B6EF5, #818CF8)',
-              cursor: !input.trim() || loading ? 'default' : 'pointer',
+              position: 'fixed',
+              left: '50%',
+              bottom: 0,
+              width: '100%',
+              maxWidth: 480,
+              height: '85vh',
+              zIndex: 150,
+              background: bg,
+              borderTopLeftRadius: 20,
+              borderTopRightRadius: 20,
+              boxShadow: '0 -8px 40px rgba(0,0,0,0.18)',
               display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-              transition: 'background 150ms ease-out',
+              flexDirection: 'column',
+              overflow: 'hidden',
+              transform: open ? 'translateX(-50%)' : 'translateX(-50%) translateY(100%)',
+              transition: 'transform 320ms cubic-bezier(0.32,0,0.67,0)',
             }}
           >
-            <Send size={16} color={!input.trim() || loading ? (isDark ? '#475569' : '#94A3B8') : '#fff'} />
-          </button>
-        </div>
-      </div>
+            {chatContent}
+          </div>
+        </>
+      )}
 
       <style>{`
         @keyframes ua-bounce {

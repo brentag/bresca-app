@@ -23,13 +23,6 @@ body {
   position: relative;
 }
 
-/* En mobile mantenemos el contenido centrado y acotado */
-@media (max-width: 767px) {
-  #root {
-    max-width: 430px;
-    margin: 0 auto;
-  }
-}
 
 button { font-family: inherit; cursor: pointer; touch-action: manipulation; }
 input, textarea { font-family: inherit; }
