@@ -2,11 +2,13 @@ import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { Spinner } from '../../components/Spinner';
+import { useIsDesktop } from '../../lib/responsive';
 
 export default function Email() {
   const nav = useNavigate();
   const { state } = useLocation();
   const mode: 'login' | 'register' = (state as { mode?: 'login' | 'register' })?.mode ?? 'login';
+  const isDesktop = useIsDesktop();
 
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
@@ -18,10 +20,7 @@ export default function Email() {
     const { error: err } = await supabase.auth.signInWithOtp({
       email,
       options: {
-        // Magic link: el botón en /welcome es solo etiqueta UX. Si el email existe → login,
-        // si no existe → crea cuenta. Apretar "Acceder" sin tener cuenta no debe ser un dead-end.
         shouldCreateUser: true,
-        // Codificar mode en la URL para preservar el copy de Verify cuando se abre el link
         emailRedirectTo: `${window.location.origin}/auth/verify?mode=${mode}`,
       },
     });
@@ -30,14 +29,14 @@ export default function Email() {
     nav('/auth/verify', { state: { email, mode } });
   }
 
-  const heading  = mode === 'register' ? 'Creá tu cuenta' : 'Accedé a tu cuenta';
-  const subtext  = mode === 'register'
+  const heading = mode === 'register' ? 'Creá tu cuenta' : 'Accedé a tu cuenta';
+  const subtext = mode === 'register'
     ? 'Ingresá tu email para crear tu cuenta en Bresca.'
     : 'Ingresá tu email y te mandamos un código para entrar.';
 
-  return (
-    <div style={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column', padding: '60px 24px 32px', background: '#fff' }}>
-      <h1 style={{ fontSize: 26, fontWeight: 700, color: '#0F172A', marginBottom: 8 }}>{heading}</h1>
+  const formContent = (
+    <>
+      <h1 style={{ fontSize: 26, fontWeight: 700, color: isDesktop ? '#0F172A' : '#0F172A', marginBottom: 8 }}>{heading}</h1>
       <p style={{ fontSize: 15, color: '#64748B', marginBottom: 32 }}>{subtext}</p>
 
       <label style={labelStyle}>EMAIL</label>
@@ -67,6 +66,38 @@ export default function Email() {
       >
         ← Volver
       </button>
+    </>
+  );
+
+  if (isDesktop) {
+    return (
+      <div style={{ minHeight: '100dvh', display: 'flex', background: '#F8FAFC' }}>
+        {/* Panel izquierdo — marca */}
+        <div style={{
+          width: 420, flexShrink: 0,
+          background: 'linear-gradient(145deg, #00C87A 0%, #4B6EF5 100%)',
+          display: 'flex', flexDirection: 'column',
+          alignItems: 'center', justifyContent: 'center',
+          padding: 48,
+        }}>
+          <img src="/logo-horizontal-negative.png" alt="Bresca" style={{ width: 160, marginBottom: 28 }} />
+          <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: 16, lineHeight: 1.7, textAlign: 'center', maxWidth: 280 }}>
+            Guardá y organizá todos tus estudios médicos en un solo lugar, con total privacidad.
+          </p>
+        </div>
+        {/* Panel derecho — formulario */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '60px 80px' }}>
+          <div style={{ maxWidth: 400 }}>
+            {formContent}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column', padding: '60px 24px 32px', background: '#fff' }}>
+      {formContent}
     </div>
   );
 }

@@ -2,24 +2,20 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { Spinner, FullPageSpinner } from '../../components/Spinner';
+import { useIsDesktop } from '../../lib/responsive';
 
 async function redirectAfterLogin(
   nav: ReturnType<typeof useNavigate>,
   mode: 'login' | 'register',
   setError: (msg: string) => void,
 ) {
-  // Flush explícito de la sesión: garantiza que el cliente Supabase tiene los headers
-  // de auth listos antes de hacer la query (crítico cuando se llega por magic link)
   await supabase.auth.getSession();
-
   const { data } = await supabase.from('profiles').select('id').limit(1);
   const hasProfile = (data?.length ?? 0) > 0;
-
   if (hasProfile) {
     nav('/app/home', { replace: true });
     return;
   }
-
   nav('/onboarding/name', { replace: true });
   setError('');
 }
@@ -28,25 +24,22 @@ export default function Verify() {
   const nav = useNavigate();
   const { state } = useLocation();
   const email = (state as { email?: string; mode?: string })?.email ?? '';
-  // Leer mode desde query params (fallback cuando el magic link abre en browser fresco)
   const searchParams = new URLSearchParams(window.location.search);
   const modeFromUrl = searchParams.get('mode') as 'login' | 'register' | null;
   const mode: 'login' | 'register' = (state as { mode?: 'login' | 'register' })?.mode ?? modeFromUrl ?? 'login';
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  // true mientras esperamos que Supabase procese el hash del magic link
   const [checkingLink, setCheckingLink] = useState(() => window.location.hash.includes('access_token'));
+  const isDesktop = useIsDesktop();
 
   useEffect(() => {
     if (!checkingLink) return;
-    // Supabase detecta automáticamente el token en el hash — esperamos el evento
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN' && session) {
         redirectAfterLogin(nav, mode, setError);
       }
     });
-    // Fallback: si ya hay sesión activa al montar
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) { redirectAfterLogin(nav, mode, setError); }
       else { setCheckingLink(false); }
@@ -66,8 +59,8 @@ export default function Verify() {
 
   const heading = mode === 'register' ? 'Verificá tu email' : 'Revisá tu email';
 
-  return (
-    <div style={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column', padding: '60px 24px 32px', background: '#fff' }}>
+  const formContent = (
+    <>
       <h1 style={{ fontSize: 26, fontWeight: 700, color: '#0F172A', marginBottom: 8 }}>{heading}</h1>
       <p style={{ fontSize: 15, color: '#64748B', marginBottom: 32 }}>
         Enviamos un código a <strong>{email}</strong>.
@@ -100,6 +93,38 @@ export default function Verify() {
       >
         ← Cambiar email
       </button>
+    </>
+  );
+
+  if (isDesktop) {
+    return (
+      <div style={{ minHeight: '100dvh', display: 'flex', background: '#F8FAFC' }}>
+        {/* Panel izquierdo — marca */}
+        <div style={{
+          width: 420, flexShrink: 0,
+          background: 'linear-gradient(145deg, #00C87A 0%, #4B6EF5 100%)',
+          display: 'flex', flexDirection: 'column',
+          alignItems: 'center', justifyContent: 'center',
+          padding: 48,
+        }}>
+          <img src="/logo-horizontal-negative.png" alt="Bresca" style={{ width: 160, marginBottom: 28 }} />
+          <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: 16, lineHeight: 1.7, textAlign: 'center', maxWidth: 280 }}>
+            Guardá y organizá todos tus estudios médicos en un solo lugar, con total privacidad.
+          </p>
+        </div>
+        {/* Panel derecho — formulario */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '60px 80px' }}>
+          <div style={{ maxWidth: 400 }}>
+            {formContent}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column', padding: '60px 24px 32px', background: '#fff' }}>
+      {formContent}
     </div>
   );
 }

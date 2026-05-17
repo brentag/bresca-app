@@ -9,6 +9,7 @@ import { useTheme, themeColors } from '../../lib/theme';
 import { CATEGORIES, categoryColor, type CategoryFilter } from '../../lib/vault';
 import { StudyCard, StudyCardSkeleton, DraftStudyCard } from '../../components/StudyCard';
 import { CategoryChip } from '../../components/CategoryChip';
+import { useIsDesktop } from '../../lib/responsive';
 import type { Database } from '@bresca/shared';
 
 const MONTH_LABELS = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
@@ -34,6 +35,7 @@ export default function Vault() {
   const { isDark } = useTheme();
   const c = themeColors(isDark);
   const nav = useNavigate();
+  const isDesktop = useIsDesktop();
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const { profile, loading: profileLoading } = useProfile();
@@ -268,27 +270,38 @@ export default function Vault() {
       </div>
 
       {/* Lista unificada */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '0 20px 32px' }}>
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: isDesktop ? '1fr 1fr' : '1fr',
+        gap: 12,
+        padding: isDesktop ? '0 24px 32px' : '0 20px 32px',
+      }}>
         {profileLoading || loading
           ? Array.from({ length: 4 }).map((_, i) => <StudyCardSkeleton key={i} />)
           : filteredStudies.length === 0 && pendingDrafts.length === 0
-            ? <EmptyState
-                message={
-                  selectedMonth != null
-                    ? `Sin estudios en ${MONTH_LABELS[selectedMonth]} ${selectedYear}.`
-                    : familyProfileId ? `${familyName ?? 'Este perfil'} no tiene estudios todavía.` : undefined
-                }
-                onUpload={selectedMonth != null ? undefined : () => nav(familyProfileId ? `/app/vault/upload?p=${familyProfileId}` : '/app/vault/upload')}
-              />
-            : <>
+            ? (
+              <div style={{ gridColumn: '1 / -1' }}>
+                <EmptyState
+                  message={
+                    selectedMonth != null
+                      ? `Sin estudios en ${MONTH_LABELS[selectedMonth]} ${selectedYear}.`
+                      : familyProfileId ? `${familyName ?? 'Este perfil'} no tiene estudios todavía.` : undefined
+                  }
+                  onUpload={selectedMonth != null ? undefined : () => nav(familyProfileId ? `/app/vault/upload?p=${familyProfileId}` : '/app/vault/upload')}
+                />
+              </div>
+            )
+            : (
+              <>
                 {pendingDrafts.map(d => (
-                  <DraftStudyCard
-                    key={d.id}
-                    draft={d}
-                    onReview={() => reviewDraft(d.id)}
-                    onAutoConfirm={autoConfirmDraft}
-                    onDismiss={() => dismissDraft(d.id)}
-                  />
+                  <div key={d.id} style={{ gridColumn: '1 / -1' }}>
+                    <DraftStudyCard
+                      draft={d}
+                      onReview={() => reviewDraft(d.id)}
+                      onAutoConfirm={autoConfirmDraft}
+                      onDismiss={() => dismissDraft(d.id)}
+                    />
+                  </div>
                 ))}
                 {filteredStudies.map(s => (
                   <StudyCard
@@ -301,6 +314,7 @@ export default function Vault() {
                   />
                 ))}
               </>
+            )
         }
       </div>
       {dicomStudy && (

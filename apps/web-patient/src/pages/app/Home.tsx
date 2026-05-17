@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useIsDesktop } from '../../lib/responsive';
 import { generateQR } from '../../lib/api';
 import { Upload, MessageCircle, QrCode, FolderOpen, FlaskConical, Bell } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
@@ -78,6 +79,7 @@ export default function Home() {
   const [dataLoading, setDataLoading] = useState(true);
   const [showInvite, setShowInvite] = useState(true);
   const [showRetention, setShowRetention] = useState(false);
+  const isDesktop = useIsDesktop();
 
   const statCardStyle: React.CSSProperties = {
     background: t.card,
@@ -167,123 +169,240 @@ export default function Home() {
         </div>
       </div>
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: '14px 16px 12px' }}>
+      {isDesktop ? (
+        /* ── DESKTOP: 2 columnas ── */
+        <div style={{ display: 'flex', gap: 28, padding: '24px 28px', flex: 1, alignItems: 'flex-start', overflowY: 'auto' }}>
 
-        {/* ─── Stats strip ─────────────────────────────────────── */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 14 }}>
-          {(dataLoading || profileLoading)
-            ? Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} style={statCardStyle}>
-                  <div className="skeleton" style={{ height: 22, width: 36, borderRadius: 4, marginBottom: 4 }} />
-                  <div className="skeleton" style={{ height: 11, width: 50, borderRadius: 4 }} />
-                </div>
-              ))
-            : [
-                { value: stats?.total ?? 0, label: 'estudios', color: '#00C87A' },
-                { value: stats?.months ?? 0, label: 'meses historia', color: '#4B6EF5' },
-                { value: stats?.categories ?? 0, label: 'categorías', color: '#00B8D4' },
-              ].map(({ value, label, color }) => (
-                <div key={label} style={statCardStyle}>
-                  <span style={{ fontSize: 20, fontWeight: 700, color, lineHeight: 1 }}>{value}</span>
-                  <span style={{ fontSize: 10, color: t.textMuted, marginTop: 3, textAlign: 'center', lineHeight: 1.3 }}>{label}</span>
-                </div>
-              ))
-          }
-        </div>
+          {/* Columna izquierda: stats + acciones + CRO */}
+          <div style={{ width: 280, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-        {/* ─── Invitación a estudio (CRO) ──────────────────────── */}
-        {showInvite && (
-          <div
-            onClick={() => nav('/app/menu')}
-            style={{ marginBottom: 14, background: isDark ? 'linear-gradient(135deg,rgba(75,110,245,0.10),rgba(0,200,122,0.10))' : 'linear-gradient(135deg,#EEF2FF,#F0FDF4)', border: '1px solid rgba(0,200,122,0.25)', borderRadius: 16, padding: '14px', cursor: 'pointer', display: 'flex', gap: 12, alignItems: 'flex-start', position: 'relative' }}
-          >
-            <div style={{ width: 38, height: 38, borderRadius: 12, background: 'rgba(75,110,245,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <FlaskConical size={20} color="#4B6EF5" />
+            {/* Stats */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+              {(dataLoading || profileLoading)
+                ? Array.from({ length: 3 }).map((_, i) => (
+                    <div key={i} style={statCardStyle}>
+                      <div className="skeleton" style={{ height: 22, width: 36, borderRadius: 4, marginBottom: 4 }} />
+                      <div className="skeleton" style={{ height: 11, width: 50, borderRadius: 4 }} />
+                    </div>
+                  ))
+                : [
+                    { value: stats?.total ?? 0, label: 'estudios', color: '#00C87A' },
+                    { value: stats?.months ?? 0, label: 'meses', color: '#4B6EF5' },
+                    { value: stats?.categories ?? 0, label: 'tipos', color: '#00B8D4' },
+                  ].map(({ value, label, color }) => (
+                    <div key={label} style={statCardStyle}>
+                      <span style={{ fontSize: 20, fontWeight: 700, color, lineHeight: 1 }}>{value}</span>
+                      <span style={{ fontSize: 10, color: t.textMuted, marginTop: 3, textAlign: 'center', lineHeight: 1.3 }}>{label}</span>
+                    </div>
+                  ))
+              }
             </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'rgba(0,200,122,0.12)', borderRadius: 6, padding: '2px 8px', marginBottom: 5 }}>
-                <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#00C87A' }} />
-                <span style={{ fontSize: 10, fontWeight: 700, color: isDark ? '#86EFAC' : '#00A064', letterSpacing: '0.06em', textTransform: 'uppercase' }}>Investigación clínica</span>
-              </div>
-              <p style={{ fontSize: 13, fontWeight: 700, color: t.text, marginBottom: 3 }}>
-                Tu historial puede ayudar a la ciencia
-              </p>
-              <p style={{ fontSize: 11, color: t.textSub, lineHeight: 1.5 }}>
-                Las CROs (Contract Research Organizations) buscan pacientes para estudios clínicos. Podés participar de forma anónima y voluntaria.
-              </p>
-            </div>
-            <button
-              onClick={e => { e.stopPropagation(); setShowInvite(false); }}
-              style={{ position: 'absolute', top: 10, right: 12, background: 'none', border: 'none', color: t.textMuted, fontSize: 16, cursor: 'pointer', lineHeight: 1, padding: 4 }}
-              aria-label="Cerrar"
-            >×</button>
-          </div>
-        )}
 
-        {/* ─── Acciones rápidas ────────────────────────────────── */}
-        <p style={sectionLabelStyle}>Acciones rápidas</p>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 16 }}>
-          {quickActions.map(({ icon: Icon, label, color, bg, action }) => (
-            <button
-              key={label}
-              onClick={action}
-              style={{
-                background: t.card, border: `1px solid ${t.border}`, borderRadius: 14,
-                padding: '12px 6px 10px', display: 'flex', flexDirection: 'column',
-                alignItems: 'center', gap: 8, cursor: 'pointer', textAlign: 'center',
-                boxShadow: isDark ? 'none' : '0 1px 4px rgba(0,0,0,0.04)',
-              }}
-            >
-              <div style={{ width: 36, height: 36, borderRadius: 10, background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Icon size={18} color={color} strokeWidth={2} />
-              </div>
-              <span style={{ fontSize: 11, fontWeight: 600, color: t.text, lineHeight: 1.3, whiteSpace: 'pre-line' }}>{label}</span>
-            </button>
-          ))}
-        </div>
-
-        {/* ─── Estudios recientes ──────────────────────────────── */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-          <p style={sectionLabelStyle}>Estudios recientes</p>
-          <button
-            onClick={() => nav('/app/vault')}
-            style={{ background: 'none', border: 'none', fontSize: 12, color: '#00C87A', cursor: 'pointer', fontWeight: 600, padding: '4px 8px', minHeight: 44, display: 'flex', alignItems: 'center' }}
-          >
-            Ver todos
-          </button>
-        </div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {(dataLoading || profileLoading)
-            ? Array.from({ length: 3 }).map((_, i) => <StudyCardSkeleton key={i} />)
-            : recent.length === 0
-              ? <EmptyState onUpload={() => nav('/app/vault/upload')} t={t} />
-              : recent.map(s => (
-                  <StudyCard
-                    key={s.id}
-                    study={s}
-                    onClick={() => nav(`/app/vault/${s.id}`)}
-                    onQR={() => nav('/app/vault/qr', { state: { study_ids: [s.id] } })}
-                    onWhatsApp={async () => {
-                      try {
-                        const { token } = await generateQR([s.id], 24);
-                        const url = `${window.location.origin}/qr/${token}`;
-                        window.open(`https://wa.me/?text=${encodeURIComponent(`Te comparto mis estudios médicos 🏥\n${url}`)}`, '_blank', 'noopener');
-                      } catch { /* silencioso */ }
+            {/* Acciones rápidas — 2x2 en desktop left panel */}
+            <div>
+              <p style={{ ...sectionLabelStyle, marginBottom: 8 }}>Acciones rápidas</p>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                {quickActions.map(({ icon: Icon, label, color, bg, action }) => (
+                  <button
+                    key={label}
+                    onClick={action}
+                    style={{
+                      background: t.card, border: `1px solid ${t.border}`, borderRadius: 14,
+                      padding: '14px 10px 12px', display: 'flex', flexDirection: 'column',
+                      alignItems: 'center', gap: 8, cursor: 'pointer', textAlign: 'center',
+                      boxShadow: isDark ? 'none' : '0 1px 4px rgba(0,0,0,0.04)',
                     }}
-                  />
+                  >
+                    <div style={{ width: 36, height: 36, borderRadius: 10, background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Icon size={18} color={color} strokeWidth={2} />
+                    </div>
+                    <span style={{ fontSize: 11, fontWeight: 600, color: t.text, lineHeight: 1.3, whiteSpace: 'pre-line' }}>{label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* CRO invite */}
+            {showInvite && (
+              <div
+                onClick={() => nav('/app/menu')}
+                style={{ background: isDark ? 'linear-gradient(135deg,rgba(75,110,245,0.10),rgba(0,200,122,0.10))' : 'linear-gradient(135deg,#EEF2FF,#F0FDF4)', border: '1px solid rgba(0,200,122,0.25)', borderRadius: 16, padding: '14px', cursor: 'pointer', display: 'flex', gap: 12, alignItems: 'flex-start', position: 'relative' }}
+              >
+                <div style={{ width: 38, height: 38, borderRadius: 12, background: 'rgba(75,110,245,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <FlaskConical size={20} color="#4B6EF5" />
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'rgba(0,200,122,0.12)', borderRadius: 6, padding: '2px 8px', marginBottom: 5 }}>
+                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#00C87A' }} />
+                    <span style={{ fontSize: 10, fontWeight: 700, color: isDark ? '#86EFAC' : '#00A064', letterSpacing: '0.06em', textTransform: 'uppercase' }}>Investigación clínica</span>
+                  </div>
+                  <p style={{ fontSize: 12, fontWeight: 700, color: t.text, marginBottom: 3 }}>Tu historial puede ayudar a la ciencia</p>
+                  <p style={{ fontSize: 11, color: t.textSub, lineHeight: 1.5 }}>Participá de forma anónima y voluntaria.</p>
+                </div>
+                <button
+                  onClick={e => { e.stopPropagation(); setShowInvite(false); }}
+                  style={{ position: 'absolute', top: 10, right: 12, background: 'none', border: 'none', color: t.textMuted, fontSize: 16, cursor: 'pointer', lineHeight: 1, padding: 4 }}
+                  aria-label="Cerrar"
+                >×</button>
+              </div>
+            )}
+          </div>
+
+          {/* Columna derecha: estudios recientes */}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <p style={sectionLabelStyle}>Estudios recientes</p>
+              <button
+                onClick={() => nav('/app/vault')}
+                style={{ background: 'none', border: 'none', fontSize: 12, color: '#00C87A', cursor: 'pointer', fontWeight: 600, padding: '4px 8px', minHeight: 44, display: 'flex', alignItems: 'center' }}
+              >
+                Ver todos
+              </button>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {(dataLoading || profileLoading)
+                ? Array.from({ length: 3 }).map((_, i) => <StudyCardSkeleton key={i} />)
+                : recent.length === 0
+                  ? <EmptyState onUpload={() => nav('/app/vault/upload')} t={t} />
+                  : recent.map(s => (
+                      <StudyCard
+                        key={s.id}
+                        study={s}
+                        onClick={() => nav(`/app/vault/${s.id}`)}
+                        onQR={() => nav('/app/vault/qr', { state: { study_ids: [s.id] } })}
+                        onWhatsApp={async () => {
+                          try {
+                            const { token } = await generateQR([s.id], 24);
+                            const url = `${window.location.origin}/qr/${token}`;
+                            window.open(`https://wa.me/?text=${encodeURIComponent(`Te comparto mis estudios médicos 🏥\n${url}`)}`, '_blank', 'noopener');
+                          } catch { /* silencioso */ }
+                        }}
+                      />
+                    ))
+              }
+            </div>
+          </div>
+        </div>
+      ) : (
+        /* ── MOBILE: layout original ── */
+        <div style={{ flex: 1, overflowY: 'auto', padding: '14px 16px 12px' }}>
+
+          {/* ─── Stats strip ─────────────────────────────────────── */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 14 }}>
+            {(dataLoading || profileLoading)
+              ? Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} style={statCardStyle}>
+                    <div className="skeleton" style={{ height: 22, width: 36, borderRadius: 4, marginBottom: 4 }} />
+                    <div className="skeleton" style={{ height: 11, width: 50, borderRadius: 4 }} />
+                  </div>
                 ))
-          }
-        </div>
+              : [
+                  { value: stats?.total ?? 0, label: 'estudios', color: '#00C87A' },
+                  { value: stats?.months ?? 0, label: 'meses historia', color: '#4B6EF5' },
+                  { value: stats?.categories ?? 0, label: 'categorías', color: '#00B8D4' },
+                ].map(({ value, label, color }) => (
+                  <div key={label} style={statCardStyle}>
+                    <span style={{ fontSize: 20, fontWeight: 700, color, lineHeight: 1 }}>{value}</span>
+                    <span style={{ fontSize: 10, color: t.textMuted, marginTop: 3, textAlign: 'center', lineHeight: 1.3 }}>{label}</span>
+                  </div>
+                ))
+            }
+          </div>
 
-        {/* ─── Bresca footer tagline ───────────────────────────── */}
-        <div style={{ marginTop: 24, marginBottom: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-          <div style={{ height: 1, flex: 1, background: t.borderLight }} />
-          <span style={{ fontSize: 10, color: t.textMuted, fontWeight: 500, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Bresca · Tu salud, tu control</span>
-          <div style={{ height: 1, flex: 1, background: t.borderLight }} />
-        </div>
+          {/* ─── Invitación a estudio (CRO) ──────────────────────── */}
+          {showInvite && (
+            <div
+              onClick={() => nav('/app/menu')}
+              style={{ marginBottom: 14, background: isDark ? 'linear-gradient(135deg,rgba(75,110,245,0.10),rgba(0,200,122,0.10))' : 'linear-gradient(135deg,#EEF2FF,#F0FDF4)', border: '1px solid rgba(0,200,122,0.25)', borderRadius: 16, padding: '14px', cursor: 'pointer', display: 'flex', gap: 12, alignItems: 'flex-start', position: 'relative' }}
+            >
+              <div style={{ width: 38, height: 38, borderRadius: 12, background: 'rgba(75,110,245,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <FlaskConical size={20} color="#4B6EF5" />
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'rgba(0,200,122,0.12)', borderRadius: 6, padding: '2px 8px', marginBottom: 5 }}>
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#00C87A' }} />
+                  <span style={{ fontSize: 10, fontWeight: 700, color: isDark ? '#86EFAC' : '#00A064', letterSpacing: '0.06em', textTransform: 'uppercase' }}>Investigación clínica</span>
+                </div>
+                <p style={{ fontSize: 13, fontWeight: 700, color: t.text, marginBottom: 3 }}>
+                  Tu historial puede ayudar a la ciencia
+                </p>
+                <p style={{ fontSize: 11, color: t.textSub, lineHeight: 1.5 }}>
+                  Las CROs (Contract Research Organizations) buscan pacientes para estudios clínicos. Podés participar de forma anónima y voluntaria.
+                </p>
+              </div>
+              <button
+                onClick={e => { e.stopPropagation(); setShowInvite(false); }}
+                style={{ position: 'absolute', top: 10, right: 12, background: 'none', border: 'none', color: t.textMuted, fontSize: 16, cursor: 'pointer', lineHeight: 1, padding: 4 }}
+                aria-label="Cerrar"
+              >×</button>
+            </div>
+          )}
 
-      </div>
+          {/* ─── Acciones rápidas ────────────────────────────────── */}
+          <p style={sectionLabelStyle}>Acciones rápidas</p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 16 }}>
+            {quickActions.map(({ icon: Icon, label, color, bg, action }) => (
+              <button
+                key={label}
+                onClick={action}
+                style={{
+                  background: t.card, border: `1px solid ${t.border}`, borderRadius: 14,
+                  padding: '12px 6px 10px', display: 'flex', flexDirection: 'column',
+                  alignItems: 'center', gap: 8, cursor: 'pointer', textAlign: 'center',
+                  boxShadow: isDark ? 'none' : '0 1px 4px rgba(0,0,0,0.04)',
+                }}
+              >
+                <div style={{ width: 36, height: 36, borderRadius: 10, background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Icon size={18} color={color} strokeWidth={2} />
+                </div>
+                <span style={{ fontSize: 11, fontWeight: 600, color: t.text, lineHeight: 1.3, whiteSpace: 'pre-line' }}>{label}</span>
+              </button>
+            ))}
+          </div>
+
+          {/* ─── Estudios recientes ──────────────────────────────── */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+            <p style={sectionLabelStyle}>Estudios recientes</p>
+            <button
+              onClick={() => nav('/app/vault')}
+              style={{ background: 'none', border: 'none', fontSize: 12, color: '#00C87A', cursor: 'pointer', fontWeight: 600, padding: '4px 8px', minHeight: 44, display: 'flex', alignItems: 'center' }}
+            >
+              Ver todos
+            </button>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {(dataLoading || profileLoading)
+              ? Array.from({ length: 3 }).map((_, i) => <StudyCardSkeleton key={i} />)
+              : recent.length === 0
+                ? <EmptyState onUpload={() => nav('/app/vault/upload')} t={t} />
+                : recent.map(s => (
+                    <StudyCard
+                      key={s.id}
+                      study={s}
+                      onClick={() => nav(`/app/vault/${s.id}`)}
+                      onQR={() => nav('/app/vault/qr', { state: { study_ids: [s.id] } })}
+                      onWhatsApp={async () => {
+                        try {
+                          const { token } = await generateQR([s.id], 24);
+                          const url = `${window.location.origin}/qr/${token}`;
+                          window.open(`https://wa.me/?text=${encodeURIComponent(`Te comparto mis estudios médicos 🏥\n${url}`)}`, '_blank', 'noopener');
+                        } catch { /* silencioso */ }
+                      }}
+                    />
+                  ))
+            }
+          </div>
+
+          {/* ─── Bresca footer tagline ───────────────────────────── */}
+          <div style={{ marginTop: 24, marginBottom: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+            <div style={{ height: 1, flex: 1, background: t.borderLight }} />
+            <span style={{ fontSize: 10, color: t.textMuted, fontWeight: 500, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Bresca · Tu salud, tu control</span>
+            <div style={{ height: 1, flex: 1, background: t.borderLight }} />
+          </div>
+
+        </div>
+      )}
 
       {showRetention && user && (
         <RetentionModal
