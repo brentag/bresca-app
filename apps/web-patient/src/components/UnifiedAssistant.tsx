@@ -92,7 +92,7 @@ export default function UnifiedAssistant() {
           style={{
             position: 'fixed',
             bottom: 'calc(64px + env(safe-area-inset-bottom, 0px) + 16px)',
-            right: 16,
+            right: 'max(16px, calc(50% - 240px + 16px))',
             zIndex: 200,
             width: 56,
             height: 56,
@@ -125,8 +125,10 @@ export default function UnifiedAssistant() {
       <div
         style={{
           position: 'fixed',
-          left: 0, right: 0,
-          bottom: open ? 0 : '-88vh',
+          left: '50%',
+          bottom: 0,
+          width: '100%',
+          maxWidth: 480,
           height: '85vh',
           zIndex: 150,
           background: bg,
@@ -135,8 +137,9 @@ export default function UnifiedAssistant() {
           boxShadow: '0 -8px 40px rgba(0,0,0,0.18)',
           display: 'flex',
           flexDirection: 'column',
-          transition: 'bottom 320ms cubic-bezier(0.32,0,0.67,0)',
           overflow: 'hidden',
+          transform: open ? 'translateX(-50%)' : 'translateX(-50%) translateY(100%)',
+          transition: 'transform 320ms cubic-bezier(0.32,0,0.67,0)',
         }}
       >
         {/* Header */}

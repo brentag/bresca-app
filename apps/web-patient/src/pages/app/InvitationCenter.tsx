@@ -168,11 +168,11 @@ export default function InvitationCenter() {
       {/* Modal nueva invitación */}
       {showModal && (
         <div
-          style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.6)', zIndex: 200, display: 'flex', alignItems: 'flex-end' }}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.6)', zIndex: 200, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}
           onClick={() => !creating && setShowModal(false)}
         >
           <div
-            style={{ background: t.card, width: '100%', borderRadius: '20px 20px 0 0', padding: '24px 20px', paddingBottom: 'calc(28px + env(safe-area-inset-bottom, 0px))' }}
+            style={{ background: t.card, width: '100%', maxWidth: 480, borderRadius: '20px 20px 0 0', padding: '24px 20px', paddingBottom: 'calc(28px + env(safe-area-inset-bottom, 0px))' }}
             onClick={e => e.stopPropagation()}
           >
             <h2 style={{ fontSize: 18, fontWeight: 700, color: t.text, marginBottom: 6 }}>Nueva invitación</h2>

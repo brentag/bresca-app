@@ -291,11 +291,11 @@ export default function Settings() {
       {/* Delete family profile confirm */}
       {deleteTarget && (
         <div
-          style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.6)', zIndex: 200, display: 'flex', alignItems: 'flex-end' }}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.6)', zIndex: 200, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}
           onClick={() => setDeleteTarget(null)}
         >
           <div
-            style={{ background: t.card, width: '100%', borderRadius: '20px 20px 0 0', padding: '24px 20px', paddingBottom: 'calc(28px + env(safe-area-inset-bottom, 0px))' }}
+            style={{ background: t.card, width: '100%', maxWidth: 480, borderRadius: '20px 20px 0 0', padding: '24px 20px', paddingBottom: 'calc(28px + env(safe-area-inset-bottom, 0px))' }}
             onClick={e => e.stopPropagation()}
           >
             <h2 style={{ fontSize: 18, fontWeight: 700, color: t.text, marginBottom: 8 }}>¿Eliminar a {deleteTarget.display_name}?</h2>
@@ -322,11 +322,11 @@ export default function Settings() {
 
       {showDeleteConfirm && (
         <div
-          style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.6)', zIndex: 200, display: 'flex', alignItems: 'flex-end' }}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.6)', zIndex: 200, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}
           onClick={() => !deleting && setShowDeleteConfirm(false)}
         >
           <div
-            style={{ background: t.card, width: '100%', borderRadius: '20px 20px 0 0', padding: '24px 20px', paddingBottom: 'calc(28px + env(safe-area-inset-bottom, 0px))' }}
+            style={{ background: t.card, width: '100%', maxWidth: 480, borderRadius: '20px 20px 0 0', padding: '24px 20px', paddingBottom: 'calc(28px + env(safe-area-inset-bottom, 0px))' }}
             onClick={e => e.stopPropagation()}
           >
             <h2 style={{ fontSize: 18, fontWeight: 700, color: t.text, marginBottom: 8 }}>¿Eliminar tu cuenta?</h2>
@@ -399,10 +399,11 @@ function EditProfileSheet({
 
   return (
     <>
-      <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 200 }} />
+      <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 200, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }} />
       <div
         style={{
-          position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 201,
+          position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)',
+          width: '100%', maxWidth: 480, zIndex: 201,
           background: t.card, borderRadius: '20px 20px 0 0',
           padding: '20px 20px calc(20px + env(safe-area-inset-bottom, 0px))',
           display: 'flex', flexDirection: 'column', gap: 16,
