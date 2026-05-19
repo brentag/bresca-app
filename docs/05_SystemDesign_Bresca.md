@@ -179,13 +179,18 @@ GET /health → {
 
 ---
 
-## Links relacionados
+## Ver también
 
+- [[00_INDEX|Índice maestro del vault]]
 - [[01_RFC-001_Bresca|RFC-001 — Bresca Patient Data Network]]
 - [[02_ADR_Bresca|ADR — Architecture Decision Records]]
 - [[03_PRD_Bresca|PRD — Product Requirements Document]]
 - [[04_TechSpec_Bresca|Tech Spec — Technical Specification]]
 - [[06_Runbook_Bresca|Runbook — Operational Guide]]
+- [[14_Security_Audit_2026-05-07|Auditoría de Seguridad]]
+- [[20_ObservabilityPlan_Bresca|Plan de Observabilidad]]
+- [[21_DICOM_Viewer_Research|DICOM Viewer — research técnico]]
+- [[22_EmailToVault_Spec|Email-to-Vault — spec del módulo]]
 
 ---
 

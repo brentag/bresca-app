@@ -214,11 +214,15 @@ Estrategia de chunking en dos pasos:
 | ADR-004 | Sistema de consentimiento con auditoría append-only en DB | `ACCEPTED` | Abril 2026 |
 | ADR-005 | Claude API como motor del Copilot con chunking semántico | `ACCEPTED` | Abril 2026 |
 
-## Links relacionados
+## Ver también
 
+- [[00_INDEX|Índice maestro del vault]]
 - [[01_RFC-001_Bresca|RFC-001 — Bresca Patient Data Network]]
 - [[03_PRD_Bresca|PRD — Product Requirements Document]]
 - [[04_TechSpec_Bresca|Tech Spec — Technical Specification]]
 - [[05_SystemDesign_Bresca|System Design Document]]
+- [[14_Security_Audit_2026-05-07|Auditoría de Seguridad]]
+- [[20_ObservabilityPlan_Bresca|Plan de Observabilidad]]
+- [[22_EmailToVault_Spec|Email-to-Vault — spec del módulo]]
 
 *Para agregar un nuevo ADR: copiar el template, asignar el siguiente ID, y hacer PR contra `main`.*

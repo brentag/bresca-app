@@ -516,10 +516,15 @@ Las vistas SQL en PostgreSQL no soportan RLS nativamente. La seguridad de la vis
 
 ---
 
-## Referencias
+## Ver también
 
-- [[04_TechSpec_Bresca]] — schema de base de datos y flujos de datos
-- [[05_SystemDesign_Bresca]] — arquitectura y decisiones de seguridad
-- [[02_ADR_Bresca]] — ADR-001 a ADR-006
-- [[09_TestPlan_Bresca]] — plan de pruebas del MVP
+- [[00_INDEX|Índice maestro del vault]]
+- [[01_RFC-001_Bresca|RFC-001 — Problema y propuesta]]
+- [[02_ADR_Bresca|ADR-001 a ADR-006]]
+- [[04_TechSpec_Bresca|Tech Spec — schema y RLS]]
+- [[05_SystemDesign_Bresca|System Design — arquitectura y decisiones de seguridad]]
+- [[09_TestPlan_Bresca|Plan de pruebas del MVP]]
+- [[15_Incident_Response_Plan|Plan de Respuesta a Incidentes]]
+- [[20_ObservabilityPlan_Bresca|Plan de Observabilidad, Resiliencia & SRE]]
+- [[22_EmailToVault_Spec|Email-to-Vault — controles SSRF/DNS rebinding]]
 - `CLAUDE.md` — "Reglas absolutas — nunca violar" (security baseline del proyecto)

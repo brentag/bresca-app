@@ -106,12 +106,15 @@ Detalle de cada decisión en [[02_ADR_Bresca|ADR-001 a ADR-005]].
 
 ---
 
-## Links relacionados
+## Ver también
 
+- [[00_INDEX|Índice maestro del vault]]
 - [[02_ADR_Bresca|ADR — Architecture Decision Records]]
 - [[03_PRD_Bresca|PRD — Product Requirements Document]]
 - [[04_TechSpec_Bresca|Tech Spec — Technical Specification]]
 - [[05_SystemDesign_Bresca|System Design Document]]
+- [[14_Security_Audit_2026-05-07|Auditoría de Seguridad]]
+- [[22_EmailToVault_Spec|Email-to-Vault — spec del módulo]]
 
 ---
 
