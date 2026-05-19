@@ -58,7 +58,7 @@ export default function Menu() {
     },
     {
       icon: <LifeBuoy size={20} color="#4B6EF5" />,
-      label: 'Asistente XYZ',
+      label: 'Asistente Bresca',
       sub: 'Ayuda para usar BrescaApp',
       badge: null,
       iconBg: isDark ? 'rgba(75,110,245,0.18)' : '#EEF2FF',

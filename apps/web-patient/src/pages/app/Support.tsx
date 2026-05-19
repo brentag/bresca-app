@@ -9,6 +9,12 @@ type Message = { role: 'user' | 'assistant'; content: string };
 
 const GREETING = '¡Hola! Soy el Asistente de Soporte de Bresca. Puedo ayudarte con cómo usar la app: subir estudios, compartir por QR, gestionar familiares y más. ¿En qué te ayudo?';
 
+const QUICK_CHIPS = [
+  '¿Cómo subo un estudio?',
+  '¿Cómo comparto con mi médico?',
+  '¿Cómo agrego un familiar?',
+];
+
 export default function SupportChat() {
   useTrackNode('support');
   const { isDark } = useTheme();
@@ -24,11 +30,9 @@ export default function SupportChat() {
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
 
-  async function send() {
-    const msg = input.trim();
+  async function sendMessage(msg: string) {
     if (!msg || loading) return;
-    setInput(''); setError('');
-    // history excluye el saludo inicial del estado; solo enviamos la conversación real
+    setError('');
     const history = messages.slice(1);
     const next: Message[] = [...messages, { role: 'user', content: msg }];
     setMessages(next);
@@ -43,6 +47,12 @@ export default function SupportChat() {
     setLoading(false);
   }
 
+  function send() {
+    const msg = input.trim();
+    setInput('');
+    sendMessage(msg);
+  }
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: c.bg }}>
 
@@ -52,7 +62,7 @@ export default function SupportChat() {
             <span style={{ fontSize: 18 }}>🛟</span>
           </div>
           <div>
-            <h1 style={{ fontSize: 18, fontWeight: 700, color: c.text, margin: 0 }}>Asistente XYZ</h1>
+            <h1 style={{ fontSize: 18, fontWeight: 700, color: c.text, margin: 0 }}>Asistente Bresca</h1>
             <p style={{ fontSize: 12, color: c.textSub, margin: 0 }}>
               Soporte de BrescaApp{remaining !== null ? ` · ${remaining} consultas restantes` : ''}
             </p>
@@ -76,6 +86,20 @@ export default function SupportChat() {
             </div>
           </div>
         ))}
+
+        {messages.length === 1 && !loading && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 4 }}>
+            {QUICK_CHIPS.map(chip => (
+              <button
+                key={chip}
+                onClick={() => sendMessage(chip)}
+                style={{ background: isDark ? 'rgba(75,110,245,0.18)' : '#EEF2FF', border: `1px solid ${isDark ? 'rgba(75,110,245,0.35)' : '#C7D2FE'}`, borderRadius: 20, padding: '7px 14px', fontSize: 13, fontWeight: 500, color: isDark ? '#818CF8' : '#4B6EF5', cursor: 'pointer', whiteSpace: 'nowrap' }}
+              >
+                {chip}
+              </button>
+            ))}
+          </div>
+        )}
 
         {loading && (
           <div style={{ display: 'flex', justifyContent: 'flex-start' }}>

@@ -240,6 +240,7 @@ function AddFamilyModal({ userId, onClose, onAdded }: {
   const [name, setName]           = useState('');
   const [relationship, setRel]    = useState('');
   const [birthYear, setBirthYear] = useState('');
+  const [email, setEmail]         = useState('');
   const [saving, setSaving]       = useState(false);
   const [error, setError]         = useState('');
 
@@ -255,7 +256,9 @@ function AddFamilyModal({ userId, onClose, onAdded }: {
       relationship,
       birth_year:    birthYear ? parseInt(birthYear, 10) : null,
       conditions:    [],
-    });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      email:         email.trim() || null,
+    } as any);
 
     setSaving(false);
     if (err) { setError('No pudimos guardar el perfil. Intentá de nuevo.'); return; }
@@ -348,6 +351,20 @@ function AddFamilyModal({ userId, onClose, onAdded }: {
           />
         </div>
 
+        {/* Email */}
+        <div>
+          <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: c.textSub, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 6 }}>
+            Email <span style={{ color: c.textMuted, fontWeight: 400 }}>(opcional)</span>
+          </label>
+          <input
+            type="email"
+            placeholder="Ej: maria@gmail.com"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            style={inputStyle}
+          />
+        </div>
+
         {error && (
           <p style={{ fontSize: 13, color: '#EF4444', background: '#FEF2F2', padding: '10px 14px', borderRadius: 10 }}>
             {error}
@@ -376,6 +393,8 @@ function EditFamilyModal({ profile, onClose, onSaved }: {
   const [name, setName]           = useState(profile.display_name);
   const [relationship, setRel]    = useState(profile.relationship ?? '');
   const [birthYear, setBirthYear] = useState(profile.birth_year ? String(profile.birth_year) : '');
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [email, setEmail]         = useState((profile as any).email ?? '');
   const [saving, setSaving]       = useState(false);
   const [error, setError]         = useState('');
 
@@ -388,7 +407,9 @@ function EditFamilyModal({ profile, onClose, onSaved }: {
       display_name: name.trim(),
       relationship,
       birth_year: birthYear ? parseInt(birthYear, 10) : null,
-    }).eq('id', profile.id);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      email: email.trim() || null,
+    } as any).eq('id', profile.id);
     setSaving(false);
     if (err) { setError('No pudimos guardar los cambios. Intentá de nuevo.'); return; }
     onSaved();
@@ -450,6 +471,13 @@ function EditFamilyModal({ profile, onClose, onSaved }: {
             Año de nacimiento <span style={{ color: c.textMuted, fontWeight: 400 }}>(opcional)</span>
           </label>
           <input type="number" placeholder="Ej: 1985" value={birthYear} onChange={e => setBirthYear(e.target.value)} min={1900} max={new Date().getFullYear()} style={inputStyle} />
+        </div>
+
+        <div>
+          <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: c.textSub, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 6 }}>
+            Email <span style={{ color: c.textMuted, fontWeight: 400 }}>(opcional)</span>
+          </label>
+          <input type="email" placeholder="Ej: maria@gmail.com" value={email} onChange={e => setEmail(e.target.value)} style={inputStyle} />
         </div>
 
         {error && (

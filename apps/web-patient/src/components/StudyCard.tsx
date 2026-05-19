@@ -1,4 +1,4 @@
-import { QrCode, Share2, ScanEye, Mail } from 'lucide-react';
+import { QrCode, Share2, ScanEye, Mail, FileText } from 'lucide-react';
 import { categoryColor, formatStudyDate } from '../lib/vault';
 import { useTheme, themeColors } from '../lib/theme';
 import type { Database } from '@bresca/shared';
@@ -7,6 +7,20 @@ type Study = Database['public']['Tables']['studies']['Row'];
 
 function isDicomStudy(study: Study): boolean {
   return (study.storage_paths as string[] | null)?.some(p => p.toLowerCase().endsWith('.dcm')) ?? false;
+}
+
+// Vigencia de receta: retorna { label, color } o null si no hay fecha.
+function recetaVigencia(study: Study): { label: string; color: string } | null {
+  if (study.category !== 'receta') return null;
+  const fields = (study.extracted_fields as Record<string, string> | null) ?? {};
+  const raw = fields['Válida hasta'] ?? fields['Valida hasta'] ?? fields['valid_until'];
+  if (!raw) return null;
+  const expiry = new Date(raw + 'T00:00:00');
+  if (isNaN(expiry.getTime())) return null;
+  const days = Math.floor((expiry.getTime() - Date.now()) / 86_400_000);
+  if (days < 0)  return { label: 'Vencida', color: '#EF4444' };
+  if (days <= 7) return { label: `Vence en ${days}d`, color: '#F59E0B' };
+  return { label: 'Vigente', color: '#10B981' };
 }
 
 // OCR confidence → color del marco. Verde ≥95, amarillo 80-94.9, rojo <80.
@@ -23,12 +37,14 @@ export function StudyCard({
   onQR,
   onWhatsApp,
   onDicomView,
+  onExportPDF,
 }: {
   study: Study;
   onClick: () => void;
   onQR: () => void;
   onWhatsApp: () => void;
   onDicomView?: () => void;
+  onExportPDF?: () => void;
 }) {
   const { isDark } = useTheme();
   const t = themeColors(isDark);
@@ -39,6 +55,7 @@ export function StudyCard({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const studySource: string | null = (study as any).source ?? null;
   const frameColor = ocrFrameColor(ocrScore);
+  const vigencia = recetaVigencia(study);
   // Marco con color OCR cuando hay score; cae al border del tema si no hay.
   const borderColor = frameColor ?? t.border;
   const borderWidth = frameColor ? 2 : 1;
@@ -62,6 +79,11 @@ export function StudyCard({
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginBottom: 4 }}>
             <span style={{ fontSize: 15, fontWeight: 600, color: t.text, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{study.study_type}</span>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+              {vigencia && (
+                <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 6, background: isDark ? 'rgba(0,0,0,0.3)' : '#F8F8F8', color: vigencia.color, border: `1px solid ${vigencia.color}33` }}>
+                  {vigencia.label}
+                </span>
+              )}
               {studySource === 'email' && (
                 <span
                   title="Recibido por email"
@@ -98,6 +120,14 @@ export function StudyCard({
             </button>
           )}
           <span style={{ fontSize: 12, color: t.textMuted, fontWeight: 500, marginRight: 2 }}>Compartir:</span>
+          {onExportPDF && (
+            <button
+              onClick={onExportPDF}
+              style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '5px 12px', borderRadius: 8, border: `1px solid ${t.border}`, background: t.cardAlt, color: t.textSub, fontSize: 12, fontWeight: 600, cursor: 'pointer', minHeight: 32 }}
+            >
+              <FileText size={13} /> PDF
+            </button>
+          )}
           <button
             onClick={onQR}
             style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '5px 12px', borderRadius: 8, border: `1px solid ${t.border}`, background: t.cardAlt, color: t.textSub, fontSize: 12, fontWeight: 600, cursor: 'pointer', minHeight: 32 }}

@@ -5,10 +5,11 @@ import { useNotifications } from '../../lib/notifications';
 import { useTheme, themeColors } from '../../lib/theme';
 
 const TYPE_ICON: Record<string, string> = {
-  study_processed:    '🗂',
-  ocr_low_quality:    '⚠',
-  invitation_accepted:'👤',
-  system:             '📣',
+  study_processed:      '🗂',
+  ocr_low_quality:      '⚠',
+  invitation_accepted:  '👤',
+  system:               '📣',
+  prescription_expiring:'💊',
 };
 
 function timeAgo(iso: string): string {
@@ -74,7 +75,17 @@ export default function Notifications() {
                     {!n.read && <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#00C87A', flexShrink: 0 }} />}
                   </div>
                   {n.body && <p style={{ fontSize: 13, color: t.textSub, margin: 0, lineHeight: 1.45 }}>{n.body}</p>}
-                  <p style={{ fontSize: 11, color: t.textMuted, margin: '4px 0 0' }}>{timeAgo(n.created_at)}</p>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 6, marginTop: 4 }}>
+                    <p style={{ fontSize: 11, color: t.textMuted, margin: 0 }}>{timeAgo(n.created_at)}</p>
+                    {n.type === 'prescription_expiring' && !!n.metadata?.study_id && (
+                      <button
+                        onClick={() => nav(`/app/vault/${String(n.metadata!.study_id)}`)}
+                        style={{ background: 'none', border: 'none', padding: 0, fontSize: 12, fontWeight: 600, color: '#10B981', cursor: 'pointer' }}
+                      >
+                        Ver receta →
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}

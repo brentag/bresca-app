@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useMemo, useState, useRef } from 'react';
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { Plus } from 'lucide-react';
 import { generateQR } from '../../lib/api';
+import { exportStudyPDF } from '../../lib/export-pdf';
 import { supabase } from '../../lib/supabase';
 import { useProfile } from '../../lib/useProfile';
 import { useTrackNode } from '../../lib/useTrackNode';
@@ -311,6 +312,7 @@ export default function Vault() {
                     onQR={() => handleQR(s.id)}
                     onWhatsApp={() => handleWhatsApp(s.id)}
                     onDicomView={() => setDicomStudy(s)}
+                    onExportPDF={() => exportStudyPDF(s)}
                   />
                 ))}
               </>

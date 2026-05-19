@@ -4,7 +4,7 @@ import { useProfile } from './useProfile';
 
 export type Notification = {
   id: string;
-  type: 'study_processed' | 'ocr_low_quality' | 'invitation_accepted' | 'system';
+  type: 'study_processed' | 'ocr_low_quality' | 'invitation_accepted' | 'system' | 'prescription_expiring';
   title: string;
   body: string | null;
   read: boolean;

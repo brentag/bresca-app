@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { FullPageSpinner } from '../../components/Spinner';
 import { formatStudyDate } from '../../lib/vault';
+import { PublicDicomViewer } from '../../components/PublicDicomViewer';
 
 type SharedFile = { path: string; url: string; mime: string };
 
@@ -85,6 +86,9 @@ function StudyBlock({ study: s }: { study: StudySafe }) {
   const fields = Object.entries(s.extracted_fields ?? {});
   const dateLabel = formatStudyDate(s.study_date);
 
+  const dicomUrls = s.files.filter(f => f.mime === 'application/dicom').map(f => f.url);
+  const otherFiles = s.files.filter(f => f.mime !== 'application/dicom');
+
   return (
     <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #E2E8F0', overflow: 'hidden' }}>
       {/* Encabezado del estudio */}
@@ -95,11 +99,18 @@ function StudyBlock({ study: s }: { study: StudySafe }) {
         </p>
       </div>
 
-      {/* Archivos del estudio */}
-      {s.files.length > 0 && (
+      {/* Visor DICOM (series agrupada) */}
+      {dicomUrls.length > 0 && (
+        <div style={{ padding: 12 }}>
+          <PublicDicomViewer urls={dicomUrls} />
+        </div>
+      )}
+
+      {/* Archivos no-DICOM */}
+      {otherFiles.length > 0 && (
         <div style={{ background: '#0F172A', padding: 0 }}>
-          {s.files.map((f, idx) => (
-            <FileViewer key={f.path} file={f} index={idx} total={s.files.length} />
+          {otherFiles.map((f, idx) => (
+            <FileViewer key={f.path} file={f} index={idx} total={otherFiles.length} />
           ))}
         </div>
       )}
