@@ -21,7 +21,7 @@ router.post('/generate', requireAuth, async (req, res) => {
 
   const userId: string = res.locals.userId;
 
-  const { allowed } = checkRateLimit(`qr:${userId}`, QR_MAX_PER_HOUR);
+  const { allowed } = await checkRateLimit(`qr:${userId}`, QR_MAX_PER_HOUR);
   if (!allowed) {
     res.status(429).json({ error: 'Demasiados QR generados. Intentá de nuevo en una hora.' });
     return;
@@ -37,14 +37,19 @@ router.post('/generate', requireAuth, async (req, res) => {
 
   if (!profile) { res.status(404).json({ error: 'Profile not found' }); return; }
 
+  // API-M2: solo se pueden compartir estudios CONFIRMADOS. Antes esta
+  // verificación omitía confirmed=true, permitiendo compartir drafts/borradores
+  // con datos sin revisión humana. Riesgo: paciente comparte por QR un OCR
+  // basura sin haberlo confirmado.
   const { data: studies } = await supabase
     .from('studies')
     .select('id')
     .in('id', study_ids)
-    .eq('profile_id', profile.id);
+    .eq('profile_id', profile.id)
+    .eq('confirmed', true);
 
   if (!studies || studies.length !== study_ids.length) {
-    res.status(403).json({ error: 'One or more studies do not belong to you' });
+    res.status(403).json({ error: 'One or more studies do not belong to you or are not confirmed' });
     return;
   }
 

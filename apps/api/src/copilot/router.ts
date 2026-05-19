@@ -6,6 +6,7 @@ import { requireAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
 import { checkRateLimit } from './rate-limit';
 import { emitEvent } from '../lib/emit-event';
+import { sanitizeForPrompt } from '../lib/sanitize';
 import { COPILOT_SYSTEM_PROMPT_V1 } from './system-prompt';
 
 const router = Router();
@@ -23,17 +24,7 @@ const ChatSchema = z.object({
     .default([]),
 });
 
-// S-13 — strip prompt-injection patterns before inserting vault data into system prompt
-function sanitizeForPrompt(text: string): string {
-  return text
-    .replace(/\[\[.*?\]\]/gs, '')              // wiki-links / Obsidian-style refs
-    .replace(/ignor[ae]\b/gi, '***')           // ignore / ignora / ignorar
-    .replace(/instruc(ci[oó]n|tion)s?/gi, '***')  // instrucción / instructions
-    .replace(/olvid[ae]\b/gi, '***')           // olvidar / olvida / forget
-    .replace(/system\s*prompt/gi, '***')       // system prompt leakage
-    .replace(/jailbreak/gi, '***')
-    .slice(0, 4000);
-}
+// sanitizeForPrompt — movido a ../lib/sanitize para reutilizar en support router (API-M4).
 
 async function buildVaultContext(userId: string): Promise<string> {
   const { data: profile } = await supabase
@@ -78,7 +69,7 @@ router.post('/chat', requireAuth, async (req, res) => {
   if (!parse.success) { res.status(400).json({ error: 'Invalid body', issues: parse.error.issues }); return; }
 
   const userId: string = res.locals.userId;
-  const { allowed, remaining } = checkRateLimit(userId);
+  const { allowed, remaining } = await checkRateLimit(userId);
 
   if (!allowed) {
     res.status(429).json({ error: 'Rate limit reached', retryAfterMs: 3_600_000 });

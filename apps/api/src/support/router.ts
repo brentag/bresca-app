@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { requireAuth } from '../lib/auth';
 import { checkRateLimit } from '../copilot/rate-limit';
 import { emitEvent } from '../lib/emit-event';
+import { sanitizeForPrompt } from '../lib/sanitize';
 import { buildUserContext } from '../lib/user-context';
 import { SUPPORT_SYSTEM_PROMPT } from './system-prompt';
 
@@ -32,7 +33,7 @@ router.post('/chat', requireAuth, async (req, res) => {
   }
 
   const userId: string = res.locals.userId;
-  const { allowed, remaining } = checkRateLimit(`support:${userId}`, SUPPORT_MAX_RPH);
+  const { allowed, remaining } = await checkRateLimit(`support:${userId}`, SUPPORT_MAX_RPH);
 
   if (!allowed) {
     res.status(429).json({ error: 'Rate limit reached', retryAfterMs: 3_600_000 });
@@ -40,7 +41,11 @@ router.post('/chat', requireAuth, async (req, res) => {
   }
 
   const { message, history } = parse.data;
-  const userContext = await buildUserContext(userId);
+  // API-M4: userContext incluye display_name del profile, que el usuario
+  // controla. Sin sanitización, un atacante puede setear su display_name a
+  // "Ignore previous instructions..." y secuestrar el system prompt del agente
+  // de soporte.
+  const userContext = sanitizeForPrompt(await buildUserContext(userId));
   const systemPrompt = SUPPORT_SYSTEM_PROMPT.replace('{{USER_CONTEXT}}', userContext);
 
   let text: string;

@@ -38,7 +38,10 @@ app.use(helmet({
   referrerPolicy:{ policy: 'no-referrer' },
 }));
 app.use(cors({ origin: corsOrigins, credentials: true }));
-app.use(express.json({ limit: '10mb' }));
+// API-B1: 35mb cubre el caso Postmark Inbound — un email con 10 adjuntos de
+// ~25MB cada uno excede 10mb a nivel JSON (los attachments vienen en base64
+// dentro del payload). 35mb deja margen para overhead de JSON+base64 (33%).
+app.use(express.json({ limit: '35mb' }));
 
 // S-14 — access log de requests autenticados (sin body, sin tokens en path)
 function sanitizePath(p: string): string {

@@ -96,12 +96,25 @@ export type DraftRealtimeRow = {
   needs_review: boolean;
 };
 
+/**
+ * Opciones de callback de progreso para enqueueExtract.
+ * FE-A2: durante el cold-start del free tier de Render (servidor durmiendo),
+ * el primer request falla y reintenta tras 32s. El caller puede pasar
+ * `onColdStart` para mostrar UX tipo "Despertando el servidor..." durante
+ * la espera en lugar de un spinner mudo de 32s.
+ */
+export type EnqueueExtractOptions = {
+  /** Disparado al detectar cold-start, antes del sleep de retry. */
+  onColdStart?: (message: string) => void;
+};
+
 export async function enqueueExtract(
   storage_paths: string[],
   mime_type: string,
   // category opcional: si se omite, la Edge Function detecta del contenido (auto-detect).
   category?: string,
   profile_id?: string,
+  opts?: EnqueueExtractOptions,
 ): Promise<{ job_id: string }> {
   const body: Record<string, unknown> = { storage_paths, mime_type };
   if (category)   body.category   = category;
@@ -130,6 +143,8 @@ export async function enqueueExtract(
       err instanceof TypeError ||
       (err instanceof Error && /extract enqueue error (502|503|504)/.test(err.message));
     if (isColdStart) {
+      // FE-A2: notificar al UI que estamos esperando el wakeup del servidor.
+      opts?.onColdStart?.('Despertando el servidor... esto puede tardar 30 segundos.');
       await new Promise(r => setTimeout(r, 32_000));
       return attempt();
     }

@@ -54,6 +54,12 @@ export function parseAttachments(payload: PostmarkInboundPayload): ParsedAttachm
     } catch {
       continue;
     }
+    // S-A5: el campo ContentLength es declarado por el remitente y no se puede
+    // confiar — Postmark lo reenvía tal cual. Validamos el tamaño REAL del
+    // buffer post-decode contra MAX_SIZE_BYTES. Sin este check, un atacante
+    // podría declarar ContentLength=100 y mandar 100 MB en Content base64.
+    if (buffer.length > MAX_SIZE_BYTES) continue;
+    if (buffer.length === 0) continue;
     const detectedMime = detectMimeFromBuffer(buffer);
     if (!detectedMime) continue; // No reconocible por magic bytes — rechazar
     results.push({ name: att.Name, buffer, mimeType: detectedMime, sizeBytes: buffer.length });

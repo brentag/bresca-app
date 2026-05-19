@@ -168,6 +168,14 @@ export default function Vault() {
     if (!d) return;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const draft = d as any;
+    // S-M6: defensa en profundidad. La UI ya filtra el botón "Auto-confirmar"
+    // por ocr_score >= 95, pero si llega un caller programático con score menor,
+    // forzamos el flujo de review manual. NUNCA auto-confirmar datos con score bajo.
+    if (typeof draft.ocr_score !== 'number' || draft.ocr_score < 95) {
+      console.warn('[autoConfirmDraft] score < 95 — redirigiendo a review manual', { draftId, score: draft.ocr_score });
+      reviewDraft(draftId);
+      return;
+    }
     const { error } = await supabase.from('studies').insert({
       profile_id:       draft.profile_id,
       study_type:       draft.study_type ?? 'Estudio clínico',

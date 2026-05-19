@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { supabase } from '../lib/supabase';
@@ -109,6 +109,12 @@ export default function Admin() {
     }
   }, []);
 
+  // FE-A5: bursts de eventos (ej. 50 INSERTs en 200ms al cargar varios users
+  // simultáneamente) provocaban N refetch del endpoint /admin/live. Debounce
+  // 5s coalesce todo en una sola request — el panel sigue sintiéndose live
+  // pero no martilla el API en cold start.
+  const refetchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   useEffect(() => {
     if (!isAdmin) return;
     fetchLive();
@@ -116,11 +122,15 @@ export default function Admin() {
     const channel = supabase
       .channel('admin-events-live')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'events' }, () => {
-        fetchLive();
+        if (refetchTimerRef.current) clearTimeout(refetchTimerRef.current);
+        refetchTimerRef.current = setTimeout(() => { fetchLive(); }, 5000);
       })
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      supabase.removeChannel(channel);
+      if (refetchTimerRef.current) clearTimeout(refetchTimerRef.current);
+    };
   }, [isAdmin, fetchLive]);
 
   // Carga de KPIs al cambiar período

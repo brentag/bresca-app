@@ -96,7 +96,33 @@ function normalizeCategory(raw: unknown): Category {
   return map[trimmed] ?? 'otro';
 }
 
+// S-A1: validar Authorization: Bearer <EDGE_WEBHOOK_SECRET> antes de cualquier
+// procesamiento. El trigger pg_net que invoca esta función debe enviar el header.
+// En dev (sin secret seteado) loggeamos warning pero no bloqueamos para no
+// romper supabase start local.
+const EDGE_WEBHOOK_SECRET = Deno.env.get('EDGE_WEBHOOK_SECRET') ?? '';
+
+function timingSafeEqualStr(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
+
 Deno.serve(async (req) => {
+  if (EDGE_WEBHOOK_SECRET) {
+    const auth = req.headers.get('authorization') ?? '';
+    if (!auth.startsWith('Bearer ')) {
+      return new Response('unauthorized', { status: 401 });
+    }
+    const provided = auth.slice(7).trim();
+    if (!timingSafeEqualStr(provided, EDGE_WEBHOOK_SECRET)) {
+      return new Response('unauthorized', { status: 401 });
+    }
+  } else {
+    console.warn('[process-study-draft] EDGE_WEBHOOK_SECRET no seteado — saltando validación (dev mode)');
+  }
+
   const body = await req.json().catch(() => ({}));
   const draft_id: string | undefined = body.draft_id;
   if (!draft_id) return new Response('missing draft_id', { status: 400 });
@@ -150,6 +176,14 @@ async function processAndSave(draft: DraftRow): Promise<void> {
 
     if (!isDicom && result.ocr_score < 80 && isImage && mistral) {
       await runSecondPass(draft, result);
+    } else if (!isDicom && result.ocr_score < 80 && isImage && !mistral) {
+      // S-M5: imagen con score bajo y Mistral no configurado — sin second pass posible.
+      // Antes este branch caía al `else` final pero solo se evaluaba para !isImage,
+      // dejando las imágenes con score<80 SIN marcar needs_review (auto-confirmaban a 0).
+      await supabase
+        .from('study_drafts')
+        .update({ needs_review: true })
+        .eq('id', draft.id);
     } else if (!isDicom && result.ocr_score < 80 && !isImage) {
       // PDFs con score bajo: marcar directamente sin segundo pass
       await supabase

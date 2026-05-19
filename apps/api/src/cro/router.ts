@@ -69,11 +69,35 @@ router.get('/patients', requireCro, rejectPatientHash, async (req, res) => {
 });
 
 // GET /cro/distribution
+// API-A4: antes esta vista usaba TODOS los studies confirmed=true incluyendo
+// pacientes SIN research consent — violación directa del consent_audit.
+// Ahora filtramos por profile_id ∈ usuarios con research-consent activo,
+// y descartamos buckets con count < 5 para preservar k-anonimato.
 router.get('/distribution', requireCro, rejectPatientHash, async (_req, res) => {
+  const MINIMUM_COHORT_SIZE = 5;
+
+  // 1. Profile ids con research consent activo
+  const { data: consented } = await supabase
+    .from('consent_audit')
+    .select('profile_id')
+    .eq('layer', 'research')
+    .eq('granted', true)
+    .is('revoked_at', null);
+
+  const profileIds = Array.from(new Set((consented ?? []).map((r) => r.profile_id)));
+
+  // Si menos de MINIMUM_COHORT_SIZE pacientes consintieron globalmente,
+  // no devolvemos distribución (preserva k-anon a nivel agregado).
+  if (profileIds.length < MINIMUM_COHORT_SIZE) {
+    res.json({ by_category: [], by_type: [] });
+    return;
+  }
+
   const { data } = await supabase
     .from('studies')
     .select('category, study_type')
-    .eq('confirmed', true);
+    .eq('confirmed', true)
+    .in('profile_id', profileIds);
 
   const byCategory: Record<string, number> = {};
   const byType: Record<string, number> = {};
@@ -83,12 +107,17 @@ router.get('/distribution', requireCro, rejectPatientHash, async (_req, res) => 
     byType[s.study_type] = (byType[s.study_type] ?? 0) + 1;
   }
 
+  // Descartar buckets con count < MINIMUM_COHORT_SIZE — k-anonimato.
+  const filterKAnon = (entries: [string, number][]): { name: string; value: number }[] =>
+    entries
+      .filter(([, v]) => v >= MINIMUM_COHORT_SIZE)
+      .map(([name, value]) => ({ name, value }));
+
   res.json({
-    by_category: Object.entries(byCategory).map(([name, value]) => ({ name, value })),
-    by_type: Object.entries(byType)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 10)
-      .map(([name, value]) => ({ name, value })),
+    by_category: filterKAnon(Object.entries(byCategory)),
+    by_type: filterKAnon(
+      Object.entries(byType).sort((a, b) => b[1] - a[1]).slice(0, 10),
+    ),
   });
 });
 

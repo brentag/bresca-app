@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { Component, useEffect, type ErrorInfo, type ReactNode } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useSearchParams } from 'react-router-dom';
 import { SessionProvider, useSession } from './lib/session';
 import { ThemeProvider } from './lib/theme';
@@ -31,6 +31,46 @@ import InvitationCenter from './pages/app/InvitationCenter';
 import SupportChat from './pages/app/Support';
 import Privacidad from './pages/Privacidad';
 
+// FE-B3: ErrorBoundary captura cualquier excepción no manejada en el árbol de
+// componentes y muestra fallback. Sin esto, un crash en Vault/StudyDetail/etc.
+// dejaba la app en pantalla blanca total sin posibilidad de recuperación.
+class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
+  state = { hasError: false };
+  static getDerivedStateFromError(): { hasError: boolean } { return { hasError: true }; }
+  componentDidCatch(error: Error, info: ErrorInfo): void {
+    console.error('[ErrorBoundary]', error, info.componentStack);
+  }
+  render(): ReactNode {
+    if (this.state.hasError) {
+      return (
+        <div style={{
+          minHeight: '100dvh',
+          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+          padding: 32, textAlign: 'center', background: '#FAFAFA',
+        }}>
+          <p style={{ fontSize: 18, fontWeight: 600, color: '#0F172A', marginBottom: 8 }}>
+            Algo salió mal
+          </p>
+          <p style={{ fontSize: 14, color: '#64748B', marginBottom: 24, maxWidth: 360 }}>
+            La app encontró un error inesperado. Probá recargar la página.
+          </p>
+          <button
+            onClick={() => window.location.reload()}
+            style={{
+              padding: '10px 20px', borderRadius: 8, background: '#00C87A',
+              color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 600,
+              minHeight: 44,
+            }}
+          >
+            Recargar
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 function RootRedirect() {
   const { session, loading } = useSession();
   const [searchParams] = useSearchParams();
@@ -46,6 +86,7 @@ function RootRedirect() {
 
 export default function App() {
   return (
+    <ErrorBoundary>
     <ThemeProvider>
     <SessionProvider>
       <BrowserRouter>
@@ -81,5 +122,6 @@ export default function App() {
       </BrowserRouter>
     </SessionProvider>
     </ThemeProvider>
+    </ErrorBoundary>
   );
 }

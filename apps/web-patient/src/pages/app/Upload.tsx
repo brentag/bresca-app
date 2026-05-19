@@ -303,7 +303,15 @@ export default function Upload() {
       }
 
       // Path OCR: Edge Function procesa PDF e imágenes.
-      const { job_id } = await enqueueExtract(storagePaths, primaryMime, undefined, familyProfileId);
+      // FE-A2: si el server está dormido (Render free tier), enqueueExtract
+      // reintenta tras 32s. Mostramos un mensaje claro al usuario en ese caso.
+      const { job_id } = await enqueueExtract(
+        storagePaths,
+        primaryMime,
+        undefined,
+        familyProfileId,
+        { onColdStart: (msg) => setUploadingFileName(msg) },
+      );
       nav(vaultPath, { replace: true, state: { pendingDraftId: job_id } });
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : String(err);
