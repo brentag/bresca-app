@@ -1,4 +1,4 @@
-import { QrCode, Share2, ScanEye } from 'lucide-react';
+import { QrCode, Share2, ScanEye, Mail } from 'lucide-react';
 import { categoryColor, formatStudyDate } from '../lib/vault';
 import { useTheme, themeColors } from '../lib/theme';
 import type { Database } from '@bresca/shared';
@@ -36,6 +36,8 @@ export function StudyCard({
   const isDicom = isDicomStudy(study);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const ocrScore: number | null | undefined = (study as any).ocr_score;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const studySource: string | null = (study as any).source ?? null;
   const frameColor = ocrFrameColor(ocrScore);
   // Marco con color OCR cuando hay score; cae al border del tema si no hay.
   const borderColor = frameColor ?? t.border;
@@ -60,6 +62,15 @@ export function StudyCard({
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginBottom: 4 }}>
             <span style={{ fontSize: 15, fontWeight: 600, color: t.text, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{study.study_type}</span>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+              {studySource === 'email' && (
+                <span
+                  title="Recibido por email"
+                  style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 10, fontWeight: 600, padding: '2px 6px', borderRadius: 6, background: isDark ? 'rgba(0,200,122,0.15)' : '#ECFDF5', color: '#00A663' }}
+                >
+                  <Mail size={10} />
+                  Email
+                </span>
+              )}
               {frameColor && (
                 <span style={{ fontSize: 10, fontWeight: 700, color: frameColor, letterSpacing: '0.04em' }} title={`Calidad OCR: ${Math.round(ocrScore!)}%`}>
                   {Math.round(ocrScore!)}%

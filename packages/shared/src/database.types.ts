@@ -70,6 +70,75 @@ export type Database = {
           },
         ]
       }
+      inbound_email_log: {
+        Row: {
+          attachment_bytes: number | null
+          attachment_count: number | null
+          created_at: string
+          download_duration_ms: number | null
+          draft_ids: string[] | null
+          error_detail: string | null
+          from_email: string
+          id: string
+          links_downloaded: number | null
+          links_found: number | null
+          parse_duration_ms: number | null
+          received_at: string
+          rejection_reason: string | null
+          source_ip: unknown | null
+          status: string
+          subject: string | null
+          to_address: string
+          total_duration_ms: number | null
+          upload_duration_ms: number | null
+          user_id: string | null
+        }
+        Insert: {
+          attachment_bytes?: number | null
+          attachment_count?: number | null
+          created_at?: string
+          download_duration_ms?: number | null
+          draft_ids?: string[] | null
+          error_detail?: string | null
+          from_email: string
+          id?: string
+          links_downloaded?: number | null
+          links_found?: number | null
+          parse_duration_ms?: number | null
+          received_at?: string
+          rejection_reason?: string | null
+          source_ip?: unknown | null
+          status?: string
+          subject?: string | null
+          to_address: string
+          total_duration_ms?: number | null
+          upload_duration_ms?: number | null
+          user_id?: string | null
+        }
+        Update: {
+          attachment_bytes?: number | null
+          attachment_count?: number | null
+          created_at?: string
+          download_duration_ms?: number | null
+          draft_ids?: string[] | null
+          error_detail?: string | null
+          from_email?: string
+          id?: string
+          links_downloaded?: number | null
+          links_found?: number | null
+          parse_duration_ms?: number | null
+          received_at?: string
+          rejection_reason?: string | null
+          source_ip?: unknown | null
+          status?: string
+          subject?: string | null
+          to_address?: string
+          total_duration_ms?: number | null
+          upload_duration_ms?: number | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       events: {
         Row: {
           created_at: string
@@ -295,6 +364,7 @@ export type Database = {
           lab_name: string | null
           ocr_score: number | null
           profile_id: string
+          source: string | null
           storage_path: string | null
           storage_paths: string[]
           study_date: string
@@ -309,6 +379,7 @@ export type Database = {
           lab_name?: string | null
           ocr_score?: number | null
           profile_id: string
+          source?: string | null
           storage_path?: string | null
           storage_paths?: string[]
           study_date: string
@@ -323,6 +394,7 @@ export type Database = {
           lab_name?: string | null
           ocr_score?: number | null
           profile_id?: string
+          source?: string | null
           storage_path?: string | null
           storage_paths?: string[]
           study_date?: string
@@ -354,6 +426,7 @@ export type Database = {
           ocr_score: number | null
           profile_id: string
           raw_text: string | null
+          source: string | null
           started_at: string | null
           status: string
           storage_path: string | null
@@ -376,6 +449,7 @@ export type Database = {
           ocr_score?: number | null
           profile_id: string
           raw_text?: string | null
+          source?: string | null
           started_at?: string | null
           status?: string
           storage_path?: string | null
@@ -398,6 +472,7 @@ export type Database = {
           ocr_score?: number | null
           profile_id?: string
           raw_text?: string | null
+          source?: string | null
           started_at?: string | null
           status?: string
           storage_path?: string | null
@@ -499,6 +574,7 @@ export type Database = {
     Functions: {
       cleanup_expired_qr_tokens: { Args: never; Returns: undefined }
       get_kpis: { Args: { period: string }; Returns: Json }
+      get_user_id_by_email: { Args: { p_email: string }; Returns: string | null }
       record_consent: {
         Args: {
           p_action: Database["public"]["Enums"]["consent_action"]

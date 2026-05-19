@@ -12,7 +12,10 @@ type EventType =
   | 'cro_view'
   | 'support_query'
   | 'study_moved'
-  | 'study_updated';
+  | 'study_updated'
+  | 'email_inbound_start'
+  | 'email_inbound_complete'
+  | 'email_inbound_failed';
 
 type Node = 'home' | 'vault' | 'upload' | 'copilot' | 'qr' | 'family' | 'cro' | 'api' | 'onboarding' | 'support';
 

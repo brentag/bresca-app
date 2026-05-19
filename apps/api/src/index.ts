@@ -10,6 +10,7 @@ import accountRouter from './account/router';
 import adminRouter from './admin/router';
 import studiesRouter from './studies/router';
 import supportRouter from './support/router';
+import inboundEmailRouter from './inbound-email/router';
 
 const app = express();
 const PORT = process.env.PORT ?? 3000;
@@ -72,6 +73,7 @@ app.use('/account', accountRouter);
 app.use('/admin', adminRouter);
 app.use('/studies', studiesRouter);
 app.use('/support', supportRouter);
+app.use('/inbound-email', inboundEmailRouter);
 
 app.listen(PORT, () => {
   console.log(`API running on port ${PORT}`);

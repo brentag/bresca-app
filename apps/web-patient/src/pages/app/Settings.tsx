@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, ExternalLink, Trash2, Moon, Sun, Pencil, Plus, X, User } from 'lucide-react';
+import { ArrowLeft, ExternalLink, Trash2, Moon, Sun, Pencil, Plus, X, User, Mail, Check } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { deleteAccount } from '../../lib/api';
 import { useTheme, themeColors } from '../../lib/theme';
@@ -39,6 +39,16 @@ export default function Settings() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState('');
+  const [emailCopied, setEmailCopied] = useState(false);
+
+  const INBOUND_EMAIL = 'estudios@bresca.io';
+
+  function copyInboundEmail() {
+    navigator.clipboard.writeText(INBOUND_EMAIL).then(() => {
+      setEmailCopied(true);
+      setTimeout(() => setEmailCopied(false), 1800);
+    }).catch(() => {});
+  }
 
   useEffect(() => {
     if (!user) return;
@@ -247,6 +257,53 @@ export default function Settings() {
             </div>
             <ExternalLink size={16} color={t.textMuted} />
           </a>
+        </div>
+
+        {/* Recibir estudios por email */}
+        <p style={{ fontSize: 11, fontWeight: 600, color: t.textMuted, letterSpacing: '0.08em', textTransform: 'uppercase', margin: 0, marginTop: 8 }}>
+          Recibir estudios
+        </p>
+        <div style={{ background: t.card, borderRadius: 16, border: `1px solid ${t.border}`, overflow: 'hidden' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '16px' }}>
+            <div style={{ width: 40, height: 40, borderRadius: 12, background: isDark ? 'rgba(0,200,122,0.15)' : '#ECFDF5', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <Mail size={18} color="#00C87A" />
+            </div>
+            <div style={{ flex: 1 }}>
+              <p style={{ fontSize: 15, fontWeight: 600, color: t.text, margin: 0 }}>Envío por email</p>
+              <p style={{ fontSize: 12, color: t.textSub, margin: '2px 0 0' }}>
+                Mandá estudios a esta dirección y los recibimos automáticamente
+              </p>
+            </div>
+          </div>
+          <div style={{ padding: '0 16px 16px' }}>
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 10,
+              background: isDark ? '#0F172A' : '#F8FAFC',
+              border: `1px solid ${t.border}`,
+              borderRadius: 12, padding: '10px 14px',
+            }}>
+              <span style={{ flex: 1, fontSize: 14, fontWeight: 600, color: t.text, fontFamily: 'monospace', letterSpacing: '0.01em' }}>
+                {INBOUND_EMAIL}
+              </span>
+              <button
+                onClick={copyInboundEmail}
+                style={{
+                  background: emailCopied ? '#00C87A' : (isDark ? '#1E293B' : '#E2E8F0'),
+                  border: 'none', borderRadius: 8, padding: '6px 10px',
+                  cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5,
+                  color: emailCopied ? '#fff' : t.textSub,
+                  fontSize: 12, fontWeight: 600, flexShrink: 0,
+                  transition: 'background 200ms ease-out, color 200ms ease-out',
+                }}
+              >
+                {emailCopied ? <><Check size={13} /> Copiado</> : 'Copiar'}
+              </button>
+            </div>
+            <p style={{ fontSize: 12, color: t.textMuted, margin: '10px 0 0', lineHeight: 1.6 }}>
+              Solo emails enviados desde <strong style={{ color: t.textSub }}>{user?.email ?? 'tu cuenta'}</strong> son aceptados.
+              Los archivos adjuntos (PDF, imágenes, DICOM) se procesan automáticamente y aparecen en tu Vault.
+            </p>
+          </div>
         </div>
 
         {/* Zona de peligro */}
