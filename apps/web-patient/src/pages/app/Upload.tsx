@@ -104,8 +104,13 @@ export default function Upload() {
 
   useEffect(() => {
     if (folderRef.current) folderRef.current.setAttribute('webkitdirectory', '');
-    if (moreFolderRef.current) moreFolderRef.current.setAttribute('webkitdirectory', '');
   }, []);
+
+  // moreFolderRef se monta condicionalmente (solo cuando seriesName existe);
+  // el efecto de [] no alcanza a setearlo. Re-ejecutar al cambiar seriesName.
+  useEffect(() => {
+    if (moreFolderRef.current) moreFolderRef.current.setAttribute('webkitdirectory', '');
+  }, [seriesName]);
 
   // Genera signed URLs del draft para mostrar preview en el review screen
   useEffect(() => {
