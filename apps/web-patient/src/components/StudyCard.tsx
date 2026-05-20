@@ -1,4 +1,5 @@
-import { QrCode, Share2, ScanEye, Mail, FileText } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { QrCode, Share2, ScanEye, Mail, FileText, AlertTriangle } from 'lucide-react';
 import { categoryColor, formatStudyDate } from '../lib/vault';
 import { useTheme, themeColors } from '../lib/theme';
 import type { Database } from '@bresca/shared';
@@ -167,7 +168,14 @@ type PendingDraft = {
   study_type: string | null;
   category: string | null;
   ocr_score?: number | null;
+  created_at?: string | null;
 };
+
+function fmtElapsed(s: number): string {
+  const m = Math.floor(s / 60);
+  const sec = s % 60;
+  return `${m}:${sec.toString().padStart(2, '0')}`;
+}
 
 export function DraftStudyCard({
   draft,
@@ -186,8 +194,21 @@ export function DraftStudyCard({
   const color = categoryColor(draft.category ?? 'otro');
   const isDone   = draft.status === 'completed' || draft.status === 'done';
   const isFailed = draft.status === 'failed'    || draft.status === 'error';
+  const isInProgress = !isDone && !isFailed;
   const score    = typeof draft.ocr_score === 'number' ? draft.ocr_score : null;
   const isHighConfidence = score != null && score >= 95;
+
+  const [elapsed, setElapsed] = useState<number>(0);
+  useEffect(() => {
+    if (!isInProgress || !draft.created_at) return;
+    const start = new Date(draft.created_at).getTime();
+    const tick = () => setElapsed(Math.floor((Date.now() - start) / 1000));
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [isInProgress, draft.created_at]);
+
+  const isTimeout = elapsed >= 120;
 
   if (isFailed) {
     return (
@@ -253,18 +274,42 @@ export function DraftStudyCard({
   }
 
   // procesando (pending / processing)
+  const bg         = isTimeout ? (isDark ? 'rgba(245,158,11,0.15)' : '#FFFBEB') : t.cardAlt;
+  const borderCol  = isTimeout ? (isDark ? 'rgba(245,158,11,0.4)' : '#FDE68A') : t.border;
+  const barColor   = isTimeout ? '#F59E0B' : color;
+  const textColor  = isTimeout ? (isDark ? '#FCD34D' : '#92400E') : t.textSub;
+  const subColor   = isTimeout ? (isDark ? '#FCD34D' : '#B45309') : t.textMuted;
+
   return (
-    <div style={{ width: '100%', background: t.cardAlt, border: `1px solid ${t.border}`, borderRadius: 14, display: 'flex', overflow: 'hidden', minHeight: 70 }}>
-      <div style={{ width: 4, background: color, flexShrink: 0, opacity: 0.4, animation: 'pulse-bar 1.5s ease-in-out infinite' }} />
+    <div style={{ width: '100%', background: bg, border: `1px solid ${borderCol}`, borderRadius: 14, display: 'flex', overflow: 'hidden', minHeight: 70 }}>
+      <div style={{ width: 4, background: barColor, flexShrink: 0, opacity: isTimeout ? 0.9 : 0.4, animation: isTimeout ? 'none' : 'pulse-bar 1.5s ease-in-out infinite' }} />
       <div style={{ flex: 1, padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 12 }}>
-        <div style={{ width: 20, height: 20, border: `2px solid ${t.border}`, borderTopColor: color, borderRadius: '50%', animation: 'spin 0.8s linear infinite', flexShrink: 0 }} />
+        {isTimeout ? (
+          <AlertTriangle size={20} color="#F59E0B" style={{ flexShrink: 0 }} />
+        ) : (
+          <div style={{ width: 20, height: 20, border: `2px solid ${t.border}`, borderTopColor: color, borderRadius: '50%', animation: 'spin 0.8s linear infinite', flexShrink: 0 }} />
+        )}
         <div style={{ flex: 1, minWidth: 0 }}>
-          <span style={{ fontSize: 14, fontWeight: 600, color: t.textSub, display: 'block' }}>Analizando el estudio…</span>
-          <span style={{ fontSize: 12, color: t.textMuted }}>La IA está procesando en segundo plano</span>
+          <span style={{ fontSize: 14, fontWeight: 600, color: textColor, display: 'block' }}>
+            {isTimeout ? 'Está tardando más de lo normal' : 'Analizando el estudio…'}
+          </span>
+          <span style={{ fontSize: 12, color: subColor }}>
+            {draft.created_at
+              ? (isTimeout ? `${fmtElapsed(elapsed)} — podés cancelar y reintentar` : `${fmtElapsed(elapsed)}`)
+              : (isTimeout ? 'Podés cancelar y reintentar' : 'La IA está procesando en segundo plano')}
+          </span>
         </div>
-        <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 6, background: t.borderLight, color: t.textMuted, flexShrink: 0 }}>
-          Procesando
-        </span>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 5, flexShrink: 0 }}>
+          <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 6, background: isTimeout ? (isDark ? 'rgba(245,158,11,0.2)' : '#FEF3C7') : t.borderLight, color: isTimeout ? '#F59E0B' : t.textMuted }}>
+            {isTimeout ? 'Tardando…' : 'Procesando'}
+          </span>
+          <button
+            onClick={onDismiss}
+            style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 6, background: 'none', border: `1px solid ${isTimeout ? '#F59E0B' : t.border}`, color: isTimeout ? '#F59E0B' : t.textMuted, cursor: 'pointer', lineHeight: 1.5 }}
+          >
+            Cancelar
+          </button>
+        </div>
       </div>
     </div>
   );

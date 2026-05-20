@@ -25,6 +25,7 @@ type PendingDraft = {
   study_type: string | null;
   category: string | null;
   ocr_score: number | null;
+  created_at?: string | null;
 };
 
 const DONE: DraftStatus[] = ['done', 'completed'];
@@ -83,14 +84,14 @@ export default function Vault() {
 
     supabase
       .from('study_drafts')
-      .select('id,status,study_type,category,ocr_score')
+      .select('id,status,study_type,category,ocr_score,created_at')
       .eq('profile_id', activeProfileId)
       .in('status', [...IN_PROGRESS, ...DONE, ...FAILED])
       .then(({ data }) => {
         if (!isMounted.current) return;
         let drafts = (data ?? []) as PendingDraft[];
         if (navState?.pendingDraftId && !drafts.find(d => d.id === navState.pendingDraftId)) {
-          drafts = [{ id: navState.pendingDraftId, status: 'pending', study_type: null, category: null, ocr_score: null }, ...drafts];
+          drafts = [{ id: navState.pendingDraftId, status: 'pending', study_type: null, category: null, ocr_score: null, created_at: new Date().toISOString() }, ...drafts];
         }
         setPendingDrafts(drafts);
       });
@@ -123,7 +124,7 @@ export default function Vault() {
       if (!current.length) return;
       const { data } = await supabase
         .from('study_drafts')
-        .select('id,status,study_type,category,ocr_score')
+        .select('id,status,study_type,category,ocr_score,created_at')
         .in('id', current.map(d => d.id));
       if (data?.length && isMounted.current) {
         setPendingDrafts(prev => prev.map(d => {

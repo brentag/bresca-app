@@ -28,7 +28,7 @@ type Draft = {
 type SelectedFile = { id: string; file: File; preview: string };
 
 const MAX_FILES = 10;
-const MAX_SERIES_FILES = 200; // DICOM series: CT/MR slices can reach 500+
+const MAX_SERIES_FILES = 500; // DICOM series: CT/MR slices can reach 500+
 
 const MIME_MAP: Record<string, string> = {
   jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp',
@@ -98,10 +98,13 @@ export default function Upload() {
   const [savedVaultPath, setSavedVaultPath] = useState('/app/vault');
   const [draftSignedUrls, setDraftSignedUrls] = useState<{ path: string; url: string; isPdf: boolean; isDicom: boolean }[]>([]);
   const [seriesName, setSeriesName] = useState<string | null>(null);
+  const [dragOver, setDragOver] = useState(false);
   const folderRef = React.useRef<HTMLInputElement>(null);
+  const moreFolderRef = React.useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (folderRef.current) folderRef.current.setAttribute('webkitdirectory', '');
+    if (moreFolderRef.current) moreFolderRef.current.setAttribute('webkitdirectory', '');
   }, []);
 
   // Genera signed URLs del draft para mostrar preview en el review screen
@@ -215,6 +218,115 @@ export default function Upload() {
       if (!next.length) setSeriesName(null);
       return next;
     });
+  }
+
+  function addMoreFolderFiles(e: React.ChangeEvent<HTMLInputElement>) {
+    const incoming = Array.from(e.target.files ?? []);
+    if (!incoming.length) return;
+    setExtractError('');
+    setFiles(prev => {
+      const remaining = MAX_SERIES_FILES - prev.length;
+      if (remaining <= 0) {
+        setExtractError(`Límite de ${MAX_SERIES_FILES} archivos alcanzado.`);
+        return prev;
+      }
+      const toAdd = incoming.slice(0, remaining);
+      if (toAdd.length < incoming.length) {
+        setExtractError(`Se agregaron ${toAdd.length} de ${incoming.length} archivos adicionales (límite total: ${MAX_SERIES_FILES}).`);
+      }
+      return [...prev, ...toAdd.map(file => ({ id: `${Date.now()}-${Math.random()}`, file, preview: '' }))];
+    });
+    e.target.value = '';
+  }
+
+  async function readDirEntry(dirEntry: FileSystemDirectoryEntry, out: File[]): Promise<void> {
+    return new Promise(resolve => {
+      const reader = dirEntry.createReader();
+      const readBatch = () => {
+        reader.readEntries(async entries => {
+          if (!entries.length) { resolve(); return; }
+          await Promise.all(entries.map(entry => {
+            if (entry.isFile) {
+              return new Promise<void>(r => (entry as FileSystemFileEntry).file(f => { out.push(f); r(); }, () => r()));
+            }
+            if (entry.isDirectory) return readDirEntry(entry as FileSystemDirectoryEntry, out);
+          }));
+          readBatch();
+        });
+      };
+      readBatch();
+    });
+  }
+
+  async function handleDrop(e: React.DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+    setDragOver(false);
+    if (uploading) return;
+    setExtractError('');
+
+    const items = Array.from(e.dataTransfer.items);
+    if (!items.length) return;
+
+    const allFiles: File[] = [];
+    const dirNames: string[] = [];
+
+    await Promise.all(
+      items.map(item => {
+        const entry = item.webkitGetAsEntry?.();
+        if (!entry) {
+          const f = item.getAsFile();
+          if (f) allFiles.push(f);
+          return;
+        }
+        if (entry.isFile) {
+          return new Promise<void>(resolve => {
+            (entry as FileSystemFileEntry).file(f => { allFiles.push(f); resolve(); }, () => resolve());
+          });
+        }
+        if (entry.isDirectory) {
+          dirNames.push(entry.name);
+          return readDirEntry(entry as FileSystemDirectoryEntry, allFiles);
+        }
+      }),
+    );
+
+    if (!allFiles.length) return;
+
+    if (dirNames.length > 0) {
+      // Serie DICOM: reemplaza o agrega a la existente
+      const name = dirNames.length === 1 ? dirNames[0] : `${dirNames.length} carpetas`;
+      const toAdd = allFiles.slice(0, MAX_SERIES_FILES);
+      if (allFiles.length > MAX_SERIES_FILES) {
+        setExtractError(`Serie grande: se cargarán los primeros ${toAdd.length} de ${allFiles.length} archivos.`);
+      }
+      if (seriesName) {
+        setFiles(prev => {
+          const remaining = MAX_SERIES_FILES - prev.length;
+          return [...prev, ...toAdd.slice(0, remaining).map(file => ({ id: `${Date.now()}-${Math.random()}`, file, preview: '' }))];
+        });
+      } else {
+        setSeriesName(name);
+        setFiles(toAdd.map(file => ({ id: `${Date.now()}-${Math.random()}`, file, preview: '' })));
+      }
+    } else {
+      // Archivos sueltos
+      setFiles(prev => {
+        const remaining = MAX_FILES - prev.length;
+        if (remaining <= 0) {
+          setExtractError(`Máximo ${MAX_FILES} archivos por envío.`);
+          return prev;
+        }
+        const toAdd = allFiles.slice(0, remaining);
+        if (toAdd.length < allFiles.length) {
+          setExtractError(`Se agregaron ${toAdd.length} de ${allFiles.length} archivos (límite: ${MAX_FILES}).`);
+        }
+        return [...prev, ...toAdd.map(file => ({
+          id: `${Date.now()}-${Math.random()}`,
+          file,
+          preview: file.type.startsWith('image/') ? URL.createObjectURL(file) : '',
+        }))];
+      });
+    }
   }
 
   async function processFiles() {
@@ -400,7 +512,19 @@ export default function Upload() {
 
       {/* ── PASO: source ── */}
       {step === 'source' && (
-        <div style={{ flex: 1, padding: '20px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
+        <div
+          style={{ flex: 1, padding: '20px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 20, position: 'relative' }}
+          onDragOver={e => { e.preventDefault(); if (!uploading) setDragOver(true); }}
+          onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setDragOver(false); }}
+          onDrop={handleDrop}
+        >
+          {dragOver && (
+            <div style={{ position: 'absolute', inset: 0, zIndex: 10, background: 'rgba(0,200,122,0.08)', border: '2.5px dashed #00C87A', borderRadius: 16, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, pointerEvents: 'none' }}>
+              <FolderOpen size={40} color="#00C87A" />
+              <span style={{ fontSize: 16, fontWeight: 700, color: '#00C87A' }}>Soltá los archivos aquí</span>
+              <span style={{ fontSize: 13, color: '#00A663' }}>Archivos o carpetas DICOM</span>
+            </div>
+          )}
 
           {extractError && (
             <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 12, padding: '12px 16px', fontSize: 14, color: '#DC2626' }}>
@@ -461,23 +585,35 @@ export default function Upload() {
 
               {/* Serie DICOM: card única en lugar de N thumbnails */}
               {seriesName ? (
-                <div style={{ background: '#F5F3FF', border: '1.5px solid #DDD6FE', borderRadius: 14, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 14 }}>
-                  <FolderOpen size={32} color="#7C3AED" style={{ flexShrink: 0 }} />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: '#4C1D95', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {seriesName}
+                <div style={{ background: '#F5F3FF', border: '1.5px solid #DDD6FE', borderRadius: 14, padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                    <FolderOpen size={32} color="#7C3AED" style={{ flexShrink: 0 }} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: '#4C1D95', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {seriesName}
+                      </div>
+                      <div style={{ fontSize: 12, color: '#6D28D9', marginTop: 2 }}>
+                        {files.length} archivos DICOM
+                        {files.length >= MAX_SERIES_FILES && <span style={{ color: '#F59E0B', marginLeft: 6 }}>· límite {MAX_SERIES_FILES}</span>}
+                      </div>
                     </div>
-                    <div style={{ fontSize: 12, color: '#6D28D9', marginTop: 2 }}>
-                      {files.length} archivos DICOM
-                      {files.length === MAX_SERIES_FILES && <span style={{ color: '#F59E0B', marginLeft: 6 }}>· límite {MAX_SERIES_FILES}</span>}
-                    </div>
+                    <button
+                      onClick={() => { setFiles([]); setSeriesName(null); }}
+                      style={{ width: 28, height: 28, borderRadius: '50%', background: '#EDE9FE', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}
+                    >
+                      <X size={13} color="#7C3AED" strokeWidth={2.5} />
+                    </button>
                   </div>
-                  <button
-                    onClick={() => { setFiles([]); setSeriesName(null); }}
-                    style={{ width: 28, height: 28, borderRadius: '50%', background: '#EDE9FE', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}
-                  >
-                    <X size={13} color="#7C3AED" strokeWidth={2.5} />
-                  </button>
+                  {files.length < MAX_SERIES_FILES && (
+                    <button
+                      type="button"
+                      onClick={() => moreFolderRef.current?.click()}
+                      style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#EDE9FE', border: 'none', borderRadius: 8, padding: '7px 12px', fontSize: 12, fontWeight: 600, color: '#7C3AED', cursor: 'pointer' }}
+                    >
+                      <Plus size={14} color="#7C3AED" /> Agregar otra carpeta
+                    </button>
+                  )}
+                  <input ref={moreFolderRef} type="file" multiple onChange={addMoreFolderFiles} style={{ display: 'none' }} />
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
